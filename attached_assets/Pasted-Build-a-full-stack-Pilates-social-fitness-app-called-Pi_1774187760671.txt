@@ -1,0 +1,82 @@
+Build a full-stack Pilates social fitness app called "PilatesHub" — a prototype with the following pages and features:
+
+## TECH STACK
+- React (Vite) + TypeScript frontend
+- Tailwind CSS for styling
+- React Router for navigation
+- Mock data (no real backend needed — use static JSON/local state)
+- Lucide React for icons
+
+## PAGES & FEATURES
+
+### 1. HOME / MAP PAGE (default landing page)
+- Interactive map UI (use a visual mock map with studio cards pinned, no real API needed)
+- Display Pilates studio cards with: name, distance, star rating (1-5), number of reviews, price per session
+- Filter bar: by rating, distance, price, availability
+- Clicking a studio opens a Studio Detail Modal with:
+  - Photos carousel
+  - Description, address, coach profiles
+  - Available time slots to book
+  - "Book a Session" CTA button
+  - Reviews section with user comments and ratings
+
+### 2. SOCIAL FEED PAGE
+- Instagram/Strava-style activity feed
+- Users can post completed sessions: studio name, duration, calories burned, type of Pilates
+- Each post shows: user avatar, session stats, photo (optional), likes, comments
+- "Share my session" button with a session summary card
+- Leaderboard widget on the side: top users this week by calories burned or sessions completed
+- Follow/unfollow other users
+
+### 3. GAMIFICATION / DASHBOARD PAGE
+- Personal stats dashboard:
+  - Total sessions completed
+  - Total calories burned (based on session type + duration, use mock formula)
+  - Weekly streak tracker (visual calendar)
+  - Badges earned (e.g., "First Session", "7-Day Streak", "100 Sessions", "Calorie Crusher")
+- Progress chart: calories burned per week (bar chart using Recharts)
+- Leaderboard tab: global ranking among friends
+- Upcoming booked sessions list
+
+### 4. COMMUNITY PAGE (Reddit-style)
+- Forum with topic threads: e.g., "Best studios in Paris", "Reformer vs Mat Pilates", "Nutrition tips"
+- Users can create posts, upvote/downvote, comment
+- Categories/tags: Technique, Nutrition, Studios, Gear, Challenges
+- Popular posts sidebar
+- User flair showing their level (Beginner / Intermediate / Advanced) based on sessions completed
+
+### 5. STORE PAGE
+- E-commerce style product grid
+- Products: Pilates mats, resistance bands, reformer accessories, grip socks, apparel
+- Brands: Lululemon, Align Pilates, Balanced Body, Merrithew
+- Product cards with: image placeholder, name, brand, price, rating, "Add to cart"
+- Filter by: category, brand, price range
+- Cart sidebar with total
+
+### 6. PROFILE PAGE
+- User profile: avatar, bio, location, total sessions, followers/following
+- Activity history
+- Badges showcase
+- Edit profile button
+- My bookings tab
+
+## DESIGN GUIDELINES
+- Color palette: soft neutrals + sage green + warm beige (wellness aesthetic)
+- Clean, modern, premium feel — inspired by Strava + ClassPass + Reddit
+- Mobile-first responsive design
+- Smooth hover states and transitions
+- Bottom navigation bar for mobile (Home/Map, Feed, Community, Store, Profile)
+- Top navbar for desktop
+
+## MOCK DATA TO INCLUDE
+- 8 Pilates studios with names, ratings, fake addresses, price range, coach names
+- 10 user profiles with avatars (use UI Avatars or placeholder images)
+- 15 community posts with upvotes and comments
+- 20 store products with placeholder images (use picsum.photos or similar)
+- Pre-filled activity feed with 10 posts
+
+## NOTES
+- All data is mock/static — no real auth, no real payments, no real map API
+- Focus on UI/UX quality and feature completeness
+- Every button and navigation element should work (even if it just shows mock data)
+- Make it feel like a real, polished product prototype
