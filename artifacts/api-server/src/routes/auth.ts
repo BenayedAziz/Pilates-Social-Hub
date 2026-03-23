@@ -277,4 +277,82 @@ router.get("/auth/me", authMiddleware, async (req, res) => {
   }
 });
 
+/**
+ * PUT /api/auth/profile (protected)
+ * Body: { name?, bio?, level? }
+ * Returns: updated SafeUser
+ */
+router.put("/auth/profile", authMiddleware, async (req, res) => {
+  const { name, bio, level } = req.body as {
+    name?: string;
+    bio?: string;
+    level?: string;
+  };
+
+  // Validate inputs
+  if (name !== undefined && (typeof name !== "string" || name.trim().length < 2)) {
+    res.status(400).json({ message: "Name must be at least 2 characters" });
+    return;
+  }
+
+  if (bio !== undefined && (typeof bio !== "string" || bio.length > 150)) {
+    res.status(400).json({ message: "Bio must be 150 characters or less" });
+    return;
+  }
+
+  const validLevels = ["beginner", "intermediate", "advanced"];
+  if (
+    level !== undefined &&
+    (typeof level !== "string" || !validLevels.includes(level.toLowerCase()))
+  ) {
+    res
+      .status(400)
+      .json({ message: "Level must be beginner, intermediate, or advanced" });
+    return;
+  }
+
+  try {
+    const database = await getDatabase();
+
+    if (database) {
+      const { db, schema } = database;
+
+      const updateData: Record<string, string> = {};
+      if (name !== undefined) updateData.displayName = name.trim();
+      if (bio !== undefined) updateData.bio = bio;
+      if (level !== undefined) updateData.level = level.toLowerCase();
+
+      const [updated] = await db
+        .update(schema.users)
+        .set({ ...updateData, updatedAt: new Date().toISOString() })
+        .where(eq(schema.users.id, req.user!.userId))
+        .returning();
+
+      if (!updated) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      res.json(updated);
+      return;
+    }
+
+    // Fallback to mock data
+    const user = mockUsers.find((u) => u.id === req.user!.userId);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    if (name !== undefined) user.displayName = name.trim();
+    if (bio !== undefined) user.bio = bio;
+    if (level !== undefined) user.level = level.toLowerCase();
+    user.updatedAt = new Date().toISOString();
+
+    res.json(toSafeUser(user));
+  } catch (error) {
+    res.status(500).json({ message: "Failed to update profile" });
+  }
+});
+
 export default router;

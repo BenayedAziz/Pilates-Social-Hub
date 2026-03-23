@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { getDatabase } from "../lib/database";
-import { eq, ilike, or } from "drizzle-orm";
+import { eq, ilike, or, desc } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Types (mirrors DB schema – used for mock fallback)
@@ -293,6 +293,164 @@ router.get("/studios/:id", async (req, res) => {
   } catch (_error) {
     res.status(500).json({ error: "Failed to fetch studio" });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Studio Reviews mock data
+// ---------------------------------------------------------------------------
+interface StudioReview {
+  id: number;
+  studioId: number;
+  userId: number;
+  userName: string;
+  userInitials: string;
+  userColor: string;
+  rating: number;
+  text: string;
+  date: string;
+  helpful: number;
+}
+
+const USER_COLORS = [
+  "bg-rose-200", "bg-blue-200", "bg-green-200", "bg-yellow-200", "bg-purple-200",
+  "bg-orange-200", "bg-teal-200", "bg-indigo-200", "bg-pink-200", "bg-cyan-200",
+];
+
+const mockStudioReviews: StudioReview[] = [
+  { id: 1, studioId: 1, userId: 1, userName: "Emma D", userInitials: "ED", userColor: "bg-rose-200", rating: 5, text: "Absolutely love Studio Harmonie! The reformers are top-quality and Sophie is an incredible instructor.", date: "2 days ago", helpful: 12 },
+  { id: 2, studioId: 1, userId: 2, userName: "Lucas M", userInitials: "LM", userColor: "bg-blue-200", rating: 4, text: "Great equipment and atmosphere. A bit pricey but worth it for the quality.", date: "1 week ago", helpful: 8 },
+  { id: 3, studioId: 2, userId: 3, userName: "Sophie B", userInitials: "SB", userColor: "bg-green-200", rating: 5, text: "The view from Pilates Lumiere is breathtaking! The Cadillac classes are exceptional.", date: "3 days ago", helpful: 15 },
+  { id: 4, studioId: 3, userId: 4, userName: "Alex R", userInitials: "AR", userColor: "bg-yellow-200", rating: 5, text: "Core & Flow is the most welcoming studio. Great community vibe and very affordable.", date: "5 days ago", helpful: 6 },
+  { id: 5, studioId: 3, userId: 5, userName: "Marie C", userInitials: "MC", userColor: "bg-purple-200", rating: 4, text: "Lovely studio at the base of Montmartre. Classes are well-structured.", date: "1 week ago", helpful: 4 },
+  { id: 6, studioId: 4, userId: 6, userName: "Pierre T", userInitials: "PT", userColor: "bg-orange-200", rating: 4, text: "Reform Studio has the best Balanced Body equipment in Paris.", date: "4 days ago", helpful: 9 },
+  { id: 7, studioId: 5, userId: 7, userName: "Isabelle F", userInitials: "IF", userColor: "bg-teal-200", rating: 5, text: "Hidden gem in Pigalle! Small classes mean personal attention.", date: "2 weeks ago", helpful: 7 },
+  { id: 8, studioId: 6, userId: 8, userName: "Thomas G", userInitials: "TG", userColor: "bg-indigo-200", rating: 4, text: "Best value for reformer in Paris. No frills but great instruction.", date: "1 week ago", helpful: 11 },
+  { id: 9, studioId: 7, userId: 9, userName: "Lea N", userInitials: "LN", userColor: "bg-pink-200", rating: 5, text: "The breath-work integration at Pilates Zen changed my practice.", date: "3 days ago", helpful: 13 },
+  { id: 10, studioId: 8, userId: 10, userName: "Hugo P", userInitials: "HP", userColor: "bg-cyan-200", rating: 5, text: "BodyWork is worth every euro. The instructors are world-class.", date: "6 days ago", helpful: 18 },
+  { id: 11, studioId: 1, userId: 9, userName: "Lea N", userInitials: "LN", userColor: "bg-pink-200", rating: 5, text: "Sophie's reformer advanced class is life-changing.", date: "2 weeks ago", helpful: 10 },
+  { id: 12, studioId: 2, userId: 6, userName: "Pierre T", userInitials: "PT", userColor: "bg-orange-200", rating: 4, text: "Beautiful space, excellent Cadillac work.", date: "1 week ago", helpful: 5 },
+];
+
+// ---------------------------------------------------------------------------
+// Studio Checkins mock data
+// ---------------------------------------------------------------------------
+interface StudioCheckin {
+  studioId: number;
+  userId: number;
+  userName: string;
+  userInitials: string;
+  userColor: string;
+  checkins: number;
+  lastVisit: string;
+}
+
+const mockStudioCheckins: StudioCheckin[] = [
+  { studioId: 1, userId: 1, userName: "Emma D", userInitials: "ED", userColor: "bg-rose-200", checkins: 45, lastVisit: "Today" },
+  { studioId: 1, userId: 9, userName: "Lea N", userInitials: "LN", userColor: "bg-pink-200", checkins: 38, lastVisit: "Yesterday" },
+  { studioId: 1, userId: 2, userName: "Lucas M", userInitials: "LM", userColor: "bg-blue-200", checkins: 22, lastVisit: "3 days ago" },
+  { studioId: 2, userId: 3, userName: "Sophie B", userInitials: "SB", userColor: "bg-green-200", checkins: 52, lastVisit: "Today" },
+  { studioId: 2, userId: 6, userName: "Pierre T", userInitials: "PT", userColor: "bg-orange-200", checkins: 31, lastVisit: "2 days ago" },
+  { studioId: 2, userId: 8, userName: "Thomas G", userInitials: "TG", userColor: "bg-indigo-200", checkins: 19, lastVisit: "1 week ago" },
+  { studioId: 3, userId: 4, userName: "Alex R", userInitials: "AR", userColor: "bg-yellow-200", checkins: 67, lastVisit: "Today" },
+  { studioId: 3, userId: 5, userName: "Marie C", userInitials: "MC", userColor: "bg-purple-200", checkins: 41, lastVisit: "Yesterday" },
+  { studioId: 3, userId: 7, userName: "Isabelle F", userInitials: "IF", userColor: "bg-teal-200", checkins: 28, lastVisit: "4 days ago" },
+  { studioId: 4, userId: 6, userName: "Pierre T", userInitials: "PT", userColor: "bg-orange-200", checkins: 35, lastVisit: "Today" },
+  { studioId: 4, userId: 1, userName: "Emma D", userInitials: "ED", userColor: "bg-rose-200", checkins: 18, lastVisit: "3 days ago" },
+  { studioId: 5, userId: 7, userName: "Isabelle F", userInitials: "IF", userColor: "bg-teal-200", checkins: 56, lastVisit: "Yesterday" },
+  { studioId: 5, userId: 10, userName: "Hugo P", userInitials: "HP", userColor: "bg-cyan-200", checkins: 23, lastVisit: "5 days ago" },
+  { studioId: 6, userId: 8, userName: "Thomas G", userInitials: "TG", userColor: "bg-indigo-200", checkins: 44, lastVisit: "Today" },
+  { studioId: 6, userId: 4, userName: "Alex R", userInitials: "AR", userColor: "bg-yellow-200", checkins: 29, lastVisit: "2 days ago" },
+  { studioId: 7, userId: 9, userName: "Lea N", userInitials: "LN", userColor: "bg-pink-200", checkins: 38, lastVisit: "Today" },
+  { studioId: 7, userId: 2, userName: "Lucas M", userInitials: "LM", userColor: "bg-blue-200", checkins: 15, lastVisit: "1 week ago" },
+  { studioId: 8, userId: 10, userName: "Hugo P", userInitials: "HP", userColor: "bg-cyan-200", checkins: 61, lastVisit: "Today" },
+  { studioId: 8, userId: 3, userName: "Sophie B", userInitials: "SB", userColor: "bg-green-200", checkins: 47, lastVisit: "Yesterday" },
+  { studioId: 8, userId: 5, userName: "Marie C", userInitials: "MC", userColor: "bg-purple-200", checkins: 33, lastVisit: "3 days ago" },
+];
+
+/**
+ * GET /api/studios/:id/reviews
+ * Returns reviews for a specific studio.
+ */
+router.get("/studios/:id/reviews", async (req, res) => {
+  const id = Number(req.params["id"]);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid studio id" });
+    return;
+  }
+
+  try {
+    const database = await getDatabase();
+
+    if (database) {
+      const { db, schema } = database;
+
+      if (schema.reviews && schema.users) {
+        const rows = await db
+          .select({
+            id: schema.reviews.id,
+            studioId: schema.reviews.studioId,
+            userId: schema.reviews.userId,
+            rating: schema.reviews.rating,
+            text: schema.reviews.text,
+            createdAt: schema.reviews.createdAt,
+            userName: schema.users.displayName,
+          })
+          .from(schema.reviews)
+          .leftJoin(schema.users, eq(schema.reviews.userId, schema.users.id))
+          .where(eq(schema.reviews.studioId, id))
+          .orderBy(desc(schema.reviews.createdAt));
+
+        const results = rows.map((row: any) => {
+          const name = row.userName ?? "Unknown";
+          const initials = name
+            .split(" ")
+            .map((w: string) => w[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+          return {
+            id: row.id,
+            studioId: row.studioId,
+            userId: row.userId,
+            userName: name,
+            userInitials: initials,
+            userColor: USER_COLORS[(row.userId - 1) % USER_COLORS.length],
+            rating: row.rating,
+            text: row.text ?? "",
+            date: "recently",
+            helpful: 0,
+          };
+        });
+
+        res.json(results);
+        return;
+      }
+    }
+
+    // Fallback to mock data
+    const results = mockStudioReviews.filter((r) => r.studioId === id);
+    res.json(results);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch studio reviews" });
+  }
+});
+
+/**
+ * GET /api/studios/:id/checkins
+ * Returns checkins leaderboard for a specific studio.
+ */
+router.get("/studios/:id/checkins", (req, res) => {
+  const id = Number(req.params["id"]);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid studio id" });
+    return;
+  }
+
+  const results = mockStudioCheckins
+    .filter((c) => c.studioId === id)
+    .sort((a, b) => b.checkins - a.checkins);
+
+  res.json(results);
 });
 
 export default router;

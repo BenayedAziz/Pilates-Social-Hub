@@ -12,6 +12,14 @@ import paymentsRouter from "./payments";
 import messagesRouter from "./messages";
 import reviewsRouter from "./reviews";
 import wearablesRouter from "./wearables";
+import ordersRouter from "./orders";
+import challengesRouter from "./challenges";
+import circlesRouter from "./circles";
+import badgesRouter from "./badges";
+import leaderboardRouter from "./leaderboard";
+import calorieDataRouter from "./calorie-data";
+import coachesRouter from "./coaches";
+import brandsRouter from "./brands";
 
 const router: IRouter = Router();
 
@@ -28,5 +36,13 @@ router.use("/payments", paymentsRouter);
 router.use(messagesRouter);
 router.use(reviewsRouter);
 router.use(wearablesRouter);
+router.use(ordersRouter);
+router.use(challengesRouter);
+router.use(circlesRouter);
+router.use(badgesRouter);
+router.use(leaderboardRouter);
+router.use(calorieDataRouter);
+router.use(coachesRouter);
+router.use(brandsRouter);
 
 export default router;

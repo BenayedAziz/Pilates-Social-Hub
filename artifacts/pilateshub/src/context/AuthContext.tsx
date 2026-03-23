@@ -8,6 +8,7 @@ interface AuthUser {
   email: string;
   initials: string;
   level: string;
+  bio: string;
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   signup: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateProfile: (data: { name?: string; bio?: string; level?: string }) => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -26,6 +28,7 @@ const MOCK_USER: AuthUser = {
   email: "emma@example.com",
   initials: "ED",
   level: "Advanced",
+  bio: "Reformer enthusiast based in Le Marais. 3x per week.",
 };
 
 /**
@@ -46,6 +49,7 @@ function toAuthUser(apiUser: any): AuthUser {
     email: apiUser.email,
     initials,
     level: apiUser.level ?? "Beginner",
+    bio: apiUser.bio ?? "",
   };
 }
 
@@ -138,9 +142,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
+  const updateProfile = useCallback(
+    async (data: { name?: string; bio?: string; level?: string }): Promise<boolean> => {
+      try {
+        const token = localStorage.getItem(TOKEN_KEY);
+        if (!token) {
+          // No token (mock mode) — update local state directly
+          setUser((prev) => {
+            if (!prev) return prev;
+            const name = data.name ?? prev.name;
+            const initials = name
+              .split(" ")
+              .map((n: string) => n[0])
+              .join("")
+              .toUpperCase()
+              .slice(0, 2);
+            return {
+              ...prev,
+              name,
+              initials,
+              bio: data.bio ?? prev.bio,
+              level: data.level ?? prev.level,
+            };
+          });
+          return true;
+        }
+
+        const res = await fetch("/api/auth/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+        });
+
+        if (!res.ok) return false;
+
+        const updated = await res.json();
+        setUser(toAuthUser(updated));
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    [],
+  );
+
   const value = useMemo(
-    () => ({ user, isAuthenticated: !!user, login, signup, logout }),
-    [user, login, signup, logout],
+    () => ({ user, isAuthenticated: !!user, login, signup, logout, updateProfile }),
+    [user, login, signup, logout, updateProfile],
   );
 
   // While checking for an existing token, don't render children

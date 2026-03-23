@@ -39,12 +39,12 @@ export default function MePage() {
         </div>
         <div className="flex-1 relative z-10">
           <h1 className="text-lg font-bold text-foreground">{user?.name || "Sarah Johnson"}</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">Advanced Level &middot; Paris</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{user?.level || "Beginner"} Level</p>
         </div>
-        <Link href="/me/settings">
+        <Link href="/me/edit">
           <button
             type="button"
-            aria-label="Settings"
+            aria-label="Edit profile"
             className="p-2 text-muted-foreground hover:text-primary transition-colors relative z-10"
           >
             <Settings className="w-5 h-5" />

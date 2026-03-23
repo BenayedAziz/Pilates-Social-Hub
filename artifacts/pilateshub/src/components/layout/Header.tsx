@@ -1,8 +1,7 @@
 import { Activity, Globe, MessageCircle, Moon, ShoppingCart, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { toast } from "sonner";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { SearchDialog } from "@/components/SearchDialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -16,7 +15,9 @@ export function Header() {
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
+  const [, navigate] = useLocation();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const toggleLang = () => {
     const newLang = i18n.language === "fr" ? "en" : "fr";
@@ -37,8 +38,8 @@ export function Header() {
   }, []);
 
   const handleCheckout = () => {
-    toast.success(t("common.orderConfirmed"));
-    clearCart();
+    setCartOpen(false);
+    navigate("/checkout");
   };
 
   return (
@@ -85,7 +86,7 @@ export function Header() {
         >
           {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
-        <Sheet>
+        <Sheet open={cartOpen} onOpenChange={setCartOpen}>
           <SheetTrigger asChild>
             <button
               type="button"

@@ -149,6 +149,18 @@ router.get("/wearables/data", (req, res) => {
 });
 
 /**
+ * GET /api/wearable
+ * Alias used by the frontend useWearable() hook.
+ * Returns the same data as /api/wearables/data.
+ */
+router.get("/wearable", (_req, res) => {
+  res.json({
+    ...mockWearableData,
+    fetchedAt: new Date().toISOString(),
+  });
+});
+
+/**
  * POST /api/wearables/disconnect
  * Disconnects a wearable device.
  * Body: { provider: string }

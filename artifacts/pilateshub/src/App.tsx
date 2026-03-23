@@ -16,6 +16,7 @@ const CommunityPage = lazy(() => import("@/pages/CommunityPage"));
 const FeedPage = lazy(() => import("@/pages/FeedPage"));
 const MapPage = lazy(() => import("@/pages/MapPage"));
 const MePage = lazy(() => import("@/pages/MePage"));
+const EditProfilePage = lazy(() => import("@/pages/EditProfilePage"));
 const MessagesPage = lazy(() => import("@/pages/MessagesPage"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
@@ -24,6 +25,7 @@ const BookingPage = lazy(() => import("@/pages/BookingPage"));
 const CoachPage = lazy(() => import("@/pages/CoachPage"));
 const StudioAdminPage = lazy(() => import("@/pages/StudioAdminPage"));
 const WearableSettingsPage = lazy(() => import("@/pages/WearableSettingsPage"));
+const CheckoutPage = lazy(() => import("@/pages/CheckoutPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -84,6 +86,11 @@ function AuthenticatedApp() {
                 <MePage />
               </ErrorBoundary>
             </Route>
+            <Route path="/me/edit">
+              <ErrorBoundary>
+                <EditProfilePage />
+              </ErrorBoundary>
+            </Route>
             <Route path="/community">
               <ErrorBoundary>
                 <CommunityPage />
@@ -137,6 +144,11 @@ function AuthenticatedApp() {
             <Route path="/settings/wearables">
               <ErrorBoundary>
                 <WearableSettingsPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/checkout">
+              <ErrorBoundary>
+                <CheckoutPage />
               </ErrorBoundary>
             </Route>
             <Route component={NotFound} />
