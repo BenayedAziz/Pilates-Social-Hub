@@ -1,10 +1,11 @@
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { BadgeCheck, ChevronRight, Heart, ShoppingBag, Star } from "lucide-react";
 import { useState } from "react";
+import { Link } from "wouter";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApp } from "@/context/AppContext";
-import { PRODUCTS as FALLBACK_PRODUCTS } from "@/data/mock-data";
+import { BRANDS, PRODUCTS as FALLBACK_PRODUCTS } from "@/data/mock-data";
 import { useProducts } from "@/hooks/use-api";
 
 const CATEGORIES = [
@@ -56,6 +57,51 @@ export default function StorePage() {
               {cat.emoji ? `${cat.emoji} ` : ""}
               {cat.label} ({getCategoryCount(cat.key)})
             </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Our Brands — horizontal scroll */}
+      <div className="px-5 pt-5 pb-2">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-bold text-foreground text-base">Our Brands</h2>
+          <Link href="/brands">
+            <span className="text-xs font-semibold text-primary flex items-center gap-0.5 hover:underline cursor-pointer">
+              View all <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
+        </div>
+        <div className="flex gap-3 overflow-x-auto pb-2" style={{ scrollbarWidth: "none" }}>
+          {BRANDS.map((brand) => (
+            <Link key={brand.id} href={`/brand/${brand.slug}`}>
+              <div className="flex-shrink-0 w-36 rounded-2xl overflow-hidden bg-card shadow-sm border border-border/40 hover:shadow-md transition-all duration-300 cursor-pointer group">
+                <div className="h-20 relative overflow-hidden">
+                  <img
+                    src={brand.coverImageUrl}
+                    alt={brand.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                  <div className="absolute bottom-2 left-2.5">
+                    <div className="w-8 h-8 rounded-lg bg-card/95 backdrop-blur-sm flex items-center justify-center text-lg shadow border border-white/10">
+                      {brand.logoEmoji}
+                    </div>
+                  </div>
+                </div>
+                <div className="px-2.5 py-2">
+                  <p className="text-xs font-bold text-foreground truncate flex items-center gap-1">
+                    {brand.name}
+                    {brand.verified && <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" />}
+                  </p>
+                  <div className="flex items-center gap-1 mt-0.5">
+                    <Star className="w-2.5 h-2.5 text-accent-cta fill-accent-cta" />
+                    <span className="text-[10px] text-muted-foreground font-medium">
+                      {brand.rating} &middot; {brand.productCount} items
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       </div>

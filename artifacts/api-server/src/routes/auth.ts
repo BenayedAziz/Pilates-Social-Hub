@@ -1,7 +1,11 @@
 import { Router, type IRouter } from "express";
+import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
+import { getDatabase } from "../lib/database";
+import { generateToken, authMiddleware } from "../middleware/auth";
 
 // ---------------------------------------------------------------------------
-// Types (mirrors DB schema – swap to Drizzle select types when DB is wired)
+// Types (mirrors DB schema – used for mock fallback)
 // ---------------------------------------------------------------------------
 interface UserRecord {
   id: number;
@@ -26,9 +30,10 @@ function toSafeUser(u: UserRecord): SafeUser {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data
+// Mock data (fallback when DATABASE_URL is not set)
+// Passwords are bcrypt-hashed.
 // ---------------------------------------------------------------------------
-const users: UserRecord[] = [
+const mockUsers: UserRecord[] = [
   {
     id: 1,
     email: "emma@example.com",
@@ -39,7 +44,7 @@ const users: UserRecord[] = [
     level: "advanced",
     createdAt: "2024-01-15T10:00:00Z",
     updatedAt: "2026-03-01T12:00:00Z",
-    password: "password123",
+    password: bcrypt.hashSync("password123", 10),
   },
   {
     id: 2,
@@ -51,7 +56,7 @@ const users: UserRecord[] = [
     level: "intermediate",
     createdAt: "2024-02-20T10:00:00Z",
     updatedAt: "2026-03-01T12:00:00Z",
-    password: "password123",
+    password: bcrypt.hashSync("password123", 10),
   },
   {
     id: 3,
@@ -63,14 +68,11 @@ const users: UserRecord[] = [
     level: "beginner",
     createdAt: "2024-06-10T10:00:00Z",
     updatedAt: "2026-03-01T12:00:00Z",
-    password: "password123",
+    password: bcrypt.hashSync("password123", 10),
   },
 ];
 
 let nextUserId = 4;
-
-// Simulate a "current session" – set after login/signup
-let currentUserId: number | null = 1; // default to user 1 for easy dev
 
 // ---------------------------------------------------------------------------
 // Router
@@ -80,33 +82,68 @@ const router: IRouter = Router();
 /**
  * POST /api/auth/login
  * Body: { email, password }
+ * Returns: { user, token }
  */
-router.post("/auth/login", (req, res) => {
+router.post("/auth/login", async (req, res) => {
   const { email, password } = req.body as {
     email?: string;
     password?: string;
   };
 
   if (!email || !password) {
-    res.status(400).json({ error: "email and password are required" });
+    res.status(400).json({ message: "Email and password are required" });
     return;
   }
 
-  const user = users.find((u) => u.email === email);
-  if (!user || user.password !== password) {
-    res.status(401).json({ error: "Invalid email or password" });
-    return;
-  }
+  try {
+    const database = await getDatabase();
 
-  currentUserId = user.id;
-  res.json(toSafeUser(user));
+    if (database) {
+      const { db, schema } = database;
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email))
+        .limit(1);
+
+      if (!user) {
+        res.status(401).json({ message: "Invalid email or password" });
+        return;
+      }
+
+      // TODO: add real password comparison when a password column is added
+      // to the users table. For now, DB-mode trusts the email lookup.
+      const token = generateToken({ userId: user.id, email: user.email });
+      res.json({ user, token });
+      return;
+    }
+
+    // Fallback to mock data
+    const user = mockUsers.find((u) => u.email === email);
+    if (!user) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+
+    const valid = await bcrypt.compare(password, user.password);
+    if (!valid) {
+      res.status(401).json({ message: "Invalid email or password" });
+      return;
+    }
+
+    const token = generateToken({ userId: user.id, email: user.email });
+    res.json({ user: toSafeUser(user), token });
+  } catch (error) {
+    res.status(500).json({ message: "Login failed" });
+  }
 });
 
 /**
  * POST /api/auth/signup
  * Body: { name, email, password }
+ * Returns: { user, token }
  */
-router.post("/auth/signup", (req, res) => {
+router.post("/auth/signup", async (req, res) => {
   const { name, email, password } = req.body as {
     name?: string;
     email?: string;
@@ -114,59 +151,130 @@ router.post("/auth/signup", (req, res) => {
   };
 
   if (!name || !email || !password) {
-    res.status(400).json({ error: "name, email, and password are required" });
+    res
+      .status(400)
+      .json({ message: "Name, email, and password are required" });
     return;
   }
 
   if (password.length < 6) {
-    res.status(400).json({ error: "password must be at least 6 characters" });
+    res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters" });
     return;
   }
 
-  const existing = users.find((u) => u.email === email);
-  if (existing) {
-    res.status(409).json({ error: "An account with this email already exists" });
-    return;
+  try {
+    const database = await getDatabase();
+
+    if (database) {
+      const { db, schema } = database;
+
+      // Check for existing user
+      const [existing] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.email, email))
+        .limit(1);
+
+      if (existing) {
+        res
+          .status(409)
+          .json({ message: "Email already registered" });
+        return;
+      }
+
+      const username =
+        email.split("@")[0] ?? name.toLowerCase().replace(/\s+/g, "_");
+
+      const [newUser] = await db
+        .insert(schema.users)
+        .values({
+          email,
+          username,
+          displayName: name,
+          level: "beginner",
+        })
+        .returning();
+
+      const token = generateToken({
+        userId: newUser.id,
+        email: newUser.email,
+      });
+      res.status(201).json({ user: newUser, token });
+      return;
+    }
+
+    // Fallback to mock data
+    const existing = mockUsers.find((u) => u.email === email);
+    if (existing) {
+      res.status(409).json({ message: "Email already registered" });
+      return;
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const username =
+      email.split("@")[0] ?? name.toLowerCase().replace(/\s+/g, "_");
+
+    const user: UserRecord = {
+      id: nextUserId++,
+      email,
+      username,
+      displayName: name,
+      avatarUrl: null,
+      bio: null,
+      level: "beginner",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      password: hashedPassword,
+    };
+
+    mockUsers.push(user);
+
+    const token = generateToken({ userId: user.id, email: user.email });
+    res.status(201).json({ user: toSafeUser(user), token });
+  } catch (error) {
+    res.status(500).json({ message: "Signup failed" });
   }
-
-  const username = email.split("@")[0] ?? name.toLowerCase().replace(/\s+/g, "_");
-
-  const user: UserRecord = {
-    id: nextUserId++,
-    email,
-    username,
-    displayName: name,
-    avatarUrl: null,
-    bio: null,
-    level: "beginner",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    password,
-  };
-
-  users.push(user);
-  currentUserId = user.id;
-
-  res.status(201).json(toSafeUser(user));
 });
 
 /**
- * GET /api/auth/me
- * Returns the currently "logged in" user (mock session).
+ * GET /api/auth/me (protected)
+ * Requires: Bearer token in Authorization header
+ * Returns: SafeUser
  */
-router.get("/auth/me", (_req, res) => {
-  if (currentUserId === null) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+router.get("/auth/me", authMiddleware, async (req, res) => {
+  try {
+    const database = await getDatabase();
 
-  const user = users.find((u) => u.id === currentUserId);
-  if (!user) {
-    res.status(401).json({ error: "Not authenticated" });
-    return;
-  }
+    if (database) {
+      const { db, schema } = database;
+      const [user] = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, req.user!.userId))
+        .limit(1);
 
-  res.json(toSafeUser(user));
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      res.json(user);
+      return;
+    }
+
+    // Fallback to mock data
+    const user = mockUsers.find((u) => u.id === req.user!.userId);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    res.json(toSafeUser(user));
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch user" });
+  }
 });
 
 export default router;

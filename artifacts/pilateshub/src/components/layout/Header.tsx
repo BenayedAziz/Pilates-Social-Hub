@@ -1,4 +1,5 @@
-import { Activity, Moon, ShoppingCart, Sun, X } from "lucide-react";
+import { Activity, MessageCircle, Moon, ShoppingCart, Sun, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { SearchDialog } from "@/components/SearchDialog";
@@ -13,6 +14,19 @@ export function Header() {
   const { cartItems, cartCount, cartTotal, removeFromCart, clearCart } = useApp();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  useEffect(() => {
+    fetch("/api/messages/unread-count")
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.count === "number") setUnreadMessages(data.count);
+      })
+      .catch(() => {
+        // Fallback: 3 unread from mock data
+        setUnreadMessages(3);
+      });
+  }, []);
 
   const handleCheckout = () => {
     toast.success("Order confirmed! Your items are on their way.");
@@ -33,6 +47,20 @@ export function Header() {
       </Link>
       <div className="flex items-center gap-4">
         <SearchDialog />
+        <Link href="/messages">
+          <button
+            type="button"
+            aria-label="Messages"
+            className="relative p-2 text-muted-foreground hover:text-primary transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+            {unreadMessages > 0 && (
+              <span className="absolute top-0 right-0 w-4 h-4 bg-primary text-primary-foreground text-[9px] rounded-full flex items-center justify-center border-2 border-card font-bold">
+                {unreadMessages}
+              </span>
+            )}
+          </button>
+        </Link>
         <button
           type="button"
           onClick={toggleTheme}

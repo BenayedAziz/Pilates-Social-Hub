@@ -1,9 +1,10 @@
-import { Activity, Compass, ShoppingBag, User } from "lucide-react";
+import { Activity, Compass, MessageCircle, ShoppingBag, User } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const tabs = [
   { path: "/", icon: Compass, label: "Explore" },
   { path: "/feed", icon: Activity, label: "Feed" },
+  { path: "/messages", icon: MessageCircle, label: "Messages" },
   { path: "/me", icon: User, label: "Me" },
   { path: "/store", icon: ShoppingBag, label: "Shop" },
 ];

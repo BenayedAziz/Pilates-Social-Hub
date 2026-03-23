@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
+import { getDatabase } from "../lib/database";
+import { eq, ilike } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
-// Types (mirrors DB schema – swap to Drizzle select types when DB is wired)
+// Types (mirrors DB schema – used for mock fallback)
 // ---------------------------------------------------------------------------
 interface Product {
   id: number;
@@ -17,9 +19,9 @@ interface Product {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data (aligned with frontend mock-data.tsx)
+// Mock data (fallback when DATABASE_URL is not set)
 // ---------------------------------------------------------------------------
-const products: Product[] = [
+const mockProducts: Product[] = [
   { id: 1, name: "Premium Grip Socks", brand: "ToeSox", description: "Non-slip Pilates socks with full-toe design for maximum grip on reformer and mat.", price: 18, rating: 4.8, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 2, name: "Reformer Straps", brand: "Balanced Body", description: "Padded reformer loop straps for comfortable and secure hand/foot placement.", price: 45, rating: 4.9, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 3, name: "Pilates Ring", brand: "STOTT", description: "14-inch magic circle with padded handles for inner/outer thigh and arm toning.", price: 28, rating: 4.6, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
@@ -36,7 +38,7 @@ const products: Product[] = [
   { id: 14, name: "Jump Board", brand: "Balanced Body", description: "Reformer jump board attachment for low-impact cardio and plyometric training.", price: 245, rating: 4.7, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 15, name: "Towel Set", brand: "Manduka", description: "Microfiber towel set (small + large) with quick-dry and anti-bacterial properties.", price: 36, rating: 4.5, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 16, name: "Ankle Weights", brand: "Bala", description: "Stylish 1lb wrist/ankle weights with adjustable strap closure.", price: 55, rating: 4.6, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 17, name: "Pilates Box", brand: "STOTT", description: "Foam sitting box for reformer – used for seated, prone, and side-lying exercises.", price: 85, rating: 4.4, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 17, name: "Pilates Box", brand: "STOTT", description: "Foam sitting box for reformer - used for seated, prone, and side-lying exercises.", price: 85, rating: 4.4, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 18, name: "Tank Top", brand: "Beyond Yoga", description: "Lightweight tank with open back design for breathability during class.", price: 58, rating: 4.5, category: "Apparel", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 19, name: "Stretching Strap", brand: "ProsourceFit", description: "10-loop stretching strap for flexibility training and assisted stretches.", price: 14, rating: 4.3, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
   { id: 20, name: "Gym Bag", brand: "Lululemon", description: "Spacious duffle bag with separate shoe compartment and yoga mat straps.", price: 128, rating: 4.7, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
@@ -51,36 +53,82 @@ const router: IRouter = Router();
  * GET /api/products
  * Query params: ?category=Equipment
  */
-router.get("/products", (req, res) => {
-  let results = [...products];
+router.get("/products", async (req, res) => {
+  try {
+    const database = await getDatabase();
 
-  const category = req.query["category"] as string | undefined;
-  if (category) {
-    results = results.filter(
-      (p) => p.category.toLowerCase() === category.toLowerCase(),
-    );
+    if (database) {
+      const { db, schema } = database;
+      const category = req.query["category"] as string | undefined;
+
+      let query = db.select().from(schema.products);
+
+      if (category) {
+        query = query.where(ilike(schema.products.category, category));
+      }
+
+      const results = await query;
+      res.json(results);
+      return;
+    }
+
+    // Fallback to mock data
+    let results = [...mockProducts];
+
+    const category = req.query["category"] as string | undefined;
+    if (category) {
+      results = results.filter(
+        (p) => p.category.toLowerCase() === category.toLowerCase(),
+      );
+    }
+
+    res.json(results);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch products" });
   }
-
-  res.json(results);
 });
 
 /**
  * GET /api/products/:id
  */
-router.get("/products/:id", (req, res) => {
+router.get("/products/:id", async (req, res) => {
   const id = Number(req.params["id"]);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid product id" });
     return;
   }
 
-  const product = products.find((p) => p.id === id);
-  if (!product) {
-    res.status(404).json({ error: "Product not found" });
-    return;
-  }
+  try {
+    const database = await getDatabase();
 
-  res.json(product);
+    if (database) {
+      const { db, schema } = database;
+      const [product] = await db
+        .select()
+        .from(schema.products)
+        .where(eq(schema.products.id, id))
+        .limit(1);
+
+      if (!product) {
+        res.status(404).json({ error: "Product not found" });
+        return;
+      }
+
+      res.json(product);
+      return;
+    }
+
+    // Fallback to mock data
+    const product = mockProducts.find((p) => p.id === id);
+    if (!product) {
+      res.status(404).json({ error: "Product not found" });
+      return;
+    }
+
+    res.json(product);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch product" });
+  }
 });
 
 export default router;

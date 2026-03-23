@@ -1,4 +1,15 @@
-import { Activity, Compass, LogOut, Moon, ShoppingBag, Sun, Trophy, User } from "lucide-react";
+import {
+  Activity,
+  Compass,
+  LayoutDashboard,
+  LogOut,
+  MessageCircle,
+  Moon,
+  ShoppingBag,
+  Sun,
+  Trophy,
+  User,
+} from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/use-theme";
@@ -6,10 +17,13 @@ import { useTheme } from "@/hooks/use-theme";
 const tabs = [
   { path: "/", icon: Compass, label: "Explore" },
   { path: "/feed", icon: Activity, label: "Feed" },
+  { path: "/messages", icon: MessageCircle, label: "Messages" },
   { path: "/me", icon: User, label: "Me" },
   { path: "/store", icon: ShoppingBag, label: "Shop" },
   { path: "/challenges", icon: Trophy, label: "Challenges" },
 ];
+
+const adminTabs = [{ path: "/admin/studio", icon: LayoutDashboard, label: "Studio Admin" }];
 
 export function SideNav() {
   const [location] = useLocation();
@@ -45,6 +59,30 @@ export function SideNav() {
             </Link>
           );
         })}
+
+        {/* Admin Section */}
+        <div className="mt-auto pt-4 border-t border-border/30">
+          <p className="px-3 mb-1.5 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/50">
+            Admin
+          </p>
+          {adminTabs.map((tab) => {
+            const isActive = location === tab.path;
+            return (
+              <Link key={tab.path} href={tab.path}>
+                <div
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all cursor-pointer ${
+                    isActive
+                      ? "bg-primary/10 text-primary font-semibold"
+                      : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                  }`}
+                >
+                  <tab.icon className={`w-5 h-5 ${isActive ? "text-primary" : ""}`} />
+                  <span className="text-sm">{tab.label}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       <div className="px-3 mb-4">

@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
+import { getDatabase } from "../lib/database";
+import { eq, ilike, or } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
-// Types (mirrors DB schema – swap to Drizzle select types when DB is wired)
+// Types (mirrors DB schema – used for mock fallback)
 // ---------------------------------------------------------------------------
 interface Studio {
   id: number;
@@ -23,9 +25,9 @@ interface Studio {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data (aligned with frontend mock-data.tsx)
+// Mock data (fallback when DATABASE_URL is not set)
 // ---------------------------------------------------------------------------
-const studios: Studio[] = [
+const mockStudios: Studio[] = [
   {
     id: 1,
     name: "Studio Harmonie",
@@ -47,10 +49,10 @@ const studios: Studio[] = [
   },
   {
     id: 2,
-    name: "Pilates Lumière",
+    name: "Pilates Lumiere",
     neighborhood: "Saint-Germain",
     description:
-      "Premium boutique studio with panoramic views of Saint-Germain-des-Prés. Specialising in Cadillac and Reformer work.",
+      "Premium boutique studio with panoramic views of Saint-Germain-des-Pres. Specialising in Cadillac and Reformer work.",
     address: "45 Boulevard Saint-Germain, 75005 Paris",
     latitude: 48.8531,
     longitude: 2.3469,
@@ -60,7 +62,7 @@ const studios: Studio[] = [
     rating: 4.8,
     reviewCount: 189,
     imageUrl: null,
-    amenities: ["Showers", "Towels", "Café"],
+    amenities: ["Showers", "Towels", "Cafe"],
     coaches: ["Marie Dubois", "Antoine Petit"],
     createdAt: "2024-02-01T10:00:00Z",
   },
@@ -104,7 +106,7 @@ const studios: Studio[] = [
   },
   {
     id: 5,
-    name: "Équilibre Pilates",
+    name: "Equilibre Pilates",
     neighborhood: "Pigalle",
     description:
       "A hidden gem in Pigalle offering intimate group classes and private sessions. Specialises in mat and chair work.",
@@ -118,7 +120,7 @@ const studios: Studio[] = [
     reviewCount: 98,
     imageUrl: null,
     amenities: ["Towels", "Tea Bar"],
-    coaches: ["Élise Martin", "Pierre Garnier"],
+    coaches: ["Elise Martin", "Pierre Garnier"],
     createdAt: "2024-03-15T10:00:00Z",
   },
   {
@@ -146,7 +148,7 @@ const studios: Studio[] = [
     neighborhood: "Nation",
     description:
       "Zen-inspired studio combining traditional Pilates with mindfulness practices. Unique breath-work integration.",
-    address: "18 Avenue du Trône, 75012 Paris",
+    address: "18 Avenue du Trone, 75012 Paris",
     latitude: 48.8486,
     longitude: 2.3963,
     coordX: 90,
@@ -162,7 +164,7 @@ const studios: Studio[] = [
   {
     id: 8,
     name: "BodyWork Pilates",
-    neighborhood: "Châtelet",
+    neighborhood: "Chatelet",
     description:
       "The most acclaimed studio in Paris, trusted by professional dancers and athletes. Extensive class schedule all week.",
     address: "3 Rue des Halles, 75001 Paris",
@@ -174,8 +176,8 @@ const studios: Studio[] = [
     rating: 4.9,
     reviewCount: 445,
     imageUrl: null,
-    amenities: ["Showers", "Lockers", "Towels", "Café", "Sauna"],
-    coaches: ["Céline Blanc", "Raphaël Dumas"],
+    amenities: ["Showers", "Lockers", "Towels", "Cafe", "Sauna"],
+    coaches: ["Celine Blanc", "Raphael Dumas"],
     createdAt: "2024-05-01T10:00:00Z",
   },
 ];
@@ -189,46 +191,108 @@ const router: IRouter = Router();
  * GET /api/studios
  * Query params: ?q=search&neighborhood=Marais
  */
-router.get("/studios", (_req, res) => {
-  let results = [...studios];
+router.get("/studios", async (_req, res) => {
+  try {
+    const database = await getDatabase();
 
-  const q = (_req.query["q"] as string | undefined)?.toLowerCase();
-  if (q) {
-    results = results.filter(
-      (s) =>
-        s.name.toLowerCase().includes(q) ||
-        s.neighborhood.toLowerCase().includes(q) ||
-        (s.description && s.description.toLowerCase().includes(q)),
-    );
+    if (database) {
+      const { db, schema } = database;
+      const q = (_req.query["q"] as string | undefined)?.toLowerCase();
+      const neighborhood = _req.query["neighborhood"] as string | undefined;
+
+      const conditions: any[] = [];
+
+      if (neighborhood) {
+        conditions.push(ilike(schema.studios.neighborhood, neighborhood));
+      }
+
+      if (q) {
+        conditions.push(
+          or(
+            ilike(schema.studios.name, `%${q}%`),
+            ilike(schema.studios.neighborhood, `%${q}%`),
+            ilike(schema.studios.description, `%${q}%`),
+          ),
+        );
+      }
+
+      let query = db.select().from(schema.studios);
+      for (const cond of conditions) {
+        query = query.where(cond);
+      }
+
+      const results = await query;
+      res.json(results);
+      return;
+    }
+
+    // Fallback to mock data
+    let results = [...mockStudios];
+
+    const q = (_req.query["q"] as string | undefined)?.toLowerCase();
+    if (q) {
+      results = results.filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.neighborhood.toLowerCase().includes(q) ||
+          (s.description && s.description.toLowerCase().includes(q)),
+      );
+    }
+
+    const neighborhood = _req.query["neighborhood"] as string | undefined;
+    if (neighborhood) {
+      results = results.filter(
+        (s) => s.neighborhood.toLowerCase() === neighborhood.toLowerCase(),
+      );
+    }
+
+    res.json(results);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch studios" });
   }
-
-  const neighborhood = _req.query["neighborhood"] as string | undefined;
-  if (neighborhood) {
-    results = results.filter(
-      (s) => s.neighborhood.toLowerCase() === neighborhood.toLowerCase(),
-    );
-  }
-
-  res.json(results);
 });
 
 /**
  * GET /api/studios/:id
  */
-router.get("/studios/:id", (req, res) => {
+router.get("/studios/:id", async (req, res) => {
   const id = Number(req.params["id"]);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid studio id" });
     return;
   }
 
-  const studio = studios.find((s) => s.id === id);
-  if (!studio) {
-    res.status(404).json({ error: "Studio not found" });
-    return;
-  }
+  try {
+    const database = await getDatabase();
 
-  res.json(studio);
+    if (database) {
+      const { db, schema } = database;
+      const [studio] = await db
+        .select()
+        .from(schema.studios)
+        .where(eq(schema.studios.id, id))
+        .limit(1);
+
+      if (!studio) {
+        res.status(404).json({ error: "Studio not found" });
+        return;
+      }
+
+      res.json(studio);
+      return;
+    }
+
+    // Fallback to mock data
+    const studio = mockStudios.find((s) => s.id === id);
+    if (!studio) {
+      res.status(404).json({ error: "Studio not found" });
+      return;
+    }
+
+    res.json(studio);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch studio" });
+  }
 });
 
 export default router;

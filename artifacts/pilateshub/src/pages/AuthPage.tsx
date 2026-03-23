@@ -44,14 +44,22 @@ export default function AuthPage() {
     setLoading(true);
     const success = await login(data.email, data.password);
     setLoading(false);
-    if (success) toast.success("Welcome back!");
+    if (success) {
+      toast.success("Welcome back!");
+    } else {
+      toast.error("Invalid email or password");
+    }
   };
 
   const onSignup = async (data: SignupForm) => {
     setLoading(true);
     const success = await signup(data.name, data.email, data.password);
     setLoading(false);
-    if (success) toast.success("Account created! Welcome to PilatesHub.");
+    if (success) {
+      toast.success("Account created! Welcome to PilatesHub.");
+    } else {
+      toast.error("Could not create account. Please try again.");
+    }
   };
 
   return (

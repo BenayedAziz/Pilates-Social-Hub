@@ -1035,6 +1035,121 @@ export const PRODUCTS: Product[] = [
   },
 ];
 
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  logoEmoji: string;
+  coverImageUrl: string;
+  category: string;
+  rating: number;
+  productCount: number;
+  founded: string;
+  origin: string;
+  highlight: string;
+  verified: boolean;
+}
+
+export const BRANDS: Brand[] = [
+  {
+    id: 1,
+    name: "Balanced Body",
+    slug: "balanced-body",
+    description:
+      "The world's leading Pilates equipment manufacturer. Over 40 years of crafting reformers, chairs, and accessories trusted by studios worldwide.",
+    logoEmoji: "\u2696\uFE0F",
+    coverImageUrl: "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=200&fit=crop",
+    category: "equipment",
+    rating: 4.9,
+    productCount: 8,
+    founded: "1976",
+    origin: "Sacramento, USA",
+    highlight: "40+ years of Pilates innovation",
+    verified: true,
+  },
+  {
+    id: 2,
+    name: "Lululemon",
+    slug: "lululemon",
+    description:
+      "Premium athletic apparel designed for yoga, Pilates, and running. Known for the iconic Align legging and buttery-soft Nulu fabric.",
+    logoEmoji: "\u{1F9D8}",
+    coverImageUrl: "https://images.unsplash.com/photo-1538805060514-97d9cc17730c?w=600&h=200&fit=crop",
+    category: "apparel",
+    rating: 4.8,
+    productCount: 6,
+    founded: "1998",
+    origin: "Vancouver, Canada",
+    highlight: "Iconic Align leggings",
+    verified: true,
+  },
+  {
+    id: 3,
+    name: "Manduka",
+    slug: "manduka",
+    description:
+      "Premium yoga and Pilates mats with lifetime guarantee. The PRO mat is the industry standard for durability and performance.",
+    logoEmoji: "\u{1F33F}",
+    coverImageUrl: "https://images.unsplash.com/photo-1601925260368-ae2f83cf8b7f?w=600&h=200&fit=crop",
+    category: "accessories",
+    rating: 4.9,
+    productCount: 4,
+    founded: "1997",
+    origin: "Los Angeles, USA",
+    highlight: "Lifetime guarantee on PRO mats",
+    verified: true,
+  },
+  {
+    id: 4,
+    name: "BASI Pilates",
+    slug: "basi",
+    description:
+      "Founded by Rael Isacowitz, BASI combines equipment manufacturing with world-class instructor education and certification.",
+    logoEmoji: "\u{1F393}",
+    coverImageUrl: "https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=600&h=200&fit=crop",
+    category: "equipment",
+    rating: 4.7,
+    productCount: 5,
+    founded: "1989",
+    origin: "California, USA",
+    highlight: "Education + equipment ecosystem",
+    verified: true,
+  },
+  {
+    id: 5,
+    name: "Merrithew",
+    slug: "merrithew",
+    description:
+      "STOTT PILATES equipment and education. Known for reformers used in rehabilitation and professional studios worldwide.",
+    logoEmoji: "\u{1F48E}",
+    coverImageUrl: "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=200&fit=crop",
+    category: "equipment",
+    rating: 4.8,
+    productCount: 5,
+    founded: "1988",
+    origin: "Toronto, Canada",
+    highlight: "Studio-grade rehabilitation equipment",
+    verified: true,
+  },
+  {
+    id: 6,
+    name: "NutriFlow",
+    slug: "nutriflow",
+    description:
+      "Plant-based nutrition designed for Pilates practitioners. Organic proteins, superfoods, and supplements for recovery and performance.",
+    logoEmoji: "\u{1F957}",
+    coverImageUrl: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&h=200&fit=crop",
+    category: "nutrition",
+    rating: 4.6,
+    productCount: 5,
+    founded: "2022",
+    origin: "Paris, France",
+    highlight: "Plant-based Pilates nutrition",
+    verified: false,
+  },
+];
+
 export const LEADERBOARD: LeaderboardEntry[] = [
   { rank: 1, user: USERS[6], sessions: 24, calories: 8400 },
   { rank: 2, user: USERS[0], sessions: 22, calories: 7920 },

@@ -1,7 +1,9 @@
 import { Router, type IRouter } from "express";
+import { getDatabase } from "../lib/database";
+import { eq } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
-// Types (mirrors DB schema – swap to Drizzle select types when DB is wired)
+// Types (mirrors DB schema – used for mock fallback)
 // ---------------------------------------------------------------------------
 interface PilatesClass {
   id: number;
@@ -21,9 +23,9 @@ interface PilatesClass {
 }
 
 // ---------------------------------------------------------------------------
-// Mock data
+// Mock data (fallback when DATABASE_URL is not set)
 // ---------------------------------------------------------------------------
-const classes: PilatesClass[] = [
+const mockClasses: PilatesClass[] = [
   {
     id: 1,
     studioId: 1,
@@ -68,7 +70,7 @@ const classes: PilatesClass[] = [
     maxCapacity: 6,
     price: 55,
     scheduledAt: "2026-03-23T11:00:00Z",
-    studioName: "Pilates Lumière",
+    studioName: "Pilates Lumiere",
     coachName: "Marie Dubois",
     createdAt: "2024-01-15T10:00:00Z",
   },
@@ -100,8 +102,8 @@ const classes: PilatesClass[] = [
     maxCapacity: 12,
     price: 42,
     scheduledAt: "2026-03-23T16:00:00Z",
-    studioName: "Équilibre Pilates",
-    coachName: "Élise Martin",
+    studioName: "Equilibre Pilates",
+    coachName: "Elise Martin",
     createdAt: "2024-01-15T10:00:00Z",
   },
   {
@@ -133,7 +135,7 @@ const classes: PilatesClass[] = [
     price: 60,
     scheduledAt: "2026-03-24T10:00:00Z",
     studioName: "BodyWork Pilates",
-    coachName: "Céline Blanc",
+    coachName: "Celine Blanc",
     createdAt: "2024-01-15T10:00:00Z",
   },
   {
@@ -180,7 +182,7 @@ const classes: PilatesClass[] = [
     maxCapacity: 15,
     price: 42,
     scheduledAt: "2026-03-24T17:00:00Z",
-    studioName: "Équilibre Pilates",
+    studioName: "Equilibre Pilates",
     coachName: "Pierre Garnier",
     createdAt: "2024-01-15T10:00:00Z",
   },
@@ -195,44 +197,137 @@ const router: IRouter = Router();
  * GET /api/classes
  * Query params: ?studioId=1&type=reformer
  */
-router.get("/classes", (req, res) => {
-  let results = [...classes];
+router.get("/classes", async (req, res) => {
+  try {
+    const database = await getDatabase();
 
-  const studioId = req.query["studioId"] as string | undefined;
-  if (studioId) {
-    const sid = Number(studioId);
-    if (Number.isNaN(sid)) {
-      res.status(400).json({ error: "Invalid studioId" });
+    if (database) {
+      const { db, schema } = database;
+
+      // Build query with optional filters
+      let query = db
+        .select({
+          id: schema.classes.id,
+          studioId: schema.classes.studioId,
+          coachId: schema.classes.coachId,
+          title: schema.classes.title,
+          type: schema.classes.type,
+          level: schema.classes.level,
+          description: schema.classes.description,
+          duration: schema.classes.duration,
+          maxCapacity: schema.classes.maxCapacity,
+          price: schema.classes.price,
+          scheduledAt: schema.classes.scheduledAt,
+          createdAt: schema.classes.createdAt,
+          studioName: schema.studios.name,
+          coachName: schema.coaches.name,
+        })
+        .from(schema.classes)
+        .leftJoin(schema.studios, eq(schema.classes.studioId, schema.studios.id))
+        .leftJoin(schema.coaches, eq(schema.classes.coachId, schema.coaches.id));
+
+      const studioId = req.query["studioId"] as string | undefined;
+      if (studioId) {
+        const sid = Number(studioId);
+        if (Number.isNaN(sid)) {
+          res.status(400).json({ error: "Invalid studioId" });
+          return;
+        }
+        query = query.where(eq(schema.classes.studioId, sid)) as typeof query;
+      }
+
+      const type = (req.query["type"] as string | undefined)?.toLowerCase();
+      if (type) {
+        query = query.where(eq(schema.classes.type, type)) as typeof query;
+      }
+
+      const results = await query;
+      res.json(results);
       return;
     }
-    results = results.filter((c) => c.studioId === sid);
-  }
 
-  const type = (req.query["type"] as string | undefined)?.toLowerCase();
-  if (type) {
-    results = results.filter((c) => c.type.toLowerCase() === type);
-  }
+    // Fallback to mock data
+    let results = [...mockClasses];
 
-  res.json(results);
+    const studioId = req.query["studioId"] as string | undefined;
+    if (studioId) {
+      const sid = Number(studioId);
+      if (Number.isNaN(sid)) {
+        res.status(400).json({ error: "Invalid studioId" });
+        return;
+      }
+      results = results.filter((c) => c.studioId === sid);
+    }
+
+    const type = (req.query["type"] as string | undefined)?.toLowerCase();
+    if (type) {
+      results = results.filter((c) => c.type.toLowerCase() === type);
+    }
+
+    res.json(results);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch classes" });
+  }
 });
 
 /**
  * GET /api/classes/:id
  */
-router.get("/classes/:id", (req, res) => {
+router.get("/classes/:id", async (req, res) => {
   const id = Number(req.params["id"]);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid class id" });
     return;
   }
 
-  const cls = classes.find((c) => c.id === id);
-  if (!cls) {
-    res.status(404).json({ error: "Class not found" });
-    return;
-  }
+  try {
+    const database = await getDatabase();
 
-  res.json(cls);
+    if (database) {
+      const { db, schema } = database;
+      const [cls] = await db
+        .select({
+          id: schema.classes.id,
+          studioId: schema.classes.studioId,
+          coachId: schema.classes.coachId,
+          title: schema.classes.title,
+          type: schema.classes.type,
+          level: schema.classes.level,
+          description: schema.classes.description,
+          duration: schema.classes.duration,
+          maxCapacity: schema.classes.maxCapacity,
+          price: schema.classes.price,
+          scheduledAt: schema.classes.scheduledAt,
+          createdAt: schema.classes.createdAt,
+          studioName: schema.studios.name,
+          coachName: schema.coaches.name,
+        })
+        .from(schema.classes)
+        .leftJoin(schema.studios, eq(schema.classes.studioId, schema.studios.id))
+        .leftJoin(schema.coaches, eq(schema.classes.coachId, schema.coaches.id))
+        .where(eq(schema.classes.id, id))
+        .limit(1);
+
+      if (!cls) {
+        res.status(404).json({ error: "Class not found" });
+        return;
+      }
+
+      res.json(cls);
+      return;
+    }
+
+    // Fallback to mock data
+    const cls = mockClasses.find((c) => c.id === id);
+    if (!cls) {
+      res.status(404).json({ error: "Class not found" });
+      return;
+    }
+
+    res.json(cls);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch class" });
+  }
 });
 
 export default router;
