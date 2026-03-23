@@ -202,12 +202,22 @@ async function main() {
       const deduped = deduplicate(parsed);
       console.log(`  After parse+dedup: ${deduped.length} studios`);
 
-      for (const studio of deduped) {
+      if (deduped.length > 0) {
         try {
-          await db.insert(schema.studios).values(studio).onConflictDoNothing();
-          totalInserted++;
+          await db.insert(schema.studios).values(deduped);
+          totalInserted += deduped.length;
+          console.log(`  Inserted ${deduped.length} studios`);
         } catch (err: any) {
-          console.error(`  Failed to insert "${studio.name}":`, err.message);
+          // If batch fails, fall back to one-by-one
+          console.log(`  Batch insert failed (${err.message?.slice(0, 80)}), trying one-by-one...`);
+          for (const studio of deduped) {
+            try {
+              await db.insert(schema.studios).values(studio);
+              totalInserted++;
+            } catch (innerErr: any) {
+              console.error(`  Failed "${studio.name}":`, innerErr.message?.slice(0, 120));
+            }
+          }
         }
       }
 
