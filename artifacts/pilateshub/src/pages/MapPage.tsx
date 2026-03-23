@@ -1,12 +1,12 @@
 import L from "leaflet";
-import { ChevronRight, Clock, ExternalLink, Filter, Globe, MapPin, Navigation, Star, X } from "lucide-react";
+import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
 import { useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Studio } from "@/data/types";
-import { REAL_STUDIOS, type RealStudio } from "@/data/real-studios";
 import { useStudios } from "@/hooks/use-api";
 import { MapPageSkeleton } from "@/components/PageSkeleton";
 
@@ -56,38 +56,6 @@ function createPinIcon(price: number, selected: boolean) {
   });
 }
 
-// Pin icon for real/OSM studios (smaller, slate/blue)
-function createRealStudioIcon(selected: boolean, sportType: string) {
-  const size = selected ? 34 : 26;
-  const isPilates = sportType === "pilates";
-  const color = selected ? (isPilates ? "#3b82f6" : "#64748b") : isPilates ? "#6993f5" : "#94a3b8";
-  const shadow = selected ? "0 3px 10px rgba(0,0,0,0.25)" : "0 1px 4px rgba(0,0,0,0.15)";
-  const label = isPilates ? "P" : sportType === "yoga" ? "Y" : "F";
-
-  return L.divIcon({
-    className: "",
-    iconSize: [size, size + 6],
-    iconAnchor: [size / 2, size + 6],
-    html: `
-      <div style="display:flex;flex-direction:column;align-items:center;">
-        <div style="
-          width:${size}px;height:${size}px;border-radius:50%;
-          background:${color};color:white;
-          display:flex;align-items:center;justify-content:center;
-          font-weight:800;font-size:${selected ? 12 : 10}px;font-family:system-ui;
-          border:2px solid white;box-shadow:${shadow};
-          transition:transform 0.2s;
-        ">${label}</div>
-        <div style="
-          width:0;height:0;
-          border-left:4px solid transparent;border-right:4px solid transparent;
-          border-top:5px solid white;margin-top:-1px;
-        "></div>
-      </div>
-    `,
-  });
-}
-
 // Current location blue dot
 const locationIcon = L.divIcon({
   className: "",
@@ -116,107 +84,10 @@ function RecenterButton() {
   );
 }
 
-// Real studio preview card (simpler than featured)
-function RealStudioPreviewCard({ studio, onClose }: { studio: RealStudio; onClose: () => void }) {
-  return (
-    <div className="absolute bottom-16 left-3 right-3 z-[1000] animate-in slide-in-from-bottom-4 fade-in duration-200">
-      <Card className="bg-card/95 backdrop-blur-md border-none shadow-xl overflow-hidden">
-        <div className="p-4">
-          <div className="flex justify-between items-start gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
-                <span
-                  className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
-                    studio.sportType === "pilates"
-                      ? "bg-blue-100 text-blue-600"
-                      : studio.sportType === "yoga"
-                        ? "bg-purple-100 text-purple-600"
-                        : "bg-muted text-foreground/80"
-                  }`}
-                >
-                  {studio.sportType === "pilates" ? "Pilates" : studio.sportType === "yoga" ? "Yoga" : "Fitness"}
-                </span>
-                <span className="text-[9px] font-medium text-muted-foreground/60 px-1.5 py-0.5 rounded-full bg-muted/50 border border-border/40">
-                  {studio.source === "osm" ? "OSM" : "Web"}
-                </span>
-              </div>
-              {studio.neighborhood && (
-                <p className="text-xs text-muted-foreground/60 mt-0.5 flex items-center gap-1">
-                  <MapPin className="w-3 h-3" />
-                  {studio.neighborhood}
-                </p>
-              )}
-            </div>
-            <button
-              type="button"
-              aria-label="Close preview"
-              className="self-start p-1 text-muted-foreground/40 hover:text-muted-foreground transition-colors flex-shrink-0"
-              onClick={onClose}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-
-          {studio.address && <p className="text-xs text-muted-foreground mt-2">{studio.address}</p>}
-
-          <div className="flex flex-wrap gap-2 mt-2.5">
-            {studio.openingHours && (
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1 bg-muted/50 rounded px-2 py-1">
-                <Clock className="w-3 h-3" />
-                {studio.openingHours.length > 40 ? `${studio.openingHours.slice(0, 40)}...` : studio.openingHours}
-              </span>
-            )}
-            {studio.phone && (
-              <a
-                href={`tel:${studio.phone}`}
-                className="text-[10px] text-blue-500 hover:text-blue-700 flex items-center gap-1 bg-blue-50 rounded px-2 py-1"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {studio.phone}
-              </a>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 mt-3">
-            {studio.website && (
-              <a
-                href={studio.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-full px-3 py-1.5 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <Globe className="w-3 h-3" />
-                Website
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            )}
-            {studio.instagram && (
-              <a
-                href={`https://instagram.com/${studio.instagram}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold text-pink-500 hover:text-pink-700 bg-pink-50 hover:bg-pink-100 rounded-full px-3 py-1.5 transition-colors"
-                onClick={(e) => e.stopPropagation()}
-              >
-                @{studio.instagram}
-              </a>
-            )}
-            <span className="ml-auto text-[10px] text-muted-foreground/60 italic">Claim this studio</span>
-          </div>
-        </div>
-      </Card>
-    </div>
-  );
-}
-
 export default function MapPage() {
   const { data: studios = [], isLoading } = useStudios();
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
-  const [selectedRealStudio, setSelectedRealStudio] = useState<RealStudio | null>(null);
-  const [showRealStudios, setShowRealStudios] = useState(true);
 
   if (isLoading) return <MapPageSkeleton />;
 
@@ -227,27 +98,14 @@ export default function MapPage() {
       })
     : studios;
 
-  // Filter real studios by type when a filter is active
-  const filteredRealStudios =
-    activeFilter === "Near Me"
-      ? [] // We don't have distance data for real studios
-      : REAL_STUDIOS;
-
-  const handleFeaturedClick = (studio: Studio) => {
-    setSelectedRealStudio(null);
+  const handleStudioClick = (studio: Studio) => {
     setSelectedStudio(selectedStudio?.id === studio.id ? null : studio);
-  };
-
-  const handleRealClick = (studio: RealStudio) => {
-    setSelectedStudio(null);
-    setSelectedRealStudio(selectedRealStudio?.id === studio.id ? null : studio);
   };
 
   // Derived lists for discovery sections
   const topRated = [...studios].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 3);
   const nearYou = [...studios].sort((a, b) => (a.distance || 0) - (b.distance || 0)).slice(0, 4);
   const newStudios = [...studios].reverse().slice(0, 4);
-  const pilatesRealStudios = REAL_STUDIOS.filter((s) => s.sportType === "pilates");
 
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-300">
@@ -267,30 +125,32 @@ export default function MapPage() {
           {/* Current location */}
           <Marker position={PARIS_CENTER} icon={locationIcon} />
 
-          {/* Featured studio markers (green pins with price) */}
-          {filteredStudios.map((studio) => (
-            <Marker
-              key={`featured-${studio.id}`}
-              position={[studio.lat, studio.lng]}
-              icon={createPinIcon(studio.price, selectedStudio?.id === studio.id)}
-              eventHandlers={{
-                click: () => handleFeaturedClick(studio),
-              }}
-            />
-          ))}
-
-          {/* Real studio markers (smaller blue/gray pins) */}
-          {showRealStudios &&
-            filteredRealStudios.map((studio) => (
+          {/* Clustered studio markers */}
+          <MarkerClusterGroup
+            chunkedLoading
+            maxClusterRadius={50}
+            spiderfyOnMaxZoom
+            showCoverageOnHover={false}
+            iconCreateFunction={(cluster: any) => {
+              const count = cluster.getChildCount();
+              return L.divIcon({
+                html: `<div style="width:36px;height:36px;border-radius:50%;background:hsl(28,22%,42%);color:white;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);">${count}</div>`,
+                className: "",
+                iconSize: [36, 36] as [number, number],
+              });
+            }}
+          >
+            {filteredStudios.map((studio) => (
               <Marker
-                key={`real-${studio.id}`}
+                key={`studio-${studio.id}`}
                 position={[studio.lat, studio.lng]}
-                icon={createRealStudioIcon(selectedRealStudio?.id === studio.id, studio.sportType)}
+                icon={createPinIcon(studio.price, selectedStudio?.id === studio.id)}
                 eventHandlers={{
-                  click: () => handleRealClick(studio),
+                  click: () => handleStudioClick(studio),
                 }}
               />
             ))}
+          </MarkerClusterGroup>
 
           <RecenterButton />
         </MapContainer>
@@ -318,36 +178,7 @@ export default function MapPage() {
             </Badge>
           ))}
 
-          {/* Toggle real studios visibility */}
-          <Badge
-            onClick={() => setShowRealStudios(!showRealStudios)}
-            className={`px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm font-semibold text-xs border flex-shrink-0 transition-colors ${
-              showRealStudios
-                ? "bg-blue-500 text-white border-blue-500"
-                : "bg-card text-muted-foreground/60 border-border hover:text-blue-500 hover:border-blue-300"
-            }`}
-          >
-            More Studios
-          </Badge>
         </div>
-
-        {/* Map legend */}
-        {showRealStudios && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm rounded-full shadow-md px-3 py-1.5 flex items-center gap-3 z-[1000] border border-border/40">
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-full bg-[hsl(28,22%,42%)] inline-block" />
-              Featured
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block" />
-              Pilates
-            </span>
-            <span className="flex items-center gap-1.5 text-[10px] font-semibold text-muted-foreground">
-              <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/50 inline-block" />
-              Yoga
-            </span>
-          </div>
-        )}
 
         {/* Selected featured studio preview card */}
         {selectedStudio && (
@@ -401,10 +232,6 @@ export default function MapPage() {
           </div>
         )}
 
-        {/* Selected real studio preview card */}
-        {selectedRealStudio && (
-          <RealStudioPreviewCard studio={selectedRealStudio} onClose={() => setSelectedRealStudio(null)} />
-        )}
       </div>
 
       {/* === DISCOVERY SECTIONS (always visible below map) === */}
@@ -583,57 +410,6 @@ export default function MapPage() {
                   </div>
                 </Card>
               </StudioDetailDialog>
-            ))}
-          </div>
-        </section>
-
-        {/* More Studios Nearby -- real studios compact list */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">More Studios Nearby</h2>
-            <span className="text-xs text-muted-foreground">{pilatesRealStudios.length} Pilates studios</span>
-          </div>
-          <p className="text-xs text-muted-foreground/60 mb-3 -mt-1">
-            Community-sourced studios from OpenStreetMap and web research
-          </p>
-          <div className="flex flex-col gap-1.5">
-            {pilatesRealStudios.map((studio) => (
-              <div
-                key={`nearby-${studio.id}`}
-                className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-muted/50 transition-colors group cursor-pointer"
-                onClick={() => {
-                  setSelectedStudio(null);
-                  setSelectedRealStudio(studio);
-                  window.scrollTo({ top: 0, behavior: "smooth" });
-                }}
-              >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <span className="text-[10px] font-black text-blue-600">P</span>
-                  </div>
-                  <div className="min-w-0">
-                    <h3 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
-                      {studio.name}
-                    </h3>
-                    <p className="text-[11px] text-muted-foreground/60 truncate">
-                      {studio.neighborhood}{studio.address ? ` · ${studio.address}` : ""}
-                    </p>
-                  </div>
-                </div>
-                {studio.website ? (
-                  <a
-                    href={studio.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-600 flex-shrink-0 ml-2 p-1"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-                ) : (
-                  <MapPin className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0 ml-2" />
-                )}
-              </div>
             ))}
           </div>
         </section>

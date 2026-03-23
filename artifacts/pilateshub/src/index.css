@@ -1,4 +1,13 @@
 @import "leaflet/dist/leaflet.css";
+
+/* Marker cluster styles */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+  background: transparent !important;
+}
+.marker-cluster div {
+  background: transparent !important;
+}
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";

@@ -183,16 +183,39 @@ const mockStudios: Studio[] = [
 ];
 
 // ---------------------------------------------------------------------------
+// Haversine distance (km) between two lat/lng points
+// ---------------------------------------------------------------------------
+function haversine(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 const router: IRouter = Router();
 
 /**
  * GET /api/studios
- * Query params: ?q=search&neighborhood=Marais
+ * Query params: ?q=search&neighborhood=Marais&lat=48.856&lng=2.352&radius=20&limit=100
  */
 router.get("/studios", async (_req, res) => {
   try {
+    // Geo-filter params
+    const latParam = parseFloat(_req.query["lat"] as string);
+    const lngParam = parseFloat(_req.query["lng"] as string);
+    const hasGeo = !isNaN(latParam) && !isNaN(lngParam);
+    // Default to Paris center when no geo provided
+    const lat = hasGeo ? latParam : 48.856;
+    const lng = hasGeo ? lngParam : 2.352;
+    const radius = parseFloat(_req.query["radius"] as string) || 20; // km
+    const limit = parseInt(_req.query["limit"] as string) || (hasGeo ? 100 : 50);
+
     const database = await getDatabase();
 
     if (database) {
@@ -221,8 +244,26 @@ router.get("/studios", async (_req, res) => {
         query = query.where(cond);
       }
 
-      const results = await query;
-      res.json(results);
+      const allResults = await query;
+
+      // Apply haversine distance filter + sort + limit
+      const filtered = allResults
+        .filter((s: any) => {
+          const sLat = s.latitude ?? s.lat;
+          const sLng = s.longitude ?? s.lng;
+          if (!sLat || !sLng) return true; // no coords = include
+          return haversine(lat, lng, sLat, sLng) <= radius;
+        })
+        .sort((a: any, b: any) => {
+          const aLat = a.latitude ?? a.lat ?? 0;
+          const aLng = a.longitude ?? a.lng ?? 0;
+          const bLat = b.latitude ?? b.lat ?? 0;
+          const bLng = b.longitude ?? b.lng ?? 0;
+          return haversine(lat, lng, aLat, aLng) - haversine(lat, lng, bLat, bLng);
+        })
+        .slice(0, limit);
+
+      res.json(filtered);
       return;
     }
 
@@ -246,7 +287,20 @@ router.get("/studios", async (_req, res) => {
       );
     }
 
-    res.json(results);
+    // Apply haversine distance filter + sort + limit on mock data too
+    const filtered = results
+      .filter((s) => {
+        if (!s.latitude || !s.longitude) return true;
+        return haversine(lat, lng, s.latitude, s.longitude) <= radius;
+      })
+      .sort((a, b) => {
+        const dA = haversine(lat, lng, a.latitude || 0, a.longitude || 0);
+        const dB = haversine(lat, lng, b.latitude || 0, b.longitude || 0);
+        return dA - dB;
+      })
+      .slice(0, limit);
+
+    res.json(filtered);
   } catch (_error) {
     res.status(500).json({ error: "Failed to fetch studios" });
   }
