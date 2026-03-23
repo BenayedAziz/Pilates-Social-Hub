@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Studio } from "@/data/types";
 import { useStudios } from "@/hooks/use-api";
+import { useGeolocation } from "@/hooks/use-geolocation";
 import { MapPageSkeleton } from "@/components/PageSkeleton";
 
 // Fix Leaflet default icon paths for bundlers
@@ -19,9 +20,6 @@ L.Icon.Default.mergeOptions({
 });
 
 const FILTERS = ["Reformer", "Mat", "Beginner", "Advanced", "Near Me"];
-
-// Paris center
-const PARIS_CENTER: [number, number] = [48.862, 2.352];
 
 // Fallback image for studios without imageUrl
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop";
@@ -70,13 +68,13 @@ const locationIcon = L.divIcon({
 });
 
 // Component to recenter map
-function RecenterButton() {
+function RecenterButton({ center }: { center: [number, number] }) {
   const map = useMap();
   return (
     <button
       type="button"
       aria-label="Center on my location"
-      onClick={() => map.flyTo(PARIS_CENTER, 14, { duration: 0.8 })}
+      onClick={() => map.flyTo(center, 14, { duration: 0.8 })}
       className="absolute bottom-3 right-3 w-10 h-10 bg-card rounded-full shadow-lg flex items-center justify-center text-foreground/80 hover:text-primary transition-colors z-[1000] border border-border/40"
     >
       <Navigation className="w-4 h-4" />
@@ -84,8 +82,26 @@ function RecenterButton() {
   );
 }
 
+// Fly to new position when geolocation resolves after map is already mounted
+function FlyToPosition({ position }: { position: [number, number] }) {
+  const map = useMap();
+  const prevRef = useRef<[number, number] | null>(null);
+  useEffect(() => {
+    const prev = prevRef.current;
+    if (prev && (prev[0] !== position[0] || prev[1] !== position[1])) {
+      map.flyTo(position, 13, { duration: 1 });
+    }
+    prevRef.current = position;
+  }, [position[0], position[1]]);
+  return null;
+}
+
 export default function MapPage() {
-  const { data: studios = [], isLoading } = useStudios();
+  const { position, loading: geoLoading, requestPermission } = useGeolocation();
+  const mapCenter: [number, number] = position ? [position.lat, position.lng] : [48.856, 2.352];
+
+  // Pass real position to the API so it returns studios near the user
+  const { data: studios = [], isLoading } = useStudios(undefined, undefined, position?.lat, position?.lng);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
 
@@ -112,7 +128,7 @@ export default function MapPage() {
       {/* === LEAFLET MAP === */}
       <div className="relative h-[40vh] md:h-[55vh] flex-shrink-0">
         <MapContainer
-          center={PARIS_CENTER}
+          center={mapCenter}
           zoom={13}
           zoomControl={false}
           attributionControl={false}
@@ -122,8 +138,11 @@ export default function MapPage() {
           {/* CartoDB Positron - minimal elegant tile style */}
           <TileLayer url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png" />
 
+          {/* Fly to new position when geolocation resolves */}
+          <FlyToPosition position={mapCenter} />
+
           {/* Current location */}
-          <Marker position={PARIS_CENTER} icon={locationIcon} />
+          <Marker position={mapCenter} icon={locationIcon} />
 
           {/* Clustered studio markers */}
           <MarkerClusterGroup
@@ -152,7 +171,7 @@ export default function MapPage() {
             ))}
           </MarkerClusterGroup>
 
-          <RecenterButton />
+          <RecenterButton center={mapCenter} />
         </MapContainer>
 
         {/* Filter bar - overlays on top of map */}
@@ -179,6 +198,16 @@ export default function MapPage() {
           ))}
 
         </div>
+
+        {/* Geolocation permission banner */}
+        {!position && !geoLoading && (
+          <div className="absolute top-14 left-3 right-3 z-[1000] bg-card/95 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-border/40 flex items-center justify-between">
+            <span className="text-xs text-muted-foreground">Enable location for studios near you</span>
+            <button type="button" onClick={requestPermission} className="text-xs font-bold text-primary">
+              Enable
+            </button>
+          </div>
+        )}
 
         {/* Selected featured studio preview card */}
         {selectedStudio && (
