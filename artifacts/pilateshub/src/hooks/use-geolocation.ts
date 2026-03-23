@@ -99,9 +99,8 @@ export function useGeolocation(): UseGeolocationResult {
           extract: (d: any) => ({ lat: d.latitude, lng: d.longitude }),
         },
         {
-          // ip-api.com free tier requires HTTP (not HTTPS)
-          url: "http://ip-api.com/json/?fields=lat,lon",
-          extract: (d: any) => ({ lat: d.lat, lng: d.lon }),
+          url: "https://freeipapi.com/api/json",
+          extract: (d: any) => ({ lat: d.latitude, lng: d.longitude }),
         },
         {
           url: "https://ipwho.is/",
