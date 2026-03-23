@@ -27,8 +27,6 @@ export default function CommunityPage() {
   const { votes, toggleVote } = useApp();
   const { data: allForumPosts = [], isLoading } = useForum();
 
-  if (isLoading) return <CommunityPageSkeleton />;
-
   const {
     register,
     handleSubmit,
@@ -37,6 +35,8 @@ export default function CommunityPage() {
   } = useForm<NewDiscussionForm>({
     resolver: zodResolver(newDiscussionSchema),
   });
+
+  if (isLoading) return <CommunityPageSkeleton />;
 
   const onPostDiscussion = (data: NewDiscussionForm) => {
     toast.success(`Discussion "${data.title}" posted in ${data.category}!`);

@@ -210,12 +210,13 @@ function RealStudioPreviewCard({ studio, onClose }: { studio: RealStudio; onClos
 
 export default function MapPage() {
   const { data: studios = [], isLoading } = useStudios();
-  if (isLoading) return <MapPageSkeleton />;
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
   const [selectedRealStudio, setSelectedRealStudio] = useState<RealStudio | null>(null);
   const [showList, setShowList] = useState(false);
   const [showRealStudios, setShowRealStudios] = useState(true);
+
+  if (isLoading) return <MapPageSkeleton />;
 
   const filteredStudios = activeFilter
     ? studios.filter((s) => {

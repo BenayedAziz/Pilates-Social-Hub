@@ -96,6 +96,14 @@ function PermissionToggle({
 export default function WearableSettingsPage() {
   const { data: wearableData, isLoading } = useWearable();
 
+  const [permissions, setPermissions] = useState({
+    heartRate: true,
+    sleep: true,
+    recovery: true,
+    strain: true,
+    hrv: true,
+  });
+
   const data = wearableData ?? {
     connected: false,
     provider: "none" as const,
@@ -111,14 +119,6 @@ export default function WearableSettingsPage() {
   };
 
   if (isLoading) return <GenericPageSkeleton />;
-
-  const [permissions, setPermissions] = useState({
-    heartRate: true,
-    sleep: true,
-    recovery: true,
-    strain: true,
-    hrv: true,
-  });
 
   const togglePermission = (key: keyof typeof permissions) => {
     setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
