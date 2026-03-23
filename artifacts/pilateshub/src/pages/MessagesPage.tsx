@@ -236,6 +236,7 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(false);
   const [typingUser, setTypingUser] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { connected, send, on } = useWebSocket();
@@ -342,9 +343,12 @@ export default function MessagesPage() {
       .finally(() => setLoading(false));
   }, [selectedConvo]);
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change (use scrollTop to avoid iframe parent scroll)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [chatMessages]);
 
   const sendMessage = useCallback(() => {
@@ -421,7 +425,7 @@ export default function MessagesPage() {
   // =========================================================================
   if (selectedConvo && activeConvo) {
     return (
-      <div className="flex flex-col h-full bg-background">
+      <div className="flex flex-col bg-background absolute inset-0">
         {/* Header */}
         <div className="px-5 py-3 bg-card border-b border-border/40 flex items-center gap-3 shrink-0">
           <button
@@ -456,7 +460,7 @@ export default function MessagesPage() {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-1">
+        <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-1">
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />

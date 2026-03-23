@@ -1,942 +1,1182 @@
-=== PILATES HUB -- COMPLETE FEATURES INVENTORY ===
-Generated from full source code audit of every file in the application.
+=== PILATESHUB — COMPLETE FEATURES INVENTORY (Updated March 2026) ===
+
+Total: 19 pages, 16 components, 22 API route modules, 6 hooks, 2 contexts
 
 ================================================================================
 --- NAVIGATION ---
 ================================================================================
 
-BOTTOM NAV (mobile only, 6 tabs):
-  - Map (MapPin icon) -> /
+BOTTOM NAV (mobile only, 5 tabs):
+  - Explore (Compass icon) -> /
   - Feed (Activity icon) -> /feed
-  - Stats (LayoutDashboard icon) -> /dashboard
-  - Forum (Users icon) -> /community
-  - Circles (CircleDot icon) -> /circles
-  - Store (ShoppingBag icon) -> /store
-  - Active tab: highlighted with primary color + bg tint
+  - Messages (MessageCircle icon) -> /messages
+  - Me (User icon) -> /me
+  - Shop (ShoppingBag icon) -> /store
+  - Active tab: primary color underline indicator + bold label
   - Fixed at bottom of viewport, z-40
+  - i18n-aware labels via useTranslation()
 
-SIDE NAV (desktop only, 7 tabs + controls):
+SIDE NAV (desktop only, 6 main tabs + admin section + controls):
   - Logo: PilatesHub with Activity icon
-  - Map (MapPin icon) -> /
-  - Feed (Activity icon) -> /feed
-  - Stats (LayoutDashboard icon) -> /dashboard
-  - Forum (Users icon) -> /community
-  - Store (ShoppingBag icon) -> /store
-  - Challenges (Trophy icon) -> /challenges
-  - Circles (CircleDot icon) -> /circles
-  - Dark Mode / Light Mode toggle (Moon/Sun icon)
-  - Profile card: avatar with initials, name, level -> /profile
-  - Log Out button (LogOut icon) -> calls auth logout
+  Main:
+    - Explore (Compass icon) -> /
+    - Feed (Activity icon) -> /feed
+    - Messages (MessageCircle icon) -> /messages
+    - Me (User icon) -> /me
+    - Shop (ShoppingBag icon) -> /store
+    - Challenges (Trophy icon) -> /challenges
+  Admin section:
+    - Studio Admin (LayoutDashboard icon) -> /admin/studio
+  Controls:
+    - Language toggle (Globe icon) -> toggles EN/FR
+    - Dark Mode / Light Mode toggle (Moon/Sun icon)
+    - Profile card: avatar with initials, name, level -> /me
+    - Log Out button (LogOut icon) -> calls auth logout
 
 HEADER (sticky, top of all authenticated pages):
   - Logo (mobile only): PilatesHub brand with Activity icon -> /
-  - Search button -> opens SearchDialog
+  - Search button -> opens SearchDialog (global search: studios, products, forum)
+  - Messages button (MessageCircle icon) -> /messages
+    - Unread badge counter (fetches from /api/messages/unread-count)
+  - Language toggle (Globe icon) -> toggles EN/FR, persists to localStorage
   - Dark mode toggle (mobile only): Moon/Sun icon
   - Cart button (ShoppingCart icon) -> opens Cart Sheet (side drawer)
     - Badge counter on icon when cart has items
-  - Profile avatar button (user initials) -> /profile
+    - Cart sheet: item list, remove, total, checkout button
+  - Profile avatar button (user initials) -> /me
 
-ROUTES (defined in App.tsx via wouter):
-  - / -> MapPage
+ROUTES (defined in App.tsx via wouter, all lazy-loaded):
+  - / -> MapPage (Explore)
   - /feed -> FeedPage
-  - /dashboard -> DashboardPage
+  - /me -> MePage
+  - /me/edit -> EditProfilePage
   - /community -> CommunityPage
   - /store -> StorePage
+  - /brands -> BrandsPage
+  - /brand/:slug -> BrandPage
+  - /coach/:slug -> CoachPage
   - /challenges -> ChallengesPage
+  - /messages -> MessagesPage
   - /circles -> CirclesPage
-  - /profile -> ProfilePage
-  - /auth -> AuthPage (shown when not authenticated, not a true route)
+  - /booking/:studioId -> BookingPage
+  - /admin/studio -> StudioAdminPage
+  - /settings/wearables -> WearableSettingsPage
+  - /checkout -> CheckoutPage
   - * -> NotFound (404 catch-all)
+
+AUTHENTICATION GATE (in App.tsx):
+  - Not authenticated -> AuthPage
+  - Authenticated but not onboarded -> OnboardingPage
+  - Authenticated + onboarded -> AppShell with routes
 
 ACCESSIBILITY:
   - Skip-to-content link (sr-only, visible on focus) -> #main-content
   - aria-label on all icon-only buttons
   - role="tablist" on category filter bars
   - aria-selected on tab buttons
+  - role="switch" on toggle buttons (wearable settings)
+
+UNUSED/LEGACY PAGES (files exist but NOT routed in App.tsx):
+  - DashboardPage.tsx -> was /dashboard
+  - ProfilePage.tsx -> was /profile
+  - StudioAnalyticsPage.tsx -> wraps StudioAnalytics component
 
 ================================================================================
---- PAGE: AUTH (/auth) ---
+--- PAGE: AUTH (gate, no route) ---
 ================================================================================
-Shown when user is NOT authenticated (gate in AuthenticatedApp).
+Shown when user is NOT authenticated.
 
 SECTIONS:
   1. Brand header
-     - PilatesHub logo (Activity icon in circle)
-     - App name "PilatesHub"
-     - Tagline "Your Pilates community"
+     - PilatesHub logo (Activity icon in circle with glow-warm effect)
+     - App name "PilatesHub" (font-studio)
+     - Tagline "Move well. Live well."
+     - Decorative radial gradient circles in background
 
   2. Auth card with tabs
-     - Tab bar: "Log In" | "Sign Up"
+     - Tab bar: "Log In" | "Sign Up" (i18n-aware)
 
      LOG IN TAB:
-       - Email input (type=email, placeholder "Email")
-         - Validation: must be valid email (zod)
-       - Password input (type=password, placeholder "Password")
-         - Validation: min 6 characters (zod)
+       - Email input (type=email, zod validation: valid email)
+       - Password input (type=password, zod: min 6 chars)
        - "Log In" button (disabled while loading, shows "Logging in...")
-       - On success: toast "Welcome back!", sets user in AuthContext
+       - On success: toast "Welcome back!", sets JWT in localStorage, sets user in AuthContext
+       - On fail: toast "Invalid credentials"
+       - Calls POST /api/auth/login
 
      SIGN UP TAB:
-       - Full Name input (placeholder "Full Name")
-         - Validation: min 2 characters
-       - Email input (type=email, placeholder "Email")
-         - Validation: must be valid email
-       - Password input (type=password, placeholder "Password")
-         - Validation: min 6 characters
-       - Confirm Password input (type=password, placeholder "Confirm Password")
-         - Validation: must match password (zod refine)
-       - "Create Account" button (disabled while loading, shows "Creating account...")
-       - On success: toast "Account created! Welcome to PilatesHub.", sets user
+       - Full Name input (zod: min 2 chars)
+       - Email input (zod: valid email)
+       - Password input (zod: min 6 chars)
+       - Confirm Password input (zod refine: must match password)
+       - "Create Account" button (disabled while loading)
+       - On success: toast "Account created!", sets JWT, sets user
+       - On fail: toast error
+       - Calls POST /api/auth/signup
 
-DATA POINTS:
-  - Mock user: Sarah Johnson, sarah@example.com, initials "SJ", level "Advanced"
-  - Dev mode starts logged in (MOCK_USER set in AuthProvider initial state)
+  3. Footer: Terms notice
+
+DATA:
+  - Mock user: Emma D, emma@example.com, initials "ED", level "Advanced"
+  - Dev mode auto-logs in with MOCK_USER when no token present
 
 ================================================================================
---- PAGE: MAP (/) ---
+--- PAGE: ONBOARDING (gate, no route) ---
+================================================================================
+Shown after auth, before first use. 4-step wizard.
+
+STEP 0 — Welcome:
+  - PilatesHub logo (Activity icon in nested circles)
+  - "Welcome to PilatesHub" heading
+  - "Let's personalize your experience" description
+  - "Get Started" button
+
+STEP 1 — Experience Level:
+  - "What's your Pilates level?" heading
+  - 3 options: Beginner, Intermediate, Advanced (each with emoji, description)
+  - Selection highlights with primary border + checkmark
+  - "Continue" button (disabled until selection)
+
+STEP 2 — Favorite Apparatus:
+  - "What do you enjoy most?" heading
+  - 6 options in 3-column grid: Mat, Reformer, Tower, Cadillac, Chair, Barre
+  - Multi-select with checkmarks
+  - "Continue" button (disabled until >= 1 selected)
+
+STEP 3 — Goals:
+  - "What are your goals?" heading
+  - 7 pill buttons: Build strength, Improve flexibility, Lose weight, Recover from injury, Reduce stress, Meet people, Have fun
+  - Multi-select
+  - "Start Exploring" button (disabled until >= 1 selected)
+
+CONTROLS:
+  - Skip button (top right) -> skips all steps
+  - Progress dots at bottom (4 dots, animated width)
+  - Saves preferences to localStorage (pilateshub-preferences JSON)
+  - Sets pilateshub-onboarded = "true"
+
+================================================================================
+--- PAGE: MAP / EXPLORE (/) ---
 ================================================================================
 
 SECTIONS:
   1. Leaflet interactive map (56vh mobile, 65vh desktop)
-     - Tile layer: CartoDB Positron (light minimal style)
-     - Centered on Paris (48.862, 2.352), zoom 13, no zoom controls
-     - Blue dot marker at Paris center (current location indicator)
-     - Studio markers: custom circular div icons showing price in EUR
-       - Unselected: 36px, muted green, white border
-       - Selected: 44px, darker green, larger shadow, pointer triangle below
-     - Clicking a marker selects/deselects a studio
+     - CartoDB Positron tile layer (light, minimal style)
+     - Paris center: [48.862, 2.352], default zoom 13
+     - Current location blue pulsing dot marker
 
-  2. Filter bar (overlaid on top of map, horizontally scrollable)
-     - "Filters" badge with Filter icon (non-functional label)
-     - Toggle filter badges: Reformer, Mat, Beginner, Advanced, Near Me
-       - Reformer/Mat/Beginner/Advanced: filters by studio description text match
-       - Near Me: filters studios with distance <= 1.5km
-     - Active filter: primary color; inactive: white with slate border
-     - Clicking active filter again deselects it
+  2. Featured studio markers (warm brown pins)
+     - Price displayed inside pin (e.g., "EUR 45")
+     - Click: shows preview card, toggles selection
+     - Selected state: larger pin with stronger shadow
+     - Custom L.divIcon with inline SVG/HTML
 
-  3. Map/List toggle button (bottom-left of map)
-     - Shows "List" (Home icon) when map view / "Map" (MapPin icon) when list view
-     - Toggles showList state
+  3. Real/OSM studio markers (smaller blue/gray pins)
+     - Pilates = blue "P", Yoga = purple "Y", Fitness = gray "F"
+     - Source badge: "OSM" or "Web"
+     - Click: shows RealStudioPreviewCard
 
-  4. Selected studio preview card (bottom of map, animated slide-in)
-     - Studio image thumbnail (16x16 rounded)
-     - Studio name (bold, truncated)
-     - Price (EUR, primary color)
-     - Neighborhood + distance
-     - Star rating with review count
-     - "View" link with chevron -> opens StudioDetailDialog
-     - Close button (X icon) -> deselects studio
-     - Entire card is wrapped in StudioDetailDialog trigger
+  4. Filter bar (overlay on map, horizontal scroll)
+     - "Filters" label badge
+     - Quick filters: Reformer, Mat, Beginner, Advanced, Near Me
+     - "More Studios" toggle (show/hide real studios layer)
+     - Active filter = primary color fill
 
-  5. Studio list view (when toggled, replaces map bottom area)
-     - Header: "Nearby Studios" + count badge
-     - Responsive grid: single column mobile, 2 columns desktop
-     - Each studio card:
-       - Image (24x24 left side)
-       - Studio name (bold)
-       - Price (EUR, primary color)
-       - Neighborhood + distance
-       - Star rating with review count
-       - Entire card is a StudioDetailDialog trigger
+  5. Map controls
+     - Recenter button (Navigation icon, bottom-right) -> flyTo Paris center
+     - List/Map toggle button (bottom-left) -> switches view
 
-INTERACTIVE ELEMENTS:
-  - Filter badges (toggle on/off)
-  - Map markers (click to select/deselect)
-  - Recenter button (bottom-right of map, Navigation icon) -> flies to Paris center
-  - Map/List toggle button
-  - Studio preview card close button
-  - Studio cards/preview -> open StudioDetailDialog
+  6. Map legend (bottom-center when real studios visible)
+     - Featured (brown), Pilates (blue), Yoga (gray)
 
-DATA POINTS (8 studios):
-  - Studio Harmonie (Marais, 4.9 stars, 234 reviews, EUR 45, 0.3km)
-  - Pilates Lumiere (Saint-Germain, 4.8, 189 reviews, EUR 55, 0.7km)
-  - Core & Flow (Montmartre, 4.7, 312 reviews, EUR 38, 1.2km)
-  - Reform Studio Paris (Bastille, 4.6, 156 reviews, EUR 50, 1.8km)
-  - Equilibre Pilates (Pigalle, 4.5, 98 reviews, EUR 42, 2.1km)
-  - Le Studio Reformer (Oberkampf, 4.4, 203 reviews, EUR 35, 2.5km)
-  - Pilates Zen (Nation, 4.8, 127 reviews, EUR 48, 3.0km)
-  - BodyWork Pilates (Chatelet, 4.9, 445 reviews, EUR 60, 3.4km)
+  7. Featured studio preview card (on marker click)
+     - Studio image thumbnail, name, price, neighborhood, distance
+     - Star rating + review count
+     - "View" link -> opens StudioDetailDialog
+     - Close (X) button
 
-================================================================================
---- DIALOG: STUDIO DETAIL ---
-================================================================================
-Opened from MapPage studio cards/preview. Full studio profile + booking.
+  8. Real studio preview card (on marker click)
+     - Name, sport type badge, source badge
+     - Neighborhood, address
+     - Opening hours, phone (clickable tel: link)
+     - Website link (external), Instagram link
+     - "Claim this studio" text
 
-SECTIONS:
-  1. Hero image (h-44, full width, gradient overlay)
-     - Studio photo
-     - Neighborhood label (bottom-left, white text)
+  9. Studio list view (toggled via List button)
+     - Featured Studios section: card grid, image + name + price + rating
+     - More Studios section: simpler cards, sport type badge, website link
+     - Clicking card -> map view with studio selected
 
-  2. Studio info
-     - Studio name (xl bold)
-     - Price badge (EUR, secondary bg)
-     - Star rating + review count + distance
-     - Description paragraph
-     - Coaches section: list of coach names as pill badges
-
-  3. Time slot picker ("Available Today")
-     - 5 time slots: 09:00, 11:30, 14:00, 17:00, 19:30
-     - Click to select (highlighted primary); click again to deselect
-     - Selected slot shown in booking button text
-
-  4. Booking button
-     - Disabled state: "Select a time slot" (when no time selected)
-     - Active state: "Book at {time}" (when time selected)
-     - After booking: green "Booked Successfully!" with CheckCircle2 icon, disabled
-     - On book: toast "Booked! Your session at {name} at {time} is confirmed."
-
-  5. Check-in button
-     - "Check In Here" with pin emoji
-     - On click: toast "Checked in at {name}!"
-
-  6. Reviews section (separator above)
-     - 2 hardcoded reviews:
-       - Emma D., 5 stars: "Absolutely love this studio!..."
-       - Lucas M., 4 stars: "Great equipment and atmosphere..."
-     - Each: user avatar circle, name, star icons, review text
-
-  7. Studio Regulars leaderboard (separator above, conditional)
-     - Only shows if STUDIO_CHECKINS has entries for this studio
-     - Header: Trophy icon + "Studio Regulars"
-     - Ranked list: position badge (gold/silver/bronze colors), avatar, name, visit count
-     - Data from STUDIO_CHECKINS (10 entries across studios 1, 2, 3)
-
-INTERACTIVE ELEMENTS:
-  - Time slot badges (select/deselect)
-  - "Book at {time}" button
-  - "Check In Here" button
-  - Dialog open/close
-
-================================================================================
---- DIALOG: SEARCH ---
-================================================================================
-Opened from Header search button. Universal search across data.
-
-SECTIONS:
-  1. Search input
-     - Auto-focused text input
-     - Placeholder: "Search studios, products, discussions..."
-     - Minimum 2 characters to trigger search
-
-  2. Results (scrollable, max-h 400px)
-     - EMPTY state (<2 chars): "Type at least 2 characters to search"
-     - NO RESULTS state: "No results for '{query}'"
-     - Studios results (max 3): searches name + neighborhood
-       - MapPin icon, studio name, neighborhood, price
-       - Links to / (map page), closes dialog
-     - Products results (max 3): searches name + brand
-       - Product emoji icon, product name, brand, price
-       - Links to /store, closes dialog
-     - Forum Discussions results (max 3): searches title
-       - MessageCircle icon, post title (1-line clamp), category, timeAgo
-       - Links to /community, closes dialog
-
-INTERACTIVE ELEMENTS:
-  - Search text input
-  - Result rows (clickable links to respective pages)
-  - Dialog open/close
-
-================================================================================
---- SHEET: CART (Header) ---
-================================================================================
-Opened from Header cart icon. Side drawer for shopping cart.
-
-SECTIONS:
-  1. Sheet header
-     - Title: "Your Cart"
-     - Description: "{count} item(s)"
-
-  2. Cart contents
-     - EMPTY state: ShoppingCart icon + "Your cart is empty"
-     - ITEMS state: list of cart items
-       - Product image thumbnail (12x12 rounded)
-       - Product name
-       - Brand + Qty
-       - Price (EUR, primary color, multiplied by qty)
-       - Remove button (X icon) -> removes item from cart
-     - Separator
-     - Total line: "Total" + EUR amount (primary color)
-     - "Checkout" button
-       - On click: toast "Order confirmed! Your items are on their way.", clears cart
-
-INTERACTIVE ELEMENTS:
-  - Remove item buttons (per item)
-  - Checkout button
-  - Sheet open/close
+DATA:
+  - Featured studios: from useStudios() hook (GET /api/studios)
+  - Real studios: static REAL_STUDIOS array from real-studios.ts (~40 studios, sourced from OSM + web)
+  - RealStudio type: id, osmId, name, lat, lng, address, phone, website, openingHours, neighborhood, source, instagram, sportType
 
 ================================================================================
 --- PAGE: FEED (/feed) ---
 ================================================================================
 
 SECTIONS:
-  1. Share bar (sticky top, white bg, shadow)
-     - "Share your session today..." prompt with user avatar "SJ"
-     - Clicking opens "Log a Session" dialog
+  1. Tab bar (sticky): Activity | Forum | Circles
 
-  2. Log a Session dialog
-     - Session type input (placeholder "Session type e.g. Reformer Flow")
-       - Validation: required (min 1 char)
-     - Studio input (placeholder "Studio or Home")
-       - Validation: required (min 1 char)
-     - Duration input (number, placeholder "Duration (min)")
-       - Validation: min 1, max 300
-     - Calories input (number, placeholder "Calories")
-       - Validation: min 0, max 5000
-     - "Share Session" button
-       - On submit: toast with session details, resets form
+  ACTIVITY TAB:
+    2. Share bar ("Share your session today...")
+       - Opens Log Session dialog
+       - Session type input (zod: min 1 char)
+       - Studio/location input (zod: min 1 char)
+       - Duration input (number, 1-300 min)
+       - Calories input (number, 0-5000)
+       - "Share Session" button -> toast confirmation
 
-  3. Post feed (scrollable, max-w-xl centered on desktop)
-     - Each post card:
-       - User avatar (colored circle with initials)
-       - User name (bold)
-       - Time ago
-       - Follow/Unfollow button (per user)
-         - "Follow" (primary outline) / "Following" (gray, slate bg)
-         - Toggles following state in AppContext
-       - Activity description: "completed {type} at {studio}"
-       - Photo (if hasPhoto): 44h rounded image from curated Unsplash URLs
-       - Stats pills:
-         - Duration (Clock icon, minutes, primary bg)
-         - Calories (Flame icon, cal, orange bg)
-       - Kudos count: emoji row + "{count} kudos"
-       - Kudos animation: bouncing emoji when giving kudos
-       - Footer actions:
-         - Kudos button (gymnast emoji): toggles like, shows "Good Form!" when liked
-         - Comments button (speech bubble emoji): shows comment count (non-functional)
-         - Share button (arrow emoji, non-functional)
+    3. Activity feed (vertical card list)
+       Per post card:
+       - User avatar (initials), name, follow/unfollow button
+       - Post timestamp ("3h ago")
+       - Session description: "completed [type] at [studio]"
+       - Optional photo (Unsplash images, 5 rotating)
+       - Stats: duration (min), calories (cal) in colored pills
+       - Kudos count with emoji reactions
+       - Kudos button (toggle, animated bounce emoji)
+       - "Good Form!" text on kudos given
+       - Comments button (count)
+       - Share button
 
-  4. Leaderboard widget (bottom of feed)
-     - Header: Trophy icon + "This Week's Leaders"
-     - 5 leaderboard rows (LeaderboardRow component)
-       - Rank badge (gold/silver/bronze colors for 1/2/3)
-       - User avatar (colored initials)
-       - User name
-       - Calories (orange, formatted with comma)
-       - Session count
+    4. Leaderboard widget ("This Week's Leaders")
+       - Trophy icon header
+       - LeaderboardRow for each entry: rank, avatar, name, calories, sessions
+       - Top 3 have colored rank badges (gold, silver, bronze)
 
-INTERACTIVE ELEMENTS:
-  - Share bar -> opens Log Session dialog
-  - Log Session dialog form (4 fields + submit)
-  - Follow/Unfollow button per post
-  - Kudos button per post (toggles like)
-  - Comments button per post (display only)
-  - Share button per post (display only)
+  FORUM TAB:
+    - Renders CommunityPage inline
 
-DATA POINTS (10 posts):
-  - Post types: Reformer Advanced, Mat Pilates Core, Cadillac Intro, Wunda Chair Blast,
-    Reformer Flow, Spine Corrector, Tower & Reformer, Mat Beginner, Reformer Cardio, Classical Mat
-  - 10 users: Emma D, Lucas M, Sophie B, Alex R, Marie C, Pierre T, Isabelle F, Thomas G, Lea N, Hugo P
-  - 5 leaderboard entries: ranks 1-5 with sessions and calories
+  CIRCLES TAB:
+    - Renders CirclesPage inline
+
+DATA:
+  - Posts: useFeed() -> GET /api/feed
+  - Leaderboard: useLeaderboard() -> GET /api/leaderboard
+  - Local state: likedPosts, following (from AppContext)
 
 ================================================================================
---- PAGE: DASHBOARD / STATS (/dashboard) ---
+--- PAGE: COMMUNITY (/community) ---
 ================================================================================
 
 SECTIONS:
-  1. WeeklyRecap component
-     - Circular SVG progress ring (weekly sessions completed / goal)
-       - Shows "{completed} of {goal}" in center
-     - Side stats grid (2x2):
-       - Day Streak (Flame icon, primary bg)
-       - Total Cal (Target icon, orange bg)
-       - Weekly Goal (Trophy icon, blue bg): shows "Done!" or "{remaining} left"
-     - Streak celebration banner (if streak >= 7):
-       - Fire emoji + "{streak} day streak! Your longest is {max(streak,18)} days."
+  1. Category tabs (sticky, horizontal scroll)
+     - All, Technique, Nutrition, Studios, Gear, Challenges
+     - Active tab = primary color fill
 
-  2. Stats grid (3 cards in a row)
-     - Sessions card (primary bg): Trophy icon, total sessions count
-     - Calories card (orange bg): Flame icon, total calories (formatted as Xk)
-     - Streak card (blue bg): Activity icon, current streak days
+  2. Forum post list
+     Per post card:
+     - Vote column: upvote/downvote buttons with colored states (orange/indigo)
+     - Vote count (adjusted by user votes)
+     - Category badge, timestamp
+     - Post title (bold)
+     - Author: avatar, name, flair badge (Beginner=green, Intermediate=blue, Advanced=purple)
+     - Comment count with MessageCircle icon
 
-  3. Weekly calendar ("This Week")
-     - 7 day circles: M, T, W, T, F, S, S
-     - Completed days: primary bg with CheckCircle2 icon
-     - Current day (Friday): primary border outline
-     - Future/incomplete: slate bg
-     - Hardcoded: M-T-W-T completed, F current, S completed, S incomplete
+  3. Empty state: when no discussions in category
 
-  4. Calories chart ("Calories Burned (8 Weeks)")
-     - Recharts BarChart with ResponsiveContainer
-     - 8 weeks of data (W1-W8): 1200, 1450, 1100, 1680, 1520, 1890, 1750, 2100
-     - XAxis (week labels), YAxis (calorie values)
-     - Tooltip with rounded styling
-     - Bars in primary color with rounded top corners
+  4. New Discussion FAB (floating action button, bottom-right)
+     - Opens New Discussion dialog
+     - Title input (zod: min 3 chars)
+     - Category select dropdown (Technique, Nutrition, Studios, Gear, Challenges)
+     - Body textarea (zod: min 10 chars)
+     - "Post to Community" button -> toast confirmation
 
-  5. Badges section
-     - Header: "Badges" + earned counter (e.g. "3/6 Earned")
-     - Grid: 3 columns mobile, 6 columns desktop
-     - 6 badges:
-       - First Class (CheckCircle2 icon) - EARNED
-       - On Fire (Flame icon) - EARNED
-       - Century Club (Award icon) - EARNED
-       - Early Bird (Clock icon) - NOT EARNED
-       - Social Butterfly (Users icon) - NOT EARNED
-       - Elite (Activity icon) - NOT EARNED
-     - Earned: gradient bg, primary text
-     - Not earned: slate bg, faded opacity
-
-  6. Apparatus Journey Map (JourneyMap component)
-     - Header: map emoji + "Apparatus Journey"
-     - Vertical timeline with connector lines
-     - 5 apparatus entries:
-       - Mat: Advanced level (purple), 28/35 sessions, progress bar
-       - Reformer: Intermediate level (blue), 15/25 sessions, progress bar
-       - Tower: Beginner level (green), 4/10 sessions, progress bar
-       - Cadillac: Locked (Lock icon), "Advanced trapeze table work"
-       - Chair: Locked (Lock icon), "Compact powerhouse training"
-     - Each shows: emoji icon, name, level badge, session count, progress bar
-     - Level colors: green (beginner), blue (intermediate), purple (advanced), amber (master), slate (locked)
-
-  7. Current Challenges (top 2 only)
-     - Header: Trophy icon + "Current Challenges" + "View All" link -> /challenges
-     - Each challenge card:
-       - Emoji icon (in primary bg circle)
-       - Challenge title
-       - Description
-       - Progress bar with fraction and percentage
-       - Participant count (Users icon)
-     - Shows first 2 of 5 challenges
-
-  8. Upcoming Sessions (hardcoded)
-     - 3 upcoming sessions:
-       - Oct 24: Advanced Cadillac at Core & Flow, 09:00
-       - Oct 26: Reformer Flow at Studio Harmonie, 17:00
-       - Oct 29: Mat Pilates at Pilates Lumiere, 11:30
-     - Each: date block (month + day), session type, studio name, time, clock icon
-
-  9. Friends Leaderboard
-     - Header: Trophy icon (amber) + "Friends Leaderboard"
-     - 5 leaderboard entries (same as feed)
-     - "You" row at bottom: rank 6, SJ avatar, "8 sessions", primary bg highlight
-
-INTERACTIVE ELEMENTS:
-  - "View All" link -> /challenges
-
-DATA POINTS:
-  - Default context values: streak 12, total sessions 47, total calories 12400, weekly goal 5, weekly completed 4
-  - Longest streak: 18
-  - 8 weeks calorie data, 6 badges, 5 apparatus levels, 5 challenges (showing 2), 3 upcoming sessions
+DATA:
+  - Forum posts: useForum() -> GET /api/forum(?category=...)
+  - Votes: local state in AppContext
 
 ================================================================================
---- PAGE: COMMUNITY / FORUM (/community) ---
+--- PAGE: ME (/me) ---
 ================================================================================
 
 SECTIONS:
-  1. Category filter bar (sticky top)
-     - Horizontal scrollable tab buttons:
-       All, Technique, Nutrition, Studios, Gear, Challenges
-     - Active: primary bg + white text
-     - Inactive: slate bg
+  1. Profile header (warm gradient background)
+     - Avatar (initials, gradient primary)
+     - Name, level
+     - Settings/Edit button -> /me/edit
 
-  2. Forum posts list (filtered by category)
-     - Empty state: MessageCircle icon + "No discussions yet" + "Be the first..."
-     - Each post card:
-       - Vote column (left side):
-         - Upvote button (chevron up): orange when active
-         - Vote count (orange if upvoted, indigo if downvoted, slate if neutral)
-         - Downvote button (chevron down): indigo when active
-         - Vote state: toggles up/down/null in AppContext
-       - Post content (right side):
-         - Category badge (primary color)
-         - Time ago
-         - Post title (bold)
-         - Author row: avatar (colored initials), author name, flair badge
-         - Comment count (MessageCircle icon)
+  2. Weekly Recap card (WeeklyRecap component)
+     - Circular SVG progress ring (sessions completed / weekly goal)
+     - Day streak, total calories, weekly goal status
+     - Fire streak animation when streak >= 7
 
-  3. Flair badges with colors:
-     - Beginner: green bg
-     - Intermediate: blue bg
-     - Advanced: purple bg
-     - Other flairs (Question, Inspiration, Debate, Update, Help, Challenge, Article, Review, Feature): slate bg
+  3. Wearable Health Metrics (WearableDashboard component)
+     - If connected: Recovery gauge (SVG ring, color-coded), strain, HRV, RHR, sleep
+     - AI-based session recommendation based on recovery score
+     - Link to wearable settings
+     - If disconnected: CTA to connect device
 
-  4. New Discussion FAB (floating action button)
-     - Plus icon, primary bg, bottom-right of page
-     - Opens "New Discussion" dialog
+  4. Quick Stats Row (3 gradient cards)
+     - Total Sessions count
+     - Total Calories (formatted as X.Xk)
+     - Day Streak count
+     - i18n-aware labels
 
-  5. New Discussion dialog
-     - Title input (placeholder "Post title...")
-       - Validation: min 3 characters
-     - Category select dropdown:
-       Options: Technique, Nutrition, Studios, Gear, Challenges
-       - Validation: required
-     - Body textarea (placeholder "What's on your mind?", min-h 100px)
-       - Validation: min 10 characters
-     - "Post to Community" button
-       - On submit: toast with title and category, resets form
+  5. Apparatus Journey (JourneyMap component)
+     - Vertical timeline: Mat (advanced), Reformer (intermediate), Tower (beginner), Cadillac (locked), Chair (locked)
+     - Per apparatus: emoji, level badge, session count, progress bar to next level
+     - Locked items: Lock icon, description
 
-INTERACTIVE ELEMENTS:
-  - Category filter tabs
-  - Upvote/Downvote buttons per post
-  - Post cards (cursor pointer, hover effect)
-  - New Discussion FAB -> opens dialog
-  - New Discussion form (3 fields + submit)
+  6. Active Challenge Preview
+     - Shows first 2 challenges
+     - Per challenge: icon, title, description, progress bar, participant count
+     - "View All" link -> /challenges
 
-DATA POINTS (10 forum posts):
-  - Categories: Recommendations, Progress, Discussion, News, Technique, Challenges, Education, Gear, Community
-  - Flairs: Question, Inspiration, Debate, Update, Help, Challenge, Article, Review, Feature
-  - Authors: 10 different users
-  - Upvote counts: 28-156
-  - Comment counts: 8-67
+  7. Badges (horizontal scroll)
+     - X/Y earned counter
+     - Per badge: icon, name, earned/unearned visual state
+     - i18n labels
+
+  8. Upcoming Sessions
+     - 3 mock sessions with date, studio, class type, time
+
+  9. Booking History
+     - Upcoming bookings: card with "Upcoming" badge, date, class, studio
+       - Reschedule button -> toast
+       - Cancel button -> toast warning
+     - Past sessions: grayed out, CheckCircle2 icon
+     - i18n labels
+
+  10. Notification Settings (NotificationSettings component)
+      - Enable Notifications button (requests browser permission)
+      - When enabled: toggles for Booking confirmations, New messages, Challenge updates, Kudos received, Streak reminders
+
+  11. Log Out button (red text)
+  12. Version footer: "PilatesHub v1.0.0"
+
+DATA:
+  - Badges: useBadges() -> GET /api/badges
+  - Challenges: useChallenges() -> GET /api/challenges
+  - Stats: from AppContext (currentStreak, totalSessions, totalCalories)
+  - Wearable: useWearable() -> GET /api/wearable
+
+================================================================================
+--- PAGE: EDIT PROFILE (/me/edit) ---
+================================================================================
+
+SECTIONS:
+  1. Header: back button -> /me, centered "Edit Profile" title
+
+  2. Avatar section
+     - Large avatar (initials, gradient)
+     - Camera button overlay -> toast "Avatar upload coming soon!"
+     - "Tap to change photo" text
+
+  3. Form fields (react-hook-form + zod validation)
+     - Name input (min 2 chars)
+     - Email input (read-only, "Email cannot be changed")
+     - Bio textarea (max 150 chars, live character count with color warnings)
+     - Level selector: 3 cards (Beginner/Intermediate/Advanced) with emojis
+       - Selected card: primary border + checkmark
+
+  4. Save Changes button
+     - Disabled when form is clean or saving
+     - Calls updateProfile() in AuthContext -> PUT /api/auth/profile
+     - On success: toast "Profile updated!", navigates to /me
 
 ================================================================================
 --- PAGE: STORE (/store) ---
 ================================================================================
 
 SECTIONS:
-  1. Category filter bar (sticky top)
-     - Horizontal scrollable tab buttons:
-       All, Apparel, Mats, Accessories, Bands
-     - Active: primary bg + white text
-     - Inactive: slate bg
+  1. Category filter (sticky, horizontal scroll with tablist role)
+     - All, Habitat, Alimentation, Machines, Goodies, Apparel, Accessoires
+     - Each with emoji prefix and count
+     - i18n-aware labels
 
-  2. Product grid (filtered by category)
-     - Empty state: ShoppingBag icon + "No products found" + "Try a different category..."
-     - Responsive grid: 2 columns mobile, 3 columns tablet, 4 columns desktop
-     - Each product card:
-       - Product image (h-36, object-cover)
-       - Wishlist heart button (top-right of image)
-         - Not wishlisted: white/70 bg, slate icon
-         - Wishlisted: rose bg, filled rose heart
-         - Toggles wishlist in AppContext
-       - Brand name (uppercase tiny tracking)
-       - Product name (bold, 2-line clamp)
-       - Star rating (yellow star + number)
-       - Price (EUR, primary color, bold)
-       - "Add" button -> adds to cart (AppContext)
+  2. Our Brands (horizontal scroll)
+     - Per brand: cover image, logo emoji, name, verified badge, rating, product count
+     - Click -> /brand/:slug
+     - "View All" link -> /brands
 
-INTERACTIVE ELEMENTS:
-  - Category filter tabs
-  - Wishlist heart button per product
-  - "Add" button per product -> adds to cart
+  3. Product grid (2-col mobile, 3-col md, 4-col lg)
+     Per product card:
+     - Image with hover zoom
+     - Badge (New, Best Seller, Promo -20%, Exclusif) with color coding
+     - Wishlist heart button (toggle, persisted in AppContext)
+     - Brand name (uppercase tracking)
+     - Product name (line-clamp-2)
+     - Star rating
+     - Price in EUR
+     - "Add to Cart" button -> adds to AppContext cart
 
-DATA POINTS (20 products):
-  - Categories: Accessories (5), Equipment (8), Mats (1), Recovery (2), Apparel (3)
-  - Brands: ToeSox, Balanced Body, STOTT, Manduka, TheraBand, TriggerPoint, OPTP,
-    Gaiam, Peak Pilates, Lululemon, Alo Yoga, Hydro Flask, Theragun, ProsourceFit, Beyond Yoga, Bala
-  - Price range: EUR 12 - EUR 299
-  - Rating range: 4.3 - 4.9
-  - Products: Premium Grip Socks, Reformer Straps, Pilates Ring, Cork Yoga Mat,
-    Resistance Band Set, Foam Roller, Pilates Ball 9", Grip Gloves, Spine Corrector,
-    Workout Leggings, Sports Bra, Water Bottle, Massage Gun, Jump Board, Towel Set,
-    Ankle Weights, Pilates Box, Tank Top, Stretching Strap, Gym Bag
+  4. Empty state: when no products match category
+
+DATA:
+  - Products: useProducts() -> GET /api/products(?category=...)
+  - Brands: useBrands() -> GET /api/brands
+  - Wishlist: local Set<number> in AppContext
+  - Cart: local CartItem[] in AppContext
+
+================================================================================
+--- PAGE: BRANDS (/brands) ---
+================================================================================
+
+SECTIONS:
+  1. Header: back button -> /store, "Our Brands" title, count subtitle
+
+  2. Brands list (vertical card grid)
+     Per brand card:
+     - Cover image with hover zoom
+     - Category badge (Equipment/Apparel/Accessories/Nutrition) with color coding
+     - Logo emoji on cover
+     - Name + verified badge
+     - Origin + founded year
+     - Description (line-clamp-2)
+     - Highlight pill
+     - Product count + chevron
+     - Click -> /brand/:slug
+
+DATA:
+  - Brands: useBrands() -> GET /api/brands
+
+================================================================================
+--- PAGE: BRAND DETAIL (/brand/:slug) ---
+================================================================================
+
+SECTIONS:
+  1. Cover image (full-width, gradient overlay)
+     - Back button -> /store
+     - Brand identity: logo emoji, name, verified badge, origin, founded year
+
+  2. Brand info
+     - Description text
+     - Stats row: Rating, Product count, Category badge
+     - Highlight badge (sparkle icon)
+
+  3. Products by this brand (grid)
+     - Same product card as StorePage
+     - Wishlist toggle, Add to Cart
+     - Empty state when no products
+
+DATA:
+  - Brand: useBrands() filtered by slug
+  - Products: useProducts() filtered by brand name
+
+================================================================================
+--- PAGE: COACH DETAIL (/coach/:slug) ---
+================================================================================
+
+SECTIONS:
+  1. Hero section (gradient background)
+     - Back button (history.back)
+     - Avatar image (rounded, bordered)
+     - Name, years experience
+     - Specialty badges
+
+  2. Stats row (3 columns)
+     - Rating (star icon)
+     - Review count (users icon)
+     - Sessions count
+
+  3. Quote (blockquote, italic, primary left border)
+
+  4. About section (bio text)
+
+  5. Certifications list (CheckCircle2 icon per cert)
+
+  6. Teaches At section
+     - Studio cards with image, name, neighborhood, rating
+
+  7. Sticky CTA footer: "Book with [FirstName]" button
+
+DATA:
+  - Coach: useCoaches() filtered by slug -> GET /api/coaches
+  - Studios: useStudios() filtered by coach.studioIds
 
 ================================================================================
 --- PAGE: CHALLENGES (/challenges) ---
 ================================================================================
 
 SECTIONS:
-  1. Page title: "Challenges" (xl bold)
+  1. Page title: "Challenges"
+  2. Tab bar: Active | Pilates Bingo
 
-  2. Tabs: "Active" | "Pilates Bingo"
+  ACTIVE TAB:
+    - Challenge cards
+    Per challenge:
+      - Icon emoji, title, reward badge
+      - Description
+      - Progress bar (progress/target with percentage)
+      - Participant count
 
-  3. Active tab - Challenge cards (all 5 challenges)
-     - Each card:
-       - Emoji icon (in primary/10 circle)
-       - Challenge title
-       - Reward badge (secondary bg)
-       - Description text
-       - Progress bar with fraction and percentage
-       - Participant count (Users icon)
-     - 5 challenges:
-       - March Madness: 14/20 sessions, 342 participants, Gold Badge reward
-       - Early Bird Week: 3/5 morning sessions, 128 participants, Early Bird Badge
-       - Studio Explorer: 3/5 studios, 89 participants, Explorer Badge
-       - Reformer Master: 9/15 reformer classes, 215 participants, Reformer Badge
-       - Calorie Torch: 3200/5000 calories, 178 participants, Fire Badge
+  BINGO TAB:
+    - "March Pilates Bingo" card
+    - 4x4 grid of bingo cells (16 total)
+    - Click cell to toggle completion (CheckCircle2 when done)
+    - Completed count badge (X/16)
+    - Achievement banner when >= 12 completed ("Almost there!")
 
-  4. Pilates Bingo tab
-     - Header: "March Pilates Bingo" + completion counter "{n}/16"
-     - 4x4 bingo grid (16 cells, clickable)
-       - Completed cells: primary bg tint, primary border, CheckCircle2 icon
-       - Incomplete cells: slate bg, hover border effect
-       - Clicking toggles completed state
-     - 16 bingo tasks:
-       - Morning class (done), Try a new studio (done), 60min+ session, Invite a friend (done),
-         Reformer class (done), Mat class, Weekend session (done), Log 3 days in a row (done),
-         Burn 500+ cal, Try Cadillac, Post to feed (done), FREE (done),
-         Evening class, 5 sessions/week, New instructor (done), Join a Circle
-     - Near-completion banner (when >= 12 completed):
-       - Trophy icon + "Almost there! Complete 4 more for a Bingo Master badge!"
-
-INTERACTIVE ELEMENTS:
-  - Active/Bingo tab switcher
-  - Bingo cell buttons (toggle completed state)
+DATA:
+  - Challenges: useChallenges() -> GET /api/challenges
+  - Bingo card: useBingoCard() -> GET /api/bingo
+  - Bingo state: local useState synced from API
 
 ================================================================================
 --- PAGE: CIRCLES (/circles) ---
 ================================================================================
 
 SECTIONS:
-  1. Page header
-     - Title: "Pilates Circles" (xl bold)
-     - "Create" button (Plus icon, primary bg) - non-functional (no handler)
+  1. Header: "Pilates Circles" title, "Create" button (Plus icon)
 
-  2. My Circles section (circles where isJoined=true)
-     - Section header: "MY CIRCLES" (uppercase label)
-     - Circle cards for joined circles
+  2. My Circles section (filtered by isJoined)
+     - CircleCard for each joined circle
 
-  3. Discover section (circles where isJoined=false)
-     - Section header: "DISCOVER" (uppercase label)
-     - Circle cards for non-joined circles
+  3. Discover section (filtered by !isJoined)
+     - CircleCard for each available circle
 
-  4. CircleCard component (each circle):
-     - Emoji icon (in primary/10 rounded square)
-     - Circle name (bold)
-     - Join/Joined toggle button
-       - "Join": primary outline style
-       - "Joined": slate bg, muted text
-       - On join: toast "Joined {name}!"
-       - On leave: toast "Left {name}"
-     - Description text
-     - Member avatars (up to 4 shown, +N overflow badge)
-     - Member count ("{n} members")
-     - Stats: total sessions (primary color), total calories in K (orange)
+  Per CircleCard:
+    - Emoji icon, name, join/leave toggle button
+    - Description
+    - Member avatars (stacked, max 4 + overflow count)
+    - Member count
+    - Stats: total sessions, total calories (formatted as X.Xk)
 
-INTERACTIVE ELEMENTS:
-  - "Create" button (no handler, placeholder)
-  - Join/Leave toggle per circle
-  - Member avatar display
+INTERACTIONS:
+  - Join/Leave toggle -> local state update + toast
 
-DATA POINTS (5 circles):
-  - Morning Flow Crew: 4 members, 124 sessions, 34.2k cal (joined)
-  - Marais Pilates Gang: 5 members, 89 sessions, 24.5k cal (joined)
-  - 30-Day Challengers: 6 members, 210 sessions, 58.1k cal (not joined)
-  - Reformer Addicts: 3 members, 67 sessions, 18.9k cal (not joined)
-  - Paris Pilates Moms: 3 members, 45 sessions, 12.3k cal (not joined)
+DATA:
+  - Circles: useCircles() -> GET /api/circles
 
 ================================================================================
---- PAGE: PROFILE (/profile) ---
+--- PAGE: MESSAGES (/messages) ---
+================================================================================
+
+TWO VIEWS: Conversation List and Chat View
+
+CONVERSATION LIST VIEW:
+  - Page title: "Messages", subtitle: "Your conversations"
+  - Per conversation row:
+    - Avatar with online indicator (green dot)
+    - Participant name (bold if unread)
+    - Last message preview (truncated, bold if unread)
+    - Timestamp (smart: Today=time, Yesterday, weekday, date)
+    - Unread count badge
+  - Empty state: MessageCircle icon, "No conversations yet"
+
+CHAT VIEW (selected conversation):
+  - Header: back button, avatar, participant name, "Active now"
+  - WebSocket connection status indicator (green/gray dot, "Live"/"Offline")
+  - Message list (scrollable, auto-scroll to bottom)
+    - Outgoing: primary color, right-aligned, rounded-br-md
+    - Incoming: muted bg, left-aligned, rounded-bl-md
+    - Timestamp separators (when > 5 min gap)
+    - Read receipts ("Read" on sent messages)
+    - Typing indicator ("[Name] is typing...")
+  - Message input bar (bottom, sticky)
+    - Text input (rounded-full)
+    - Send button (primary, disabled when empty)
+    - Enter key sends, Shift+Enter does not
+
+REAL-TIME FEATURES (via useWebSocket):
+  - Incoming messages via WebSocket "new_message" event
+  - Typing indicators via WebSocket "typing" event (3s timeout)
+  - Optimistic message sending (shows immediately)
+  - Push notifications for messages when page not focused (via notify.newMessage)
+  - Send typing indicator on input change
+
+DATA:
+  - Conversations: GET /api/messages/conversations (fallback to inline mock)
+  - Messages: GET /api/messages/conversations/:id (fallback to inline mock)
+  - Send: POST /api/messages/conversations/:id + WebSocket
+  - Unread count: GET /api/messages/unread-count
+
+================================================================================
+--- PAGE: BOOKING (/booking/:studioId) ---
+================================================================================
+
+4-STEP WIZARD with step indicator (Class -> Time -> Confirm -> Done)
+
+STEP 1 — Select Class:
+  - Studio name + neighborhood in header
+  - 6 available classes per studio
+  - Per class card: name, coach, price (EUR), duration, level badge (color-coded), spots left
+  - Low spots warning (red when <= 3)
+  - Click card -> advances to Step 2
+
+STEP 2 — Select Time Slot:
+  - Selected class summary card
+  - Day selector (horizontal scroll, 7 days: Today, Tomorrow, weekday names)
+  - Time grid (3-col / 5-col, 10 slots per day)
+  - Full slots: disabled with "Full" badge
+  - Selected slot: accent-cta color
+  - "Continue with [time]" button
+
+STEP 3 — Confirm & Pay:
+  - Booking summary card: studio image, name, class, date, time, coach, location
+  - Price breakdown: class price + service fee (EUR 2.50) = total
+  - Payment method: mock Visa *4242 (12/28)
+  - Cancellation policy notice (free cancel 12h before)
+  - "Confirm Booking — EUR XX.XX" button
+  - Processing spinner during payment simulation (1.8s)
+  - Push notification on confirmation (notify.bookingConfirmed)
+
+STEP 4 — Booking Confirmed:
+  - Animated checkmark with sparkles
+  - "Booking Confirmed!" heading
+  - Booking details card: studio, class, date/time, coach, duration, total paid
+  - Booking reference number (PH-XXXXXX)
+  - "Add to Calendar" button -> toast placeholder
+  - "Back to Explore" button -> navigates to /
+
+HEADER:
+  - Back button (step-1 = go to /, else go back a step)
+  - Studio name + neighborhood
+  - Step progress indicator (numbered circles with connectors)
+
+================================================================================
+--- PAGE: CHECKOUT (/checkout) ---
+================================================================================
+
+3-STEP WIZARD with step indicator (Shipping -> Payment -> Confirmation)
+
+STEP 0 — Shipping:
+  - Shipping Information form (react-hook-form + zod)
+    - Full Name (min 2), Email (valid email), Street Address (min 5)
+    - City (min 2), Postal Code (min 4), Country (min 2)
+    - Phone (optional)
+  - "Continue to Payment" button
+  - Redirects to /store if cart empty
+
+STEP 1 — Payment:
+  - Order Summary: product list with images, qty, prices
+  - Subtotal, shipping (free over EUR 75, else EUR 5.99), total
+  - Promo Code input: "PILATES10" gives 10% off
+  - Payment Method: visual credit card mockup (Visa *4242, EMMA DUBOIS)
+  - SSL encryption notice
+  - "Back" button, "Place Order — EUR XX.XX" button
+  - Processing spinner (2s simulation)
+  - Sends POST /api/orders
+
+STEP 2 — Confirmation:
+  - Animated green checkmark (scale-in rings)
+  - "Order Confirmed!" heading
+  - Order number (PH-XXXX-XXXX format)
+  - Estimated delivery (3-5 business days, calculated dates)
+  - Order details: items, subtotal, shipping, total
+  - "Track Order" button -> toast placeholder
+  - "Continue Shopping" button -> /store
+
+TOP BAR:
+  - Back button (step-0: -> /store, step-1: -> step-0)
+  - "Checkout" title
+  - Free shipping banner when subtotal < EUR 75
+
+================================================================================
+--- PAGE: STUDIO ADMIN (/admin/studio) ---
 ================================================================================
 
 SECTIONS:
-  1. Profile header
-     - Large avatar circle (24x24, gradient primary bg, initials "SJ")
-     - "Edit Profile" button (top-right) -> toast "Edit profile coming soon!"
-     - Name: "Sarah Johnson" (2xl bold)
-     - Level badge: "Advanced Level" (secondary bg)
-     - Bio: "Pilates enthusiast since 2019 . Paris, France . Reformer addict"
-     - Stats row (3 columns):
-       - 47 Sessions
-       - 23 Followers
-       - 31 Following
+  1. Studio header (warm gradient background)
+     - Studio name + Verified badge
+     - Address, rating, review count, coach count, price
+     - "Edit Profile" button
 
-  2. Three-tab content area: Activity | Badges | Bookings
+  2. Analytics grid (2x2 on mobile, 4-col on desktop)
+     - Profile Views (with % change vs last month, up/down arrow)
+     - Bookings (with % change)
+     - Check-ins (with % change)
+     - Revenue (EUR prefix, with % change)
 
-  3. Activity tab (default)
-     - 5 past session cards:
-       - Activity icon in primary circle
-       - Session type + date + studio
-       - Calories + duration
-     - Sessions:
-       - Reformer Flow at Studio Harmonie, Oct 12, 320 cal, 55 min
-       - Cadillac Intro at Pilates Lumiere, Oct 10, 290 cal, 60 min
-       - Mat Pilates Core at Core & Flow, Oct 8, 250 cal, 45 min
-       - Reformer Advanced at Studio Harmonie, Oct 6, 340 cal, 55 min
-       - Tower & Reformer at BodyWork Pilates, Oct 3, 410 cal, 75 min
+  3. Quick insights badges
+     - Top class name
+     - Average rating
+     - New reviews count
+     - Pending bookings count (amber warning)
 
-  4. Badges tab
-     - 2-column grid of 6 badges (same as Dashboard)
-     - Each: icon (14x14 rounded square), name, status ("Earned" checkmark or description)
+  4. Tabs: Bookings | Schedule | Reviews | Settings
 
-  5. Bookings tab
-     - Upcoming bookings (3):
-       - Each with "Upcoming" badge, session type, studio + area, date block, time
-       - "Reschedule" button -> toast "Reschedule request sent."
-       - "Cancel" button (rose text) -> toast "Booking cancelled."
-       - Bookings:
-         - Advanced Cadillac at Core & Flow (Montmartre), Oct 24, 09:00
-         - Reformer Flow at Studio Harmonie (Marais), Oct 26, 17:00
-         - Mat Pilates at Pilates Lumiere (Saint-Germain), Oct 29, 11:30
-     - Past Sessions label
-     - 2 past booking cards (faded opacity):
-       - CheckCircle2 icon, session type, studio, date, time
-       - Reformer Advanced at Studio Harmonie, Oct 12, 17:00
-       - Mat Pilates Core at Core & Flow, Oct 8, 11:30
+  BOOKINGS TAB:
+    - Upcoming bookings list with client avatar, name, class, date/time
+    - Status badges: confirmed (green) / pending (amber)
+    - Actions: Confirm (pending only), Cancel
+    - Empty state
 
-  6. Log Out button (bottom of page)
-     - Red text, outline style, full width
-     - On click: calls auth logout + toast "Logged out."
+  SCHEDULE TAB (ScheduleManager component):
+    - Day selector (Mon-Sun horizontal scroll with class counts)
+    - Classes for selected day: name, level, coach, time, duration, enrollment, price
+    - Capacity progress bar (color-coded: green/amber/red)
+    - Edit button -> edit dialog (pre-filled form)
+    - Delete button -> removes class
+    - "Add Class to [Day]" button -> add dialog
+    - Form: class name, coach, time, duration, level (select), max capacity, price
 
-INTERACTIVE ELEMENTS:
-  - "Edit Profile" button (toast placeholder)
-  - Activity/Badges/Bookings tab switcher
-  - Reschedule button per upcoming booking
-  - Cancel button per upcoming booking
-  - Log Out button
+  REVIEWS TAB:
+    - Recent reviews list
+    - Per review: avatar, name, 5-star rating, text, date
+    - "Replied" status (green checkmark) or "Reply" button
+    - Reply inline: text input + Send button + Cancel
+    - Average rating badge
+
+  SETTINGS TAB:
+    - Studio Details form: name, description (textarea), price, neighborhood (disabled), address
+    - "Save Changes" button -> toast
+    - Coaches management: list with avatars, remove (hover reveal)
+    - Add coach: input + "Add" button
+
+================================================================================
+--- PAGE: WEARABLE SETTINGS (/settings/wearables) ---
+================================================================================
+
+SECTIONS:
+  1. Header (warm gradient): back button -> /me, title "Connected Devices"
+
+  2. Connected Device card (if connected)
+     - Green status bar at top
+     - Watch icon, device name "Whoop 4.0", Connected badge
+     - Last sync time
+     - Quick stats: Recovery %, HRV (ms), Strain
+     - "Disconnect" button -> toast warning
+
+  3. Available Integrations list
+     - 5 devices: Whoop, Apple Watch, Garmin, Oura Ring, Fitbit
+     - Per device: emoji icon, name, description
+     - Status: Connected (green badge), Available ("Connect" button), Coming Soon (outline badge)
+
+  4. Data Sharing Permissions
+     - 5 toggle switches (custom switch component with role="switch"):
+       - Heart Rate, Sleep, Recovery, Strain, HRV
+     - Each with label + description
+
+  5. Privacy note footer
+
+DATA:
+  - Wearable data: useWearable() -> GET /api/wearable
 
 ================================================================================
 --- PAGE: NOT FOUND (404) ---
 ================================================================================
-Catch-all route for undefined paths.
 
-SECTIONS:
-  - Centered card
   - AlertCircle icon (red)
-  - Title: "404 Page Not Found"
-  - Message: "Did you forget to add the page to the router?"
+  - "404 Page Not Found" heading
+  - "Did you forget to add the page to the router?" message
 
 ================================================================================
---- COMPONENT: LEADERBOARD ROW ---
-================================================================================
-Reusable row used in FeedPage and DashboardPage leaderboards.
-
-DISPLAYS:
-  - Rank badge (1=gold, 2=silver, 3=bronze, 4+=slate)
-  - User avatar (colored initials)
-  - User name
-  - Calories (orange, comma-formatted)
-  - Session count
-
-================================================================================
---- COMPONENT: WEEKLY RECAP ---
-================================================================================
-Reusable widget used on DashboardPage.
-
-DISPLAYS:
-  - SVG circular progress ring (animated stroke-dashoffset)
-  - Weekly completed / goal count in center
-  - Day Streak stat
-  - Total Calories stat
-  - Weekly Goal stat (shows "Done!" if met)
-  - Streak celebration banner when streak >= 7
-
-================================================================================
---- COMPONENT: JOURNEY MAP ---
-================================================================================
-Reusable widget used on DashboardPage.
-
-DISPLAYS:
-  - Vertical timeline of 5 Pilates apparatus types
-  - Each: emoji/lock icon, name, level badge, progress bar, session counts
-  - Levels: locked, beginner, intermediate, advanced, master
-  - Connector lines between items
-
-================================================================================
---- COMPONENT: EMPTY STATE ---
-================================================================================
-Reusable component used in CommunityPage and StorePage.
-
-ACCEPTS:
-  - icon (ReactNode)
-  - title (string)
-  - description (string)
-  - action (optional ReactNode)
-
-DISPLAYS:
-  - Centered layout with icon circle, title, description, optional action button
-
-================================================================================
---- COMPONENT: ERROR BOUNDARY ---
-================================================================================
-React class component wrapping every route in App.tsx.
-
-BEHAVIOR:
-  - Catches render errors in child tree
-  - Shows fallback UI if provided, otherwise default error card
-  - Default UI: warning icon, "Something went wrong", error message, "Try Again" button
-  - "Try Again" resets error state to re-render children
-
-================================================================================
---- COMPONENT: PAGE SKELETONS ---
-================================================================================
-Loading placeholder components (4 variants).
-
-VARIANTS:
-  - MapPageSkeleton: map area + list of 4 card placeholders
-  - FeedPageSkeleton: share bar + 3 post card placeholders with avatars + images
-  - StorePageSkeleton: filter bar + 6 product card placeholders in 2-column grid
-  - DashboardPageSkeleton: 3 stat cards + 3 section placeholders
-
-================================================================================
---- GLOBAL STATE (AppContext) ---
+--- COMPONENTS ---
 ================================================================================
 
-CART STATE:
-  - cartItems: array of {product, qty}
-  - addToCart(product): adds or increments qty
-  - removeFromCart(productId): removes entirely
-  - clearCart(): empties cart
-  - cartCount: total item count
-  - cartTotal: total price (EUR)
+LAYOUT:
+  AppShell -> wraps authenticated app
+    - Skip-to-content link
+    - Desktop: SideNav (hidden on mobile)
+    - Main content area (max-w-2xl mobile, no max desktop)
+    - Mobile: BottomNav (hidden on desktop)
+    - Sonner toast provider
 
-FEED STATE:
-  - likedPosts: Record<postId, boolean> (kudos toggle)
-  - toggleLike(postId): toggles kudos on/off
-  - following: Record<userId, boolean>
-  - toggleFollow(userId): toggles follow on/off
+  Header -> global sticky header (see NAVIGATION section above)
+  BottomNav -> 5-tab mobile navigation
+  SideNav -> desktop sidebar with 6 main + admin tabs, controls, profile
 
-COMMUNITY STATE:
-  - votes: Record<postId, "up" | "down" | null>
-  - toggleVote(postId, direction): toggles up/down/null
+DIALOGS:
+  StudioDetailDialog -> studio detail sheet (triggered from map/list)
+    - Studio image (h-44), name, price badge, rating, reviews, distance
+    - Description
+    - Coaches list (linked to /coach/:slug if profile exists)
+    - Available time slots (5 slots, selectable)
+    - "Book a Session" button -> navigates to /booking/:studioId
+    - "Check In Here" button -> toast confirmation
+    - Rating summary: average, star distribution bar chart
+    - Reviews list with Write Review button
+    - Studio Regulars leaderboard (sorted by check-in count, medal badges)
 
-STORE STATE:
-  - wishlist: Set<productId>
-  - toggleWishlist(productId): adds/removes from wishlist
+  SearchDialog -> global search (triggered from Header)
+    - Auto-focus text input with search icon
+    - Min 2 characters to search
+    - Results grouped: Studios (MapPin icon), Products (image), Discussions (MessageCircle icon)
+    - Max 3 results per category
+    - Click result -> navigates and closes dialog
+    - No results state, min chars state
 
-BOOKING STATE:
-  - bookingSuccess: studioId | null
-  - setBookingSuccess(studioId | null): tracks which studio was just booked
+  WriteReviewDialog -> studio review form
+    - Interactive 5-star rating (hover + click, labels: Poor/Fair/Good/Very Good/Excellent)
+    - Review textarea (zod: min 10 chars)
+    - "Post Review" button -> creates StudioReview object, toast, closes dialog
 
-STREAK & STATS STATE:
-  - currentStreak: 12 (default)
-  - longestStreak: 18 (default)
-  - totalSessions: 47 (default)
-  - totalCalories: 12400 (default)
-  - weeklyGoal: 5 (default)
-  - weeklyCompleted: 4 (default)
-  - logSession(calories, duration): increments sessions, calories, weekly, streak
+WIDGETS:
+  WearableDashboard -> wearable health metrics card (used in MePage)
+    - RecoveryGauge: SVG circular ring, color-coded (green >= 67, yellow >= 34, red < 34)
+    - MetricPill: compact stat chip (icon + label + value)
+    - Metrics: Strain, HRV, RHR, Sleep duration
+    - AI recommendation text based on recovery score
+    - Disconnected state: CTA to connect device
 
-================================================================================
---- GLOBAL STATE (AuthContext) ---
-================================================================================
+  WeeklyRecap -> weekly progress card (used in MePage)
+    - SVG circular progress ring (weeklyCompleted / weeklyGoal)
+    - Stats: Day Streak, Total Calories, Weekly Goal status
+    - Fire streak banner when streak >= 7
 
-AUTH STATE:
-  - user: { id, name, email, initials, level } | null
-  - isAuthenticated: boolean (derived from user !== null)
-  - login(email, password): mock 800ms delay, sets user
-  - signup(name, email, password): mock 800ms delay, creates user with generated initials
-  - logout(): sets user to null
+  JourneyMap -> apparatus progression timeline (used in MePage)
+    - 5 apparatus: Mat, Reformer, Tower, Cadillac, Chair
+    - Per item: emoji icon (or lock icon if locked), level badge, session count, progress bar
+    - Vertical connector lines between items
+    - 5 levels: locked, beginner, intermediate, advanced, master
 
-DEFAULT USER (dev mode):
-  - id: 1, name: "Sarah Johnson", email: "sarah@example.com", initials: "SJ", level: "Advanced"
+  ScheduleManager -> class schedule CRUD (used in StudioAdminPage)
+    - Day selector (Mon-Sun)
+    - Class list with capacity bars
+    - Add/Edit/Delete dialogs
+    - Form: name, coach, time, duration, level, capacity, price
+
+  NotificationSettings -> push notification preferences (used in MePage)
+    - Browser permission request
+    - 5 notification type toggles (checkboxes)
+    - Sends test notification on enable
+
+  StudioAnalytics -> analytics dashboard with charts (used in StudioAnalyticsPage)
+    - Recharts: BarChart (monthly bookings), LineChart (daily views), PieChart (class popularity)
+    - Stat cards with trend indicators
+    - Uses mock data
+
+  LeaderboardRow -> single leaderboard entry (used in FeedPage)
+    - Rank badge (gold/silver/bronze for top 3)
+    - Avatar, name, calories, sessions
+
+  EmptyState -> generic empty state component
+    - Configurable icon, title, description, optional action
+
+  ErrorBoundary -> React error boundary (class component)
+    - Catches render errors
+    - Shows error message + "Try Again" button
+    - Wraps every route in App.tsx
+
+  PageSkeleton -> loading skeleton variants
+    - GenericPageSkeleton: title + 5 card skeletons
+    - CommunityPageSkeleton: tabs + 4 post skeletons
+    - MapPageSkeleton: map area + 4 card skeletons
+    - FeedPageSkeleton: share bar + 3 post skeletons
+    - StorePageSkeleton: category tabs + 6 product skeletons
+    - DashboardPageSkeleton: stats + charts skeletons
 
 ================================================================================
 --- HOOKS ---
 ================================================================================
 
-useTheme():
-  - Reads/writes "pilates-theme" in localStorage
-  - v2 migration: resets old dark preference to light on first load
-  - Returns: { theme, setTheme, toggleTheme }
-  - Adds/removes "dark" class on document root
+use-api.ts (TanStack React Query hooks):
+  Data fetching:
+    - useStudios(q?, neighborhood?) -> GET /api/studios
+    - useStudio(id) -> GET /api/studios/:id
+    - useClasses(studioId?, type?) -> GET /api/classes
+    - useFeed() -> GET /api/feed
+    - useForum(category?) -> GET /api/forum
+    - useProducts(category?) -> GET /api/products
+    - useBookings() -> GET /api/bookings
+    - useBrands() -> GET /api/brands
+    - useCoaches() -> GET /api/coaches
+    - useChallenges() -> GET /api/challenges
+    - useBingoCard() -> GET /api/bingo
+    - useBadges() -> GET /api/badges
+    - useLeaderboard() -> GET /api/leaderboard
+    - useCalorieData() -> GET /api/calorie-data
+    - useCircles() -> GET /api/circles
+    - useWearable() -> GET /api/wearable
+    - useStudioReviews(studioId) -> GET /api/studios/:id/reviews
+    - useStudioCheckins(studioId) -> GET /api/studios/:id/checkins
+    - useCurrentUser() -> GET /api/auth/me
+  Mutations:
+    - useCreatePost() -> POST /api/feed
+    - useToggleLike() -> POST /api/feed/:id/like
+    - useCreateForumPost() -> POST /api/forum
+    - useVoteForumPost() -> POST /api/forum/:id/vote
+    - useCreateBooking() -> POST /api/bookings
+  Config: Bearer token auth from localStorage, staleTime 30s, retry 1
 
-use-api.ts (TanStack Query hooks, all hitting /api/* endpoints):
-  - useStudios(q?, neighborhood?): GET /api/studios with optional query params
-  - useStudio(id): GET /api/studios/:id
-  - useClasses(studioId?, type?): GET /api/classes with optional params
-  - useFeed(): GET /api/feed
-  - useCreatePost(): POST /api/feed (mutation)
-  - useToggleLike(): POST /api/feed/:id/like (mutation)
-  - useForum(category?): GET /api/forum with optional category
-  - useCreateForumPost(): POST /api/forum (mutation)
-  - useVoteForumPost(): POST /api/forum/:id/vote (mutation)
-  - useProducts(category?): GET /api/products with optional category
-  - useBookings(): GET /api/bookings
-  - useCreateBooking(): POST /api/bookings (mutation)
-  - useCurrentUser(): GET /api/auth/me (no retry)
-  - Query client config: staleTime 30s, retry 1
+use-theme.ts:
+  - Manages light/dark theme
+  - Persists to localStorage ("pilates-theme")
+  - Toggles "dark" class on <html> element
+  - v2 migration: resets old dark preference to light
 
-NOTE: API hooks are defined but pages fall back to mock data (FALLBACK_*) when
-API calls fail/return undefined, making the app fully functional with mock data alone.
+use-websocket.ts:
+  - WebSocket client for real-time messaging
+  - Auto-connects with JWT token from localStorage
+  - Auto-reconnects every 5 seconds on disconnect
+  - Event system: on(type, handler) for registering listeners
+  - send(data) for outgoing JSON messages
+  - connected state for UI indicator
+  - Graceful error handling (silent fail if server doesn't support WS)
+
+use-payments.ts:
+  - useBookingPayment() -> POST /api/payments/booking (creates Stripe PaymentIntent)
+  - useOrderPayment() -> POST /api/payments/order (creates Stripe PaymentIntent)
+  - Returns { clientSecret, paymentIntentId }
 
 ================================================================================
---- DESIGN SYSTEM & THEME ---
+--- CONTEXTS ---
 ================================================================================
+
+AuthContext (AuthProvider + useAuth):
+  State:
+    - user: AuthUser | null (id, name, email, initials, level, bio)
+    - isAuthenticated: boolean
+  Actions:
+    - login(email, password) -> POST /api/auth/login, stores JWT
+    - signup(name, email, password) -> POST /api/auth/signup, stores JWT
+    - logout() -> clears token + onboarded + preferences from localStorage
+    - updateProfile({name?, bio?, level?}) -> PUT /api/auth/profile
+  Behavior:
+    - On mount: tries to restore session from JWT via GET /api/auth/me
+    - Falls back to MOCK_USER (Emma D) if no token or API unavailable
+    - Converts API response (displayName) to frontend shape (name + initials)
+    - Shows nothing while initializing (prevents flash of login page)
+
+AppContext (AppProvider + useApp):
+  State:
+    - Cart: cartItems[], addToCart, removeFromCart, clearCart, cartCount, cartTotal
+    - Feed: likedPosts (Record), toggleLike, following (Record), toggleFollow
+    - Community: votes (Record<id, "up"|"down"|null>), toggleVote
+    - Store: wishlist (Set<number>), toggleWishlist
+    - Booking: bookingSuccess (studioId | null), setBookingSuccess
+    - Stats: currentStreak (12), longestStreak (18), totalSessions (47), totalCalories (12400)
+    - Weekly: weeklyGoal (5), weeklyCompleted (4)
+  Actions:
+    - logSession(calories, duration) -> increments sessions, calories, weekly, streak
+
+================================================================================
+--- API ENDPOINTS (Express backend, 22 route modules) ---
+================================================================================
+
+HEALTH:
+  GET /api/healthz -> { status: "ok" } (validated via api-zod schema)
+
+AUTH:
+  POST /api/auth/login -> { user, token } (bcrypt password check, JWT generation)
+  POST /api/auth/signup -> { user, token } (creates user, hashes password)
+  GET  /api/auth/me -> user object (requires Bearer token, authMiddleware)
+  PUT  /api/auth/profile -> updated user (requires Bearer token)
+
+STUDIOS:
+  GET  /api/studios -> studio[] (supports ?q= and ?neighborhood= query params)
+  GET  /api/studios/:id -> single studio
+  GET  /api/studios/:id/reviews -> StudioReview[]
+  GET  /api/studios/:id/checkins -> StudioCheckin[]
+
+CLASSES:
+  GET  /api/classes -> PilatesClass[] (supports ?studioId= and ?type=)
+
+BOOKINGS:
+  GET  /api/bookings -> Booking[] (user's bookings)
+  POST /api/bookings -> new Booking (classId, studioId, timeSlot)
+
+FEED:
+  GET  /api/feed -> FeedPost[]
+  POST /api/feed -> create new post (type, studio, duration, calories)
+  POST /api/feed/:id/like -> toggle like
+
+FORUM:
+  GET  /api/forum -> ForumPost[] (supports ?category=)
+  POST /api/forum -> create forum post (title, category, body)
+  POST /api/forum/:id/vote -> upvote/downvote (direction: "up"|"down")
+
+PRODUCTS:
+  GET  /api/products -> Product[] (supports ?category=)
+
+BRANDS:
+  GET  /api/brands -> Brand[]
+
+COACHES:
+  GET  /api/coaches -> CoachProfile[]
+
+CHALLENGES:
+  GET  /api/challenges -> Challenge[]
+
+BINGO:
+  GET  /api/bingo -> BingoCell[]
+
+BADGES:
+  GET  /api/badges -> BadgeItem[]
+
+LEADERBOARD:
+  GET  /api/leaderboard -> LeaderboardEntry[]
+
+CALORIE DATA:
+  GET  /api/calorie-data -> CalorieDataPoint[] (8 weeks)
+
+CIRCLES:
+  GET  /api/circles -> PilatesCircle[]
+
+MESSAGES:
+  GET  /api/messages/conversations -> Conversation[]
+  GET  /api/messages/conversations/:id -> { messages: Message[] }
+  POST /api/messages/conversations/:id -> send message ({ content })
+  GET  /api/messages/unread-count -> { count: number }
+
+REVIEWS:
+  GET  /api/studios/:id/reviews -> StudioReview[]
+  POST /api/studios/:id/reviews -> create review (requires auth)
+
+WEARABLES:
+  GET  /api/wearable -> WearableData (recovery, strain, HRV, sleep, etc.)
+
+ORDERS:
+  POST /api/orders -> create order (items[], shippingInfo, totalAmount; optional auth)
+
+PAYMENTS:
+  GET  /api/payments/status -> { enabled: boolean, mode: "live"|"mock" }
+  POST /api/payments/booking -> Stripe PaymentIntent for booking (requires auth)
+  POST /api/payments/order -> Stripe PaymentIntent for order (requires auth)
+
+UPLOADS:
+  POST /api/uploads/image -> upload image to S3 (requires auth, multer, max 5MB images only)
+
+WEBSOCKET:
+  ws:// or wss:// on /ws?token=JWT
+  Events:
+    - "new_message" (incoming messages)
+    - "typing" (typing indicators)
+    - "message" (outgoing messages)
+
+COMMON PATTERNS:
+  - All routes use in-memory mock data as fallback when DATABASE_URL is not set
+  - Database access via Drizzle ORM when PostgreSQL is available
+  - JWT auth via authMiddleware (Bearer token)
+  - optionalAuth middleware for endpoints that work with or without auth
+
+================================================================================
+--- DATA TYPES (src/data/types.ts) ---
+================================================================================
+
+  Studio: id, name, neighborhood, rating, reviews, price, distance, coords, lat, lng, description, coaches[], imageUrl
+  AppUser: id, name, initials, color
+  Post: id, user, type, studio, duration, calories, likes, comments, timeAgo, hasPhoto
+  CalorieDataPoint: week, calories
+  BadgeItem: id, name, icon (ReactNode), earned, description
+  ForumPost: id, title, category, author, flair, upvotes, comments, timeAgo
+  Product: id, name, brand, price, rating, category, subcategory?, image, imageUrl, badge?
+  LeaderboardEntry: rank, user, sessions, calories
+  Brand: id, name, slug, description, logoEmoji, coverImageUrl, category, rating, productCount, founded, origin, highlight, verified
+  Challenge: id, title, description, type ("monthly"|"weekly"|"bingo"), startDate, endDate, target, progress, participants, reward, icon
+  BingoCell: id, text, completed
+  PilatesCircle: id, name, description, emoji, members[], totalSessions, totalCalories, isJoined
+  StudioCheckin: studioId, userId, userName, userInitials, userColor, checkins, lastVisit
+  StudioReview: id, studioId, userId, userName, userInitials, userColor, rating, text, date, helpful
+  CoachProfile: id, name, slug, bio, specialties[], studioIds[], rating, reviewCount, yearsExperience, certifications[], avatarColor, initials, imageUrl, sessionsCount, quote
+  WearableData: connected, provider ("whoop"|"apple_watch"|"garmin"|"oura"|"none"), lastSync, recovery, strain, hrv, restingHr, sleepScore, sleepDuration, caloriesBurned, activeCalories
+  WorkoutMetrics: avgHeartRate, maxHeartRate, strain, calories, duration, zones[]
+
+  RealStudio (real-studios.ts): id, osmId, name, lat, lng, address?, phone?, website?, openingHours?, neighborhood?, source ("osm"|"web"), instagram?, sportType ("pilates"|"yoga"|"fitness")
+  ~40 real studios sourced from OpenStreetMap + web research (Paris area)
+
+================================================================================
+--- INFRASTRUCTURE ---
+================================================================================
+
+DATABASE:
+  - PostgreSQL 16 (Alpine) via docker-compose
+  - Drizzle ORM for schema + queries
+  - Schema defined in lib/db/ (shared workspace package)
+  - Mock/in-memory fallback in every API route when DATABASE_URL absent
+  - Seed script: scripts/src/seed.ts (idempotent, uses onConflictDoNothing)
+
+REAL DATA SOURCING:
+  - Overpass API scraper: scripts/src/scrape-studios.ts
+  - Fetches Pilates/yoga/fitness studios from OSM for 6 French cities
+  - Deduplicates by name similarity + geo-proximity
+  - Upserts into studios table
+  - Static export: src/data/real-studios.ts (~40 studios, ODbL licensed)
+
+DEPLOYMENT:
+  - Dockerfile: multi-stage (deps -> builder -> runner)
+    - Stage 1: pnpm install (frozen lockfile)
+    - Stage 2: build frontend (Vite) + API (esbuild)
+    - Stage 3: node:24-alpine runner, serves built SPA + API on port 3000
+  - docker-compose.yml: api service + postgres:16-alpine
+    - Port mapping: ${APP_PORT:-3000}:3000
+    - Persistent volume: pgdata
+
+CI/CD (.github/workflows/ci.yml):
+  - Triggers: push to main, PRs to main
+  - 4 jobs:
+    1. Lint: biome check on pilateshub src
+    2. TypeScript: pnpm run typecheck
+    3. Tests: pnpm test in pilateshub
+    4. Build: pnpm run build (depends on lint + typecheck + test)
+  - pnpm 10, Node 24
+
+LINTING/FORMATTING:
+  - Biome 2.0 (biome.json)
+  - Rules: recommended + noUnusedImports (warn), noUnusedVariables (warn)
+  - Style: noNonNullAssertion off, useImportType off, noExplicitAny off
+  - Formatter: spaces, indent 2, line width 120
+  - Excludes: node_modules, dist, generated, pnpm-lock.yaml, index.css
+
+PWA (Progressive Web App):
+  - manifest.json:
+    - App name: "PilatesHub"
+    - Display: standalone
+    - Orientation: portrait-primary
+    - Background: #faf8f5, Theme: #4d7c65
+    - Icons: 192px + 512px SVG (maskable)
+    - Categories: fitness, health, lifestyle, social
+  - Service Worker (sw.js):
+    - Caches static assets (/, manifest.json)
+    - Network-first fetch strategy (caches GET responses, excludes /api/)
+    - Handles push notification display from app (SHOW_NOTIFICATION message)
+    - Notification click -> focus existing window or open new
+
+NOTIFICATIONS (src/lib/notifications.ts):
+  - requestNotificationPermission() -> requests browser Notification API permission
+  - sendLocalNotification() -> shows via Service Worker if available, else direct
+  - Predefined types:
+    - bookingConfirmed(studio, time)
+    - bookingReminder(studio, class, minutesBefore)
+    - newMessage(sender, preview)
+    - challengeUpdate(name, progress)
+    - kudosReceived(fromName)
+    - streakReminder(currentStreak)
+
+INTERNATIONALIZATION (i18n):
+  - i18next + react-i18next
+  - Languages: French (fr, default/fallback), English (en)
+  - Translation files: src/i18n/en.ts, src/i18n/fr.ts
+  - Persisted to localStorage ("pilateshub-lang")
+  - Language toggle in Header + SideNav
+  - Used in: navigation labels, store categories, auth forms, profile page, common UI strings
 
 THEMING:
-  - Light mode (default) and Dark mode
-  - Toggle available: mobile (Header), desktop (SideNav)
-  - CSS class "dark" on root element
-  - localStorage key: "pilates-theme"
+  - Light/Dark mode via useTheme hook
+  - CSS class toggle on <html> ("dark")
+  - Persisted to localStorage ("pilates-theme")
+  - v2 migration resets old dark-by-default to light
+  - Custom CSS properties: --primary, --secondary, --accent-cta, etc.
+  - Warm design system: hsl(28, 22%, 38%) browns, terracotta accents
+  - Custom classes: btn-premium, card-warm, glow-warm, font-studio
 
-UI LIBRARY:
-  - shadcn/ui components used: Avatar, Badge, Button, Card, Dialog, Input, Separator,
-    Sheet, Skeleton, Tabs, Tooltip (via Recharts)
-  - Sonner toast notifications (via Toaster in AppShell)
-  - Lucide React icons throughout
+CODE SPLITTING:
+  - All pages lazy-loaded via React.lazy() + Suspense
+  - LoadingSpinner fallback (animated border spinner)
+  - QueryClient: staleTime 30s, retry 1
 
-ANIMATIONS:
-  - Page transitions: animate-in fade-in duration-300
-  - Studio preview card: slide-in-from-bottom-4 fade-in
-  - Studio list: slide-in-from-bottom-4 fade-in
-  - Kudos bounce animation on post like
-  - Progress bars: transition-all duration-500
-  - Weekly recap ring: transition-all duration-700
-  - Map marker: transition: transform 0.2s
+FORM VALIDATION:
+  - All forms use react-hook-form + zod resolvers
+  - Schemas: loginSchema, signupSchema, logSessionSchema, newDiscussionSchema, reviewSchema, profileSchema, shippingSchema
 
-RESPONSIVE:
-  - Mobile-first design
-  - md breakpoint: switches from bottom nav to side nav
-  - md breakpoint: header logo hidden (shown in SideNav instead)
-  - md breakpoint: theme toggle hidden in header (in SideNav instead)
-  - Grid adjustments: products (2->3->4 cols), studios (1->2 cols), badges (3->6 cols)
-  - Max-width constraints on feed (xl) and forum (2xl) for readability
+STATE MANAGEMENT:
+  - React Context: AuthContext (auth state), AppContext (app state)
+  - TanStack React Query: server state (API data)
+  - Local component state: UI interactions
 
-COLOR PALETTE:
-  - Primary: sage green (hsl(110, 18%, 38-44%))
-  - Orange: used for calories, streaks
-  - Blue: used for streak day count
-  - Amber/Gold/Bronze: leaderboard rank badges
-  - Rose: wishlist hearts, cancel actions, cart badge
-  - Slate: text hierarchy (800 headings, 600 body, 400 secondary, 300 muted)
+MONOREPO STRUCTURE:
+  - pnpm workspaces
+  - Packages:
+    - artifacts/pilateshub (Vite React SPA)
+    - artifacts/api-server (Express API)
+    - lib/api-client-react (API client hooks)
+    - lib/api-spec (API specification)
+    - lib/api-zod (Zod schemas for API)
+    - lib/db (Drizzle ORM schema + DB utils)
+    - scripts (seed, scrape utilities)
 
-================================================================================
---- MOCK DATA SUMMARY ---
-================================================================================
+FILE UPLOADS:
+  - S3-compatible storage (via lib/storage)
+  - POST /api/uploads/image endpoint
+  - Multer middleware: memory storage, 5MB limit, images only
+  - Random UUID filenames with user ID prefix
 
-STUDIOS: 8 Paris-based Pilates studios with lat/lng, descriptions, coaches, images
-USERS: 10 mock users with initials and color assignments
-POSTS: 10 activity feed posts (varied types, studios, durations, calories)
-CALORIE_DATA: 8 weeks of calorie data for bar chart
-BADGES: 6 achievement badges (3 earned, 3 locked)
-FORUM_POSTS: 10 community discussion posts across categories
-PRODUCTS: 20 store products across 5 categories
-LEADERBOARD: 5 ranked entries with sessions and calories
-CHALLENGES: 5 active challenges (monthly + weekly)
-BINGO_CARD: 16 bingo cells (8 initially completed)
-CIRCLES: 5 Pilates circles (2 joined, 3 discoverable)
-STUDIO_CHECKINS: 10 check-in records across 3 studios
-
-================================================================================
---- COMPLETE INTERACTION MAP ---
-================================================================================
-
-USER CAN:
-  1.  Sign up with name, email, password
-  2.  Log in with email, password
-  3.  Log out (Profile page or SideNav)
-  4.  Toggle dark/light mode
-  5.  Search studios, products, and discussions globally
-  6.  Browse map with studio markers
-  7.  Filter studios by: Reformer, Mat, Beginner, Advanced, Near Me
-  8.  Toggle between map view and list view
-  9.  Select a studio on the map to see preview
-  10. Open studio detail dialog
-  11. View studio info: photo, description, coaches, rating, reviews, distance, price
-  12. Select a time slot for booking
-  13. Book a session at a studio (with toast confirmation)
-  14. Check in at a studio (with toast confirmation)
-  15. View studio regulars leaderboard
-  16. Log/share a Pilates session (type, studio, duration, calories)
-  17. Give/remove kudos on feed posts
-  18. Follow/unfollow users from feed
-  19. View weekly leaderboard in feed
-  20. View dashboard stats: sessions, calories, streak
-  21. View weekly calendar with completed days
-  22. View 8-week calorie bar chart
-  23. View 6 badges (earned/locked status)
-  24. View apparatus journey progress (5 apparatus types)
-  25. View current challenges with progress bars
-  26. Navigate to full challenges page from dashboard
-  27. View upcoming sessions
-  28. View friends leaderboard with own ranking
-  29. Filter forum posts by category
-  30. Upvote/downvote forum posts
-  31. Create new forum discussion (title, category, body)
-  32. Filter store products by category
-  33. Add/remove products to/from wishlist
-  34. Add products to cart
-  35. View cart in side sheet
-  36. Remove items from cart
-  37. Checkout (with toast confirmation, clears cart)
-  38. View active challenges with progress
-  39. Play Pilates Bingo (toggle cells)
-  40. View and join/leave Pilates Circles
-  41. View circle members, session count, calorie stats
-  42. View profile: avatar, name, level, bio, stats
-  43. Switch between Activity, Badges, Bookings tabs on profile
-  44. Reschedule upcoming bookings (toast placeholder)
-  45. Cancel upcoming bookings (toast confirmation)
-  46. Navigate between all pages via bottom nav or side nav
-
-=== END OF INVENTORY ===
+PAYMENTS:
+  - Stripe integration (via lib/payments)
+  - GET /api/payments/status -> check if enabled (live vs mock mode)
+  - Booking payments + order payments
+  - PaymentIntent creation with metadata

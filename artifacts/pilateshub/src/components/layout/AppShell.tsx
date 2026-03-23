@@ -22,7 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main content area */}
       <div className="flex-1 flex flex-col h-screen max-w-2xl mx-auto md:max-w-none md:mx-0 relative overflow-hidden">
         <Header />
-        <main id="main-content" className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <main id="main-content" className="flex-1 overflow-y-auto pb-20 md:pb-0 relative">
           {children}
         </main>
         {/* Bottom nav - mobile only */}
