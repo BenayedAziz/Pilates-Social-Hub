@@ -23,15 +23,15 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 // Studios
-export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?: number) {
+export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?: number, radius?: number, limit?: number) {
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (neighborhood) params.set("neighborhood", neighborhood);
   if (lat !== undefined && lng !== undefined) {
     params.set("lat", String(lat));
     params.set("lng", String(lng));
-    params.set("radius", "20");
-    params.set("limit", "100");
+    params.set("radius", String(radius || 20));
+    params.set("limit", String(limit || 100));
   } else {
     // Default: Paris center, limited results
     params.set("lat", "48.856");
@@ -41,7 +41,7 @@ export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?
   }
   const qs = params.toString();
   return useQuery({
-    queryKey: ["studios", q, neighborhood, lat, lng],
+    queryKey: ["studios", q, neighborhood, lat, lng, radius, limit],
     queryFn: async () => {
       const data = await apiFetch<any[]>(`/studios${qs ? `?${qs}` : ""}`);
       return data.map((s: any) => ({

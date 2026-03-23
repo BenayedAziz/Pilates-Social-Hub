@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
@@ -96,16 +96,61 @@ function FlyToPosition({ position }: { position: [number, number] }) {
   return null;
 }
 
+// Listen to map pan/zoom and report the new center + zoom
+function MapEventHandler({ onMoveEnd }: { onMoveEnd: (center: { lat: number; lng: number }, zoom: number) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    const handler = () => {
+      const center = map.getCenter();
+      const zoom = map.getZoom();
+      onMoveEnd({ lat: center.lat, lng: center.lng }, zoom);
+    };
+
+    map.on("moveend", handler);
+    return () => { map.off("moveend", handler); };
+  }, [map, onMoveEnd]);
+
+  return null;
+}
+
 export default function MapPage() {
   const { position, loading: geoLoading, requestPermission } = useGeolocation();
   const mapCenter: [number, number] = position ? [position.lat, position.lng] : [48.856, 2.352];
 
-  // Pass real position to the API so it returns studios near the user
-  const { data: studios = [], isLoading } = useStudios(undefined, undefined, position?.lat, position?.lng);
+  // Track the current map viewport so we can refetch studios on pan/zoom
+  const [viewCenter, setViewCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [mapZoom, setMapZoom] = useState(13);
+  const moveEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounce map move events (500ms) so we don't spam the API
+  const handleMoveEnd = useCallback((center: { lat: number; lng: number }, zoom: number) => {
+    if (moveEndTimer.current) clearTimeout(moveEndTimer.current);
+    moveEndTimer.current = setTimeout(() => {
+      setViewCenter(center);
+      setMapZoom(zoom);
+    }, 500);
+  }, []);
+
+  // Calculate search radius based on zoom level
+  const radius = useMemo(() => {
+    if (mapZoom >= 15) return 3;
+    if (mapZoom >= 13) return 10;
+    if (mapZoom >= 11) return 30;
+    if (mapZoom >= 9) return 80;
+    return 200;
+  }, [mapZoom]);
+
+  // Use the map viewport center for API calls (falls back to geolocation)
+  const apiLat = viewCenter?.lat ?? position?.lat;
+  const apiLng = viewCenter?.lng ?? position?.lng;
+
+  // Pass real position + dynamic radius to the API
+  const { data: studios = [], isLoading, isFetching } = useStudios(undefined, undefined, apiLat, apiLng, radius, 100);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
 
-  if (isLoading) return <MapPageSkeleton />;
+  if (isLoading && !studios.length) return <MapPageSkeleton />;
 
   const filteredStudios = activeFilter
     ? studios.filter((s) => {
@@ -140,6 +185,9 @@ export default function MapPage() {
 
           {/* Fly to new position when geolocation resolves */}
           <FlyToPosition position={mapCenter} />
+
+          {/* Re-fetch studios when user pans/zooms */}
+          <MapEventHandler onMoveEnd={handleMoveEnd} />
 
           {/* Current location */}
           <Marker position={mapCenter} icon={locationIcon} />
@@ -206,6 +254,16 @@ export default function MapPage() {
             <button type="button" onClick={requestPermission} className="text-xs font-bold text-primary">
               Enable
             </button>
+          </div>
+        )}
+
+        {/* Loading indicator when refetching studios after pan/zoom */}
+        {isFetching && !isLoading && (
+          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[1000] bg-card/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-[10px] font-semibold text-muted-foreground">Loading studios...</span>
+            </div>
           </div>
         )}
 
