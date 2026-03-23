@@ -1,5 +1,5 @@
 import L from "leaflet";
-import { ChevronRight, Clock, ExternalLink, Filter, Globe, Home, MapPin, Navigation, Star, X } from "lucide-react";
+import { ChevronRight, Clock, ExternalLink, Filter, Globe, MapPin, Navigation, Star, X } from "lucide-react";
 import { useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
@@ -22,6 +22,9 @@ const FILTERS = ["Reformer", "Mat", "Beginner", "Advanced", "Near Me"];
 
 // Paris center
 const PARIS_CENTER: [number, number] = [48.862, 2.352];
+
+// Fallback image for studios without imageUrl
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop";
 
 // Custom pin icon factory for featured studios (green)
 function createPinIcon(price: number, selected: boolean) {
@@ -213,7 +216,6 @@ export default function MapPage() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
   const [selectedRealStudio, setSelectedRealStudio] = useState<RealStudio | null>(null);
-  const [showList, setShowList] = useState(false);
   const [showRealStudios, setShowRealStudios] = useState(true);
 
   if (isLoading) return <MapPageSkeleton />;
@@ -241,10 +243,16 @@ export default function MapPage() {
     setSelectedRealStudio(selectedRealStudio?.id === studio.id ? null : studio);
   };
 
+  // Derived lists for discovery sections
+  const topRated = [...studios].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 3);
+  const nearYou = [...studios].sort((a, b) => (a.distance || 0) - (b.distance || 0)).slice(0, 4);
+  const newStudios = [...studios].reverse().slice(0, 4);
+  const pilatesRealStudios = REAL_STUDIOS.filter((s) => s.sportType === "pilates");
+
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-300">
       {/* === LEAFLET MAP === */}
-      <div className="relative h-[56vh] md:h-[65vh] flex-shrink-0">
+      <div className="relative h-[40vh] md:h-[55vh] flex-shrink-0">
         <MapContainer
           center={PARIS_CENTER}
           zoom={13}
@@ -323,16 +331,6 @@ export default function MapPage() {
           </Badge>
         </div>
 
-        {/* Toggle list/map */}
-        <button
-          type="button"
-          onClick={() => setShowList(!showList)}
-          className="absolute bottom-3 left-3 bg-card rounded-full shadow-lg px-4 py-2 flex items-center gap-2 text-xs font-bold text-foreground hover:text-primary transition-colors z-[1000] border border-border/40"
-        >
-          {showList ? <MapPin className="w-3.5 h-3.5" /> : <Home className="w-3.5 h-3.5" />}
-          {showList ? "Map" : "List"}
-        </button>
-
         {/* Map legend */}
         {showRealStudios && (
           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 bg-card/90 backdrop-blur-sm rounded-full shadow-md px-3 py-1.5 flex items-center gap-3 z-[1000] border border-border/40">
@@ -359,7 +357,7 @@ export default function MapPage() {
                 <div className="flex p-3 gap-3">
                   <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0">
                     <img
-                      src={selectedStudio.imageUrl}
+                      src={selectedStudio.imageUrl || FALLBACK_IMAGE}
                       alt={selectedStudio.name}
                       className="w-full h-full object-cover"
                     />
@@ -409,13 +407,147 @@ export default function MapPage() {
         )}
       </div>
 
-      {/* === STUDIO LIST === */}
-      {showList && (
-        <div className="p-5 flex-1 bg-background animate-in slide-in-from-bottom-4 fade-in duration-200">
-          {/* Featured studios section */}
-          <div className="flex items-center justify-between mb-4">
+      {/* === DISCOVERY SECTIONS (always visible below map) === */}
+      <div className="p-5 flex flex-col gap-8 bg-background">
+
+        {/* Featured Studios -- horizontal scroll */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground">Featured Studios</h2>
-            <span className="text-xs text-muted-foreground/60 font-medium">{filteredStudios.length} found</span>
+            <button className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">See All</button>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            {filteredStudios.slice(0, 5).map((studio) => (
+              <StudioDetailDialog key={studio.id} studio={studio}>
+                <div className="w-56 flex-shrink-0 cursor-pointer group">
+                  <div className="h-32 rounded-2xl overflow-hidden mb-2 shadow-sm">
+                    <img
+                      src={studio.imageUrl || FALLBACK_IMAGE}
+                      alt={studio.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                    <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                    {studio.rating} · {studio.neighborhood}
+                  </div>
+                  <span className="text-xs font-bold text-primary">{"\u20AC"}{studio.price}/class</span>
+                </div>
+              </StudioDetailDialog>
+            ))}
+          </div>
+        </section>
+
+        {/* Near You -- horizontal scroll, sorted by distance */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">Near You</h2>
+            <span className="text-xs text-muted-foreground">Based on your location</span>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+            {nearYou.map((studio) => (
+              <StudioDetailDialog key={studio.id} studio={studio}>
+                <div className="w-44 flex-shrink-0 cursor-pointer group">
+                  <div className="relative h-28 rounded-2xl overflow-hidden mb-2 shadow-sm">
+                    <img
+                      src={studio.imageUrl || FALLBACK_IMAGE}
+                      alt={studio.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm">
+                      <MapPin className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
+                      {studio.distance}km
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
+                  <p className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</p>
+                </div>
+              </StudioDetailDialog>
+            ))}
+          </div>
+        </section>
+
+        {/* Top Rated -- sorted by rating, ranked list */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">Top Rated</h2>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+              Highest reviewed
+            </div>
+          </div>
+          <div className="flex flex-col gap-3">
+            {topRated.map((studio, idx) => (
+              <StudioDetailDialog key={studio.id} studio={studio}>
+                <Card className="cursor-pointer group hover:shadow-md transition-shadow rounded-2xl overflow-hidden border-none shadow-sm">
+                  <div className="flex h-20">
+                    <div className="w-20 flex-shrink-0 overflow-hidden">
+                      <img
+                        src={studio.imageUrl || FALLBACK_IMAGE}
+                        alt={studio.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="p-3 flex-1 flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-black text-accent-cta">#{idx + 1}</span>
+                          <h3 className="font-bold text-sm text-foreground">{studio.name}</h3>
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-6">{studio.neighborhood}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-2">
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3.5 h-3.5 text-accent-cta fill-accent-cta" />
+                          <span className="font-bold text-sm">{studio.rating}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground">{studio.reviews} reviews</span>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </StudioDetailDialog>
+            ))}
+          </div>
+        </section>
+
+        {/* New Studios -- grid of fresh additions */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">New Studios</h2>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-1">Recently added</span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {newStudios.map((studio) => (
+              <StudioDetailDialog key={studio.id} studio={studio}>
+                <div className="cursor-pointer group">
+                  <div className="h-28 rounded-2xl overflow-hidden mb-2 shadow-sm relative">
+                    <img
+                      src={studio.imageUrl || FALLBACK_IMAGE}
+                      alt={studio.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute top-2 left-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] font-bold shadow-sm">
+                      NEW
+                    </div>
+                  </div>
+                  <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
+                  <div className="flex items-center justify-between mt-0.5">
+                    <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
+                    <span className="text-[11px] font-bold text-primary flex-shrink-0">{"\u20AC"}{studio.price}</span>
+                  </div>
+                </div>
+              </StudioDetailDialog>
+            ))}
+          </div>
+        </section>
+
+        {/* All Studios -- compact list with grid on desktop */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">All Studios</h2>
+            <span className="text-xs text-muted-foreground">{filteredStudios.length} studios</span>
           </div>
           <div className="flex flex-col md:grid md:grid-cols-2 gap-3">
             {filteredStudios.map((studio) => (
@@ -423,7 +555,11 @@ export default function MapPage() {
                 <Card className="border border-border/40 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer overflow-hidden group rounded-2xl">
                   <div className="flex h-24">
                     <div className="w-24 flex-shrink-0 overflow-hidden">
-                      <img src={studio.imageUrl} alt={studio.name} className="w-full h-full object-cover" />
+                      <img
+                        src={studio.imageUrl || FALLBACK_IMAGE}
+                        alt={studio.name}
+                        className="w-full h-full object-cover"
+                      />
                     </div>
                     <div className="p-3 flex-1 flex flex-col justify-between">
                       <div>
@@ -449,75 +585,62 @@ export default function MapPage() {
               </StudioDetailDialog>
             ))}
           </div>
+        </section>
 
-          {/* Real studios section */}
-          {showRealStudios && (
-            <>
-              <div className="flex items-center justify-between mt-6 mb-4">
-                <h2 className="text-lg font-bold text-foreground">More Studios</h2>
-                <span className="text-xs text-muted-foreground/60 font-medium">
-                  {filteredRealStudios.length} from OpenStreetMap
-                </span>
-              </div>
-              <div className="flex flex-col md:grid md:grid-cols-2 gap-3">
-                {filteredRealStudios.map((studio) => (
-                  <Card
-                    key={`real-list-${studio.id}`}
-                    className="border border-border/40 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer overflow-hidden rounded-2xl"
-                    onClick={() => {
-                      setSelectedStudio(null);
-                      setSelectedRealStudio(studio);
-                      setShowList(false);
-                    }}
+        {/* More Studios Nearby -- real studios compact list */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-bold text-foreground">More Studios Nearby</h2>
+            <span className="text-xs text-muted-foreground">{pilatesRealStudios.length} Pilates studios</span>
+          </div>
+          <p className="text-xs text-muted-foreground/60 mb-3 -mt-1">
+            Community-sourced studios from OpenStreetMap and web research
+          </p>
+          <div className="flex flex-col gap-1.5">
+            {pilatesRealStudios.map((studio) => (
+              <div
+                key={`nearby-${studio.id}`}
+                className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-muted/50 transition-colors group cursor-pointer"
+                onClick={() => {
+                  setSelectedStudio(null);
+                  setSelectedRealStudio(studio);
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              >
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-[10px] font-black text-blue-600">P</span>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm text-foreground truncate group-hover:text-primary transition-colors">
+                      {studio.name}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground/60 truncate">
+                      {studio.neighborhood}{studio.address ? ` · ${studio.address}` : ""}
+                    </p>
+                  </div>
+                </div>
+                {studio.website ? (
+                  <a
+                    href={studio.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-400 hover:text-blue-600 flex-shrink-0 ml-2 p-1"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <div className="p-3">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
-                            <span
-                              className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${
-                                studio.sportType === "pilates"
-                                  ? "bg-blue-100 text-blue-600"
-                                  : studio.sportType === "yoga"
-                                    ? "bg-purple-100 text-purple-600"
-                                    : "bg-muted text-foreground/80"
-                              }`}
-                            >
-                              {studio.sportType === "pilates"
-                                ? "Pilates"
-                                : studio.sportType === "yoga"
-                                  ? "Yoga"
-                                  : "Fitness"}
-                            </span>
-                          </div>
-                          {studio.neighborhood && (
-                            <p className="text-xs text-muted-foreground/60 mt-0.5">
-                              {studio.neighborhood}
-                              {studio.address && ` \u00B7 ${studio.address}`}
-                            </p>
-                          )}
-                        </div>
-                        {studio.website && (
-                          <a
-                            href={studio.website}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-600 flex-shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                ) : (
+                  <MapPin className="w-3.5 h-3.5 text-muted-foreground/30 flex-shrink-0 ml-2" />
+                )}
               </div>
-            </>
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        </section>
+
+        {/* Bottom spacer for safe area / tab bar */}
+        <div className="h-4" />
+      </div>
     </div>
   );
 }

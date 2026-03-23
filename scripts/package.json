@@ -7,6 +7,7 @@
     "hello": "tsx ./src/hello.ts",
     "seed": "tsx ./src/seed.ts",
     "scrape": "tsx ./src/scrape-studios.ts",
+    "add-images": "tsx src/add-studio-images.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

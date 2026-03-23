@@ -41,6 +41,10 @@ export function useStudios(q?: string, neighborhood?: string) {
         distance: s.distance ?? 0,
         coaches: s.coaches ?? [],
         imageUrl: s.imageUrl ?? "",
+        description: s.description ?? "",
+        address: s.address ?? "",
+        amenities: s.amenities ?? [],
+        neighborhood: s.neighborhood ?? "",
       }));
     },
   });
@@ -122,7 +126,15 @@ export function useProducts(category?: string) {
   const params = category && category !== "All" ? `?category=${category}` : "";
   return useQuery({
     queryKey: ["products", category],
-    queryFn: () => apiFetch<any[]>(`/products${params}`),
+    queryFn: async () => {
+      const data = await apiFetch<any[]>(`/products${params}`);
+      return data.map((p: any) => ({
+        ...p,
+        imageUrl: p.imageUrl ?? "",
+        image: p.image ?? p.imageUrl ?? "",
+        rating: p.rating ?? 0,
+      }));
+    },
   });
 }
 
@@ -179,8 +191,34 @@ export function useBingoCard() {
 export function useBadges() {
   return useQuery({
     queryKey: ["badges"],
-    queryFn: () => apiFetch<any[]>("/badges"),
+    queryFn: async () => {
+      const data = await apiFetch<any[]>("/badges");
+      return data.map((b: any) => ({
+        ...b,
+        icon: mapBadgeIcon(b.iconName ?? b.icon),
+      }));
+    },
   });
+}
+
+/** Map an icon name string (from the API) to a Lucide icon element for rendering. */
+function mapBadgeIcon(iconName: unknown): string {
+  if (typeof iconName !== "string") return "\u2B50"; // fallback star
+  const map: Record<string, string> = {
+    trophy: "\uD83C\uDFC6",
+    star: "\u2B50",
+    flame: "\uD83D\uDD25",
+    medal: "\uD83C\uDFC5",
+    zap: "\u26A1",
+    sunrise: "\uD83C\uDF05",
+    "message-circle": "\uD83D\uDCAC",
+    users: "\uD83D\uDC65",
+    heart: "\u2764\uFE0F",
+    target: "\uD83C\uDFAF",
+    award: "\uD83C\uDFC6",
+    check: "\u2705",
+  };
+  return map[iconName.toLowerCase()] ?? "\u2B50";
 }
 
 // Leaderboard
