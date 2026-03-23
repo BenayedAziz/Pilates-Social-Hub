@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import type { Product } from "@/data/types";
 
 interface CartItem {
@@ -48,39 +48,43 @@ const AppContext = createContext<AppContextType | null>(null);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   // Cart state
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const addToCart = (product: Product) => {
+  const addToCart = useCallback((product: Product) => {
     setCartItems((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) return prev.map((item) => (item.product.id === product.id ? { ...item, qty: item.qty + 1 } : item));
       return [...prev, { product, qty: 1 }];
     });
-  };
-  const removeFromCart = (productId: number) =>
-    setCartItems((prev) => prev.filter((item) => item.product.id !== productId));
-  const clearCart = () => setCartItems([]);
+  }, []);
+  const removeFromCart = useCallback(
+    (productId: number) => setCartItems((prev) => prev.filter((item) => item.product.id !== productId)),
+    [],
+  );
+  const clearCart = useCallback(() => setCartItems([]), []);
   const cartCount = cartItems.reduce((acc, item) => acc + item.qty, 0);
   const cartTotal = cartItems.reduce((acc, item) => acc + item.product.price * item.qty, 0);
 
   // Feed state
   const [likedPosts, setLikedPosts] = useState<Record<number, boolean>>({});
-  const toggleLike = (id: number) => setLikedPosts((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleLike = useCallback((id: number) => setLikedPosts((prev) => ({ ...prev, [id]: !prev[id] })), []);
   const [following, setFollowing] = useState<Record<number, boolean>>({});
-  const toggleFollow = (id: number) => setFollowing((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleFollow = useCallback((id: number) => setFollowing((prev) => ({ ...prev, [id]: !prev[id] })), []);
 
   // Community state
   const [votes, setVotes] = useState<Record<number, "up" | "down" | null>>({});
-  const toggleVote = (id: number, dir: "up" | "down") =>
-    setVotes((prev) => ({ ...prev, [id]: prev[id] === dir ? null : dir }));
+  const toggleVote = useCallback(
+    (id: number, dir: "up" | "down") => setVotes((prev) => ({ ...prev, [id]: prev[id] === dir ? null : dir })),
+    [],
+  );
 
   // Store state
   const [wishlist, setWishlist] = useState<Set<number>>(new Set());
-  const toggleWishlist = (id: number) => {
+  const toggleWishlist = useCallback((id: number) => {
     setWishlist((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
-  };
+  }, []);
 
   // Booking state
   const [bookingSuccess, setBookingSuccess] = useState<number | null>(null);
@@ -93,12 +97,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [weeklyGoal] = useState(5);
   const [weeklyCompleted, setWeeklyCompleted] = useState(4);
 
-  const logSession = (calories: number, _duration: number) => {
+  const logSession = useCallback((calories: number, _duration: number) => {
     setTotalSessions((prev) => prev + 1);
     setTotalCalories((prev) => prev + calories);
     setWeeklyCompleted((prev) => Math.min(prev + 1, 7));
     setCurrentStreak((prev) => prev + 1);
-  };
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -128,12 +132,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       cartItems,
+      addToCart,
+      removeFromCart,
+      clearCart,
       cartCount,
       cartTotal,
       likedPosts,
+      toggleLike,
       following,
+      toggleFollow,
       votes,
+      toggleVote,
       wishlist,
+      toggleWishlist,
       bookingSuccess,
       currentStreak,
       longestStreak,
@@ -141,6 +152,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       totalCalories,
       weeklyGoal,
       weeklyCompleted,
+      logSession,
     ],
   );
 

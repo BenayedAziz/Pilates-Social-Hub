@@ -1,8 +1,8 @@
 import { ArrowLeft, BadgeCheck, ChevronRight, MapPin, Star } from "lucide-react";
 import { Link } from "wouter";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { useBrands } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 const CATEGORY_LABELS: Record<string, string> = {
   equipment: "Equipment",
@@ -55,6 +55,7 @@ export default function BrandsPage() {
                 <img
                   src={brand.coverImageUrl}
                   alt={brand.name}
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />

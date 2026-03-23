@@ -1,12 +1,12 @@
 import { Plus } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import type { PilatesCircle } from "@/data/types";
 import { useCircles } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function CirclesPage() {
   const { data: apiCircles = [], isLoading } = useCircles();

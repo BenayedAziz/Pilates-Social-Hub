@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { LeaderboardRow } from "@/components/LeaderboardRow";
+import { FeedPageSkeleton } from "@/components/PageSkeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from "@/context/AppContext";
 import { useFeed, useLeaderboard } from "@/hooks/use-api";
-import { FeedPageSkeleton } from "@/components/PageSkeleton";
 import CirclesPage from "@/pages/CirclesPage";
 import CommunityPage from "@/pages/CommunityPage";
 
@@ -179,6 +179,7 @@ export default function FeedPage() {
                     <img
                       src={FEED_PHOTOS[idx % FEED_PHOTOS.length]}
                       alt={`${post.user.name}'s ${post.type} session`}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>

@@ -20,10 +20,9 @@ export function SearchDialog() {
       studios: STUDIOS.filter(
         (s: any) => s.name.toLowerCase().includes(q) || s.neighborhood.toLowerCase().includes(q),
       ).slice(0, 3),
-      products: PRODUCTS.filter((p: any) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)).slice(
-        0,
-        3,
-      ),
+      products: PRODUCTS.filter(
+        (p: any) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q),
+      ).slice(0, 3),
       forumPosts: FORUM_POSTS.filter((f: any) => f.title.toLowerCase().includes(q)).slice(0, 3),
     };
   }, [query, STUDIOS, PRODUCTS, FORUM_POSTS]);

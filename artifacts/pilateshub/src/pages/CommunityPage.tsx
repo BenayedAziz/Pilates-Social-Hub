@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
 import { EmptyState } from "@/components/EmptyState";
+import { CommunityPageSkeleton } from "@/components/PageSkeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,7 +14,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
 import { useForum } from "@/hooks/use-api";
-import { CommunityPageSkeleton } from "@/components/PageSkeleton";
 
 const newDiscussionSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),

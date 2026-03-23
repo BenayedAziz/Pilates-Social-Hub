@@ -1,11 +1,11 @@
 import { ArrowLeft, CheckCircle2, MapPin, Star, Users } from "lucide-react";
-import { Link, useRoute } from "wouter";
+import { useRoute } from "wouter";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useCoaches, useStudios } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import NotFound from "@/pages/not-found";
 
 export default function CoachPage() {
@@ -38,12 +38,11 @@ export default function CoachPage() {
         <img
           src={coach.imageUrl}
           alt={coach.name}
+          loading="lazy"
           className="w-24 h-24 rounded-full mx-auto object-cover border-4 border-card shadow-lg"
         />
         <h1 className="text-xl font-bold mt-3 text-foreground">{coach.name}</h1>
-        <p className="text-sm text-muted-foreground">
-          {coach.yearsExperience} years experience
-        </p>
+        <p className="text-sm text-muted-foreground">{coach.yearsExperience} years experience</p>
         <div className="flex justify-center gap-1.5 mt-2 flex-wrap">
           {coach.specialties.map((s: string) => (
             <Badge key={s} variant="secondary" className="text-xs font-medium">
@@ -60,28 +59,20 @@ export default function CoachPage() {
             <Star className="w-3.5 h-3.5 text-accent-cta fill-accent-cta" />
             <span className="text-sm font-bold text-foreground">{coach.rating}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-            Rating
-          </p>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Rating</p>
         </div>
         <div className="bg-muted/50 rounded-xl px-3 py-2.5 text-center">
           <div className="flex items-center justify-center gap-1 mb-0.5">
             <Users className="w-3.5 h-3.5 text-primary" />
             <span className="text-sm font-bold text-foreground">{coach.reviewCount}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-            Reviews
-          </p>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Reviews</p>
         </div>
         <div className="bg-muted/50 rounded-xl px-3 py-2.5 text-center">
           <div className="mb-0.5">
-            <span className="text-sm font-bold text-foreground">
-              {coach.sessionsCount.toLocaleString()}
-            </span>
+            <span className="text-sm font-bold text-foreground">{coach.sessionsCount.toLocaleString()}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">
-            Sessions
-          </p>
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Sessions</p>
         </div>
       </div>
 
@@ -120,22 +111,13 @@ export default function CoachPage() {
         <h2 className="font-bold text-foreground text-base mb-3">Teaches At</h2>
         <div className="flex flex-col gap-3">
           {studios.map((studio) => (
-            <Card
-              key={studio.id}
-              className="border-none shadow-sm overflow-hidden bg-card rounded-2xl card-warm"
-            >
+            <Card key={studio.id} className="border-none shadow-sm overflow-hidden bg-card rounded-2xl card-warm">
               <div className="flex gap-3">
                 <div className="w-24 h-20 flex-shrink-0 overflow-hidden rounded-l-2xl">
-                  <img
-                    src={studio.imageUrl}
-                    alt={studio.name}
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={studio.imageUrl} alt={studio.name} loading="lazy" className="w-full h-full object-cover" />
                 </div>
                 <CardContent className="p-3 flex-1 flex flex-col justify-center">
-                  <h3 className="font-semibold text-sm text-foreground leading-tight">
-                    {studio.name}
-                  </h3>
+                  <h3 className="font-semibold text-sm text-foreground leading-tight">{studio.name}</h3>
                   <div className="flex items-center gap-1.5 mt-1">
                     <MapPin className="w-3 h-3 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">{studio.neighborhood}</span>
@@ -143,9 +125,7 @@ export default function CoachPage() {
                   <div className="flex items-center gap-1.5 mt-1">
                     <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
                     <span className="text-xs font-semibold text-foreground">{studio.rating}</span>
-                    <span className="text-xs text-muted-foreground">
-                      &middot; {studio.reviews} reviews
-                    </span>
+                    <span className="text-xs text-muted-foreground">&middot; {studio.reviews} reviews</span>
                   </div>
                 </CardContent>
               </div>

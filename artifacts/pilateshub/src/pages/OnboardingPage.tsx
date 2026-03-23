@@ -1,5 +1,5 @@
 import { Activity, Check, ChevronRight } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 const ONBOARDED_KEY = "pilateshub-onboarded";
@@ -101,8 +101,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
     <div
       className="min-h-screen flex flex-col relative overflow-hidden"
       style={{
-        background:
-          "linear-gradient(170deg, hsl(38 42% 97%) 0%, hsl(33 30% 93%) 40%, hsl(28 25% 90%) 100%)",
+        background: "linear-gradient(170deg, hsl(38 42% 97%) 0%, hsl(33 30% 93%) 40%, hsl(28 25% 90%) 100%)",
       }}
     >
       {/* Decorative circles matching AuthPage */}
@@ -122,6 +121,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
       {/* Skip button */}
       <div className="flex justify-end p-5 relative z-10">
         <button
+          type="button"
           onClick={handleSkip}
           className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted/60"
         >
@@ -133,32 +133,15 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-8 relative z-10">
         <div className="w-full max-w-md">
           {/* Step content with transition */}
-          <div
-            key={step}
-            className="animate-in fade-in slide-in-from-right-4 duration-300"
-          >
+          <div key={step} className="animate-in fade-in slide-in-from-right-4 duration-300">
             {step === 0 && <WelcomeScreen onNext={handleNext} />}
             {step === 1 && (
-              <ExperienceLevelScreen
-                selected={experienceLevel}
-                onSelect={setExperienceLevel}
-                onNext={handleNext}
-              />
+              <ExperienceLevelScreen selected={experienceLevel} onSelect={setExperienceLevel} onNext={handleNext} />
             )}
             {step === 2 && (
-              <ApparatusScreen
-                selected={selectedApparatus}
-                onToggle={toggleApparatus}
-                onNext={handleNext}
-              />
+              <ApparatusScreen selected={selectedApparatus} onToggle={toggleApparatus} onNext={handleNext} />
             )}
-            {step === 3 && (
-              <GoalsScreen
-                selected={selectedGoals}
-                onToggle={toggleGoal}
-                onFinish={handleFinish}
-              />
-            )}
+            {step === 3 && <GoalsScreen selected={selectedGoals} onToggle={toggleGoal} onFinish={handleFinish} />}
           </div>
         </div>
       </div>
@@ -169,11 +152,7 @@ export default function OnboardingPage({ onComplete }: OnboardingPageProps) {
           <div
             key={i}
             className={`h-2 rounded-full transition-all duration-300 ${
-              i === step
-                ? "w-7 bg-primary shadow-sm"
-                : i < step
-                  ? "w-2 bg-primary/50"
-                  : "w-2 bg-muted-foreground/20"
+              i === step ? "w-7 bg-primary shadow-sm" : i < step ? "w-2 bg-primary/50" : "w-2 bg-muted-foreground/20"
             }`}
           />
         ))}
@@ -198,10 +177,7 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
         </div>
       </div>
 
-      <h1
-        className="font-studio text-3xl text-foreground mb-3"
-        style={{ fontWeight: 600, letterSpacing: "-0.03em" }}
-      >
+      <h1 className="font-studio text-3xl text-foreground mb-3" style={{ fontWeight: 600, letterSpacing: "-0.03em" }}>
         Welcome to PilatesHub
       </h1>
       <p className="text-muted-foreground text-base mb-10 leading-relaxed max-w-xs mx-auto">
@@ -249,6 +225,7 @@ function ExperienceLevelScreen({
           const isSelected = selected === level.id;
           return (
             <button
+              type="button"
               key={level.id}
               onClick={() => onSelect(level.id)}
               className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all duration-200 text-left ${
@@ -259,16 +236,10 @@ function ExperienceLevelScreen({
             >
               <span className="text-3xl flex-shrink-0">{level.emoji}</span>
               <div className="flex-1 min-w-0">
-                <p
-                  className={`font-semibold text-sm ${
-                    isSelected ? "text-primary" : "text-foreground"
-                  }`}
-                >
+                <p className={`font-semibold text-sm ${isSelected ? "text-primary" : "text-foreground"}`}>
                   {level.label}
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {level.description}
-                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">{level.description}</p>
               </div>
               {isSelected && (
                 <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
@@ -313,15 +284,14 @@ function ApparatusScreen({
       >
         What do you enjoy most?
       </h2>
-      <p className="text-muted-foreground text-sm text-center mb-8">
-        Select all that interest you
-      </p>
+      <p className="text-muted-foreground text-sm text-center mb-8">Select all that interest you</p>
 
       <div className="grid grid-cols-3 gap-3 mb-8">
         {APPARATUS_OPTIONS.map((item) => {
           const isSelected = selected.has(item.id);
           return (
             <button
+              type="button"
               key={item.id}
               onClick={() => onToggle(item.id)}
               className={`relative flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all duration-200 ${
@@ -336,11 +306,7 @@ function ApparatusScreen({
                 </div>
               )}
               <span className="text-3xl">{item.emoji}</span>
-              <span
-                className={`text-xs font-semibold ${
-                  isSelected ? "text-primary" : "text-foreground"
-                }`}
-              >
+              <span className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
                 {item.label}
               </span>
             </button>
@@ -381,15 +347,14 @@ function GoalsScreen({
       >
         What are your goals?
       </h2>
-      <p className="text-muted-foreground text-sm text-center mb-8">
-        Choose as many as you like
-      </p>
+      <p className="text-muted-foreground text-sm text-center mb-8">Choose as many as you like</p>
 
       <div className="flex flex-wrap justify-center gap-2.5 mb-10">
         {GOAL_OPTIONS.map((goal) => {
           const isSelected = selected.has(goal);
           return (
             <button
+              type="button"
               key={goal}
               onClick={() => onToggle(goal)}
               className={`px-4 py-2.5 rounded-full border-2 text-sm font-medium transition-all duration-200 ${

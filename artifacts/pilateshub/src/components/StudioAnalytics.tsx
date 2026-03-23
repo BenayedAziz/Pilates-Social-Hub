@@ -24,16 +24,6 @@ const MONTHLY_BOOKINGS = [
   { month: "Mar", bookings: 89, revenue: 4005 },
 ];
 
-const DAILY_VIEWS = [
-  { day: "Mon", views: 45 },
-  { day: "Tue", views: 62 },
-  { day: "Wed", views: 38 },
-  { day: "Thu", views: 71 },
-  { day: "Fri", views: 55 },
-  { day: "Sat", views: 89 },
-  { day: "Sun", views: 42 },
-];
-
 const CLASS_POPULARITY = [
   { name: "Reformer Flow", value: 35, color: "hsl(var(--primary))" },
   { name: "Mat Pilates", value: 25, color: "hsl(var(--accent-cta))" },

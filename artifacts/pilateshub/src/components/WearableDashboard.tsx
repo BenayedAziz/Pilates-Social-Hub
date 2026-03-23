@@ -12,28 +12,12 @@ function RecoveryGauge({ value }: { value: number }) {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (value / 100) * circumference;
-  const color =
-    value >= 67
-      ? "hsl(120, 50%, 45%)"
-      : value >= 34
-        ? "hsl(45, 80%, 50%)"
-        : "hsl(0, 60%, 50%)";
+  const color = value >= 67 ? "hsl(120, 50%, 45%)" : value >= 34 ? "hsl(45, 80%, 50%)" : "hsl(0, 60%, 50%)";
 
   return (
     <div className="relative w-20 h-20 flex-shrink-0">
-      <svg
-        className="w-20 h-20 -rotate-90"
-        viewBox="0 0 80 80"
-        aria-hidden="true"
-      >
-        <circle
-          cx="40"
-          cy="40"
-          r={radius}
-          fill="none"
-          stroke="hsl(var(--muted))"
-          strokeWidth="5"
-        />
+      <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80" aria-hidden="true">
+        <circle cx="40" cy="40" r={radius} fill="none" stroke="hsl(var(--muted))" strokeWidth="5" />
         <circle
           cx="40"
           cy="40"
@@ -49,9 +33,7 @@ function RecoveryGauge({ value }: { value: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-xl font-bold text-foreground">{value}%</span>
-        <span className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider">
-          Recovery
-        </span>
+        <span className="text-[8px] text-muted-foreground font-semibold uppercase tracking-wider">Recovery</span>
       </div>
     </div>
   );
@@ -60,23 +42,13 @@ function RecoveryGauge({ value }: { value: number }) {
 // ---------------------------------------------------------------------------
 // Metric Pill — small stat chip
 // ---------------------------------------------------------------------------
-function MetricPill({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function MetricPill({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
     <div className="flex items-center gap-1.5 bg-muted/50 rounded-lg px-2 py-1.5">
       <span className="text-primary">{icon}</span>
       <div>
         <p className="text-[10px] text-muted-foreground leading-none">{label}</p>
-        <p className="text-xs font-bold text-foreground leading-tight mt-0.5">
-          {value}
-        </p>
+        <p className="text-xs font-bold text-foreground leading-tight mt-0.5">{value}</p>
       </div>
     </div>
   );
@@ -137,10 +109,7 @@ export function WearableDashboard() {
           <Watch className="w-4 h-4 text-primary" /> Whoop
         </CardTitle>
         <Link href="/settings/wearables">
-          <Badge
-            variant="outline"
-            className="text-[10px] cursor-pointer hover:bg-muted/50 transition-colors"
-          >
+          <Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-muted/50 transition-colors">
             Synced {data.lastSync}
           </Badge>
         </Link>
@@ -151,26 +120,10 @@ export function WearableDashboard() {
         <div className="flex items-center gap-4">
           <RecoveryGauge value={data.recovery} />
           <div className="flex-1 grid grid-cols-2 gap-2">
-            <MetricPill
-              icon={<Zap className="w-3 h-3" />}
-              label="Strain"
-              value={data.strain.toFixed(1)}
-            />
-            <MetricPill
-              icon={<Heart className="w-3 h-3" />}
-              label="HRV"
-              value={`${data.hrv}ms`}
-            />
-            <MetricPill
-              icon={<Activity className="w-3 h-3" />}
-              label="RHR"
-              value={`${data.restingHr}bpm`}
-            />
-            <MetricPill
-              icon={<Moon className="w-3 h-3" />}
-              label="Sleep"
-              value={`${data.sleepDuration}h`}
-            />
+            <MetricPill icon={<Zap className="w-3 h-3" />} label="Strain" value={data.strain.toFixed(1)} />
+            <MetricPill icon={<Heart className="w-3 h-3" />} label="HRV" value={`${data.hrv}ms`} />
+            <MetricPill icon={<Activity className="w-3 h-3" />} label="RHR" value={`${data.restingHr}bpm`} />
+            <MetricPill icon={<Moon className="w-3 h-3" />} label="Sleep" value={`${data.sleepDuration}h`} />
           </div>
         </div>
 

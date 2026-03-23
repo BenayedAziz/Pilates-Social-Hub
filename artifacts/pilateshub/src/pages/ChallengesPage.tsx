@@ -1,11 +1,11 @@
 import { CheckCircle2, Trophy, Users } from "lucide-react";
 import { useEffect, useState } from "react";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { BingoCell } from "@/data/types";
 import { useBingoCard, useChallenges } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function ChallengesPage() {
   const { data: CHALLENGES = [], isLoading: challengesLoading } = useChallenges();

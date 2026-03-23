@@ -3,11 +3,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { EmptyState } from "@/components/EmptyState";
+import { StorePageSkeleton } from "@/components/PageSkeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApp } from "@/context/AppContext";
 import { useBrands, useProducts } from "@/hooks/use-api";
-import { StorePageSkeleton } from "@/components/PageSkeleton";
 
 const CATEGORIES = [
   { key: "All", labelKey: "shop.all", emoji: "" },
@@ -83,6 +83,7 @@ export default function StorePage() {
                   <img
                     src={brand.coverImageUrl}
                     alt={brand.name}
+                    loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
@@ -127,6 +128,7 @@ export default function StorePage() {
                 <img
                   src={product.imageUrl}
                   alt={product.name}
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                 />
                 {product.badge && (

@@ -123,7 +123,9 @@ export function SideNav() {
             </div>
             <div>
               <p className="text-sm font-semibold text-foreground">{user?.name || t("common.guest")}</p>
-              <p className="text-xs text-muted-foreground">{user?.level || "Unknown"} {t("me.level")}</p>
+              <p className="text-xs text-muted-foreground">
+                {user?.level || "Unknown"} {t("me.level")}
+              </p>
             </div>
           </div>
         </Link>

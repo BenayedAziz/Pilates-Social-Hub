@@ -46,9 +46,7 @@ function LoadingSpinner() {
 
 function AuthenticatedApp() {
   const { isAuthenticated } = useAuth();
-  const [isOnboarded, setIsOnboarded] = useState(
-    () => localStorage.getItem("pilateshub-onboarded") === "true",
-  );
+  const [isOnboarded, setIsOnboarded] = useState(() => localStorage.getItem("pilateshub-onboarded") === "true");
 
   if (!isAuthenticated) {
     return (

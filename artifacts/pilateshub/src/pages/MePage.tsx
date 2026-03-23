@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Link } from "wouter";
 import { JourneyMap } from "@/components/JourneyMap";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +13,6 @@ import { WeeklyRecap } from "@/components/WeeklyRecap";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
 import { useBadges, useChallenges } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function MePage() {
   const { user, logout } = useAuth();
@@ -80,7 +80,9 @@ export default function MePage() {
             style={{ background: "linear-gradient(135deg, hsl(42 28% 42%) 0%, hsl(42 28% 55%) 100%)" }}
           >
             <div className="text-2xl font-bold">{currentStreak}</div>
-            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">{t("me.dayStreak")}</div>
+            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">
+              {t("me.dayStreak")}
+            </div>
           </div>
         </div>
 

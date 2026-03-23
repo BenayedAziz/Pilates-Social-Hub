@@ -1,17 +1,16 @@
-import { CheckCircle2, Pen, Star, ThumbsUp, Trophy } from "lucide-react";
+import { Pen, Star, ThumbsUp, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
+import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { useApp } from "@/context/AppContext";
 import { WriteReviewDialog } from "@/components/WriteReviewDialog";
-import { notify } from "@/lib/notifications";
+
 import type { Studio } from "@/data/types";
-import { useCoaches, useStudioReviews, useStudioCheckins, useGoogleReviews } from "@/hooks/use-api";
+import { useCoaches, useGoogleReviews, useStudioCheckins, useStudioReviews } from "@/hooks/use-api";
 
 interface StudioDetailDialogProps {
   studio: Studio;
@@ -19,7 +18,6 @@ interface StudioDetailDialogProps {
 }
 
 export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps) {
-  const { bookingSuccess, setBookingSuccess } = useApp();
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [, navigate] = useLocation();
   const [reviewVersion, setReviewVersion] = useState(0);
@@ -45,20 +43,11 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
     count: studioReviews.filter((r) => r.rating === star).length,
   }));
 
-  const handleBook = () => {
-    setBookingSuccess(studio.id);
-    toast.success(`Booked! Your session at ${studio.name} at ${selectedTime} is confirmed.`);
-    if (selectedTime) {
-      notify.bookingConfirmed(studio.name, selectedTime);
-    }
-  };
-
   return (
     <Dialog>
       <DialogTrigger
         asChild
         onClick={() => {
-          setBookingSuccess(null);
           setSelectedTime(null);
         }}
       >
@@ -66,7 +55,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
       </DialogTrigger>
       <DialogContent className="max-w-[360px] rounded-2xl p-0 overflow-hidden border-none shadow-xl">
         <div className="h-44 relative overflow-hidden">
-          <img src={studio.imageUrl} alt={studio.name} className="w-full h-full object-cover" />
+          <img src={studio.imageUrl} alt={studio.name} loading="lazy" className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
           <div className="absolute bottom-3 left-4">
             <p className="text-xs text-white/80 font-medium">{studio.neighborhood}</p>
@@ -103,7 +92,10 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
                   );
                 }
                 return (
-                  <span key={coachName} className="text-xs bg-muted text-foreground/80 px-2.5 py-1 rounded-full font-medium">
+                  <span
+                    key={coachName}
+                    className="text-xs bg-muted text-foreground/80 px-2.5 py-1 rounded-full font-medium"
+                  >
                     {coachName}
                   </span>
                 );
@@ -162,9 +154,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
                   />
                 ))}
               </div>
-              <span className="text-[10px] text-muted-foreground mt-0.5">
-                {studioReviews.length} reviews
-              </span>
+              <span className="text-[10px] text-muted-foreground mt-0.5">{studioReviews.length} reviews</span>
             </div>
             <div className="flex-1 flex flex-col gap-1">
               {ratingCounts.map(({ star, count }) => (
@@ -174,9 +164,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
                     <div
                       className="h-full bg-yellow-400 rounded-full transition-all"
                       style={{
-                        width: studioReviews.length > 0
-                          ? `${(count / studioReviews.length) * 100}%`
-                          : "0%",
+                        width: studioReviews.length > 0 ? `${(count / studioReviews.length) * 100}%` : "0%",
                       }}
                     />
                   </div>
@@ -203,9 +191,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
           {/* Reviews List */}
           <div className="flex flex-col gap-3">
             {studioReviews.length === 0 && (
-              <p className="text-xs text-muted-foreground text-center py-2">
-                No reviews yet. Be the first!
-              </p>
+              <p className="text-xs text-muted-foreground text-center py-2">No reviews yet. Be the first!</p>
             )}
             {studioReviews.map((review) => (
               <div key={review.id} className="flex gap-3">
@@ -222,9 +208,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
                         <Star
                           key={j}
                           className={`w-3 h-3 ${
-                            j < review.rating
-                              ? "text-yellow-400 fill-yellow-400"
-                              : "text-muted-foreground/30"
+                            j < review.rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
                           }`}
                         />
                       ))}
@@ -250,11 +234,28 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
               <Separator className="my-4" />
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <svg viewBox="0 0 24 24" className="w-4 h-4 flex-shrink-0" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="w-4 h-4 flex-shrink-0"
+                    aria-hidden="true"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                      fill="#4285F4"
+                    />
+                    <path
+                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                      fill="#34A853"
+                    />
+                    <path
+                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                      fill="#FBBC05"
+                    />
+                    <path
+                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                      fill="#EA4335"
+                    />
                   </svg>
                   <h3 className="font-bold text-sm text-foreground">Google Reviews</h3>
                 </div>
@@ -269,6 +270,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
                       <img
                         src={review.authorPhotoUrl}
                         alt={review.authorName}
+                        loading="lazy"
                         className="w-8 h-8 rounded-full flex-shrink-0 object-cover"
                       />
                     ) : (
@@ -291,18 +293,14 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
                             <Star
                               key={j}
                               className={`w-3 h-3 ${
-                                j < review.rating
-                                  ? "text-yellow-400 fill-yellow-400"
-                                  : "text-muted-foreground/30"
+                                j < review.rating ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
                               }`}
                             />
                           ))}
                         </div>
                       </div>
                       {review.text && (
-                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">
-                          {review.text}
-                        </p>
+                        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-3">{review.text}</p>
                       )}
                       {review.relativeTimeDescription && (
                         <span className="text-[10px] text-muted-foreground mt-1 block">
@@ -315,24 +313,32 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
               </div>
               {/* Google Attribution - required by Google ToS */}
               <div className="flex items-center justify-center gap-1.5 mt-3 py-2 bg-muted/50 rounded-lg">
-                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/>
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+                    fill="#4285F4"
+                  />
+                  <path
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                    fill="#34A853"
+                  />
+                  <path
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                    fill="#FBBC05"
+                  />
+                  <path
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                    fill="#EA4335"
+                  />
                 </svg>
-                <span className="text-[10px] text-muted-foreground font-medium">
-                  Reviews from Google
-                </span>
+                <span className="text-[10px] text-muted-foreground font-medium">Reviews from Google</span>
               </div>
             </>
           )}
 
           {/* Studio Regulars Leaderboard */}
           {(() => {
-            const studioCheckins = [...apiCheckins].sort(
-              (a: any, b: any) => b.checkins - a.checkins,
-            );
+            const studioCheckins = [...apiCheckins].sort((a: any, b: any) => b.checkins - a.checkins);
             if (studioCheckins.length === 0) return null;
             return (
               <>

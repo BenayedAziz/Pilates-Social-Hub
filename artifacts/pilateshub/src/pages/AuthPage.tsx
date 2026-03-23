@@ -202,9 +202,7 @@ export default function AuthPage() {
           </Tabs>
         </div>
 
-        <p className="text-center text-[11px] text-muted-foreground/60 mt-6 tracking-wide">
-          {t("auth.terms")}
-        </p>
+        <p className="text-center text-[11px] text-muted-foreground/60 mt-6 tracking-wide">{t("auth.terms")}</p>
       </div>
     </div>
   );

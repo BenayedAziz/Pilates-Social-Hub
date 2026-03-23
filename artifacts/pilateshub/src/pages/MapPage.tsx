@@ -8,8 +8,8 @@ import { StudioDetailDialog } from "@/components/StudioDetailDialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Studio } from "@/data/types";
-import { useStudios } from "@/hooks/use-api";
 import type { StudioBounds } from "@/hooks/use-api";
+import { useStudios } from "@/hooks/use-api";
 import { useGeolocation } from "@/hooks/use-geolocation";
 
 // Animation variants for staggered card entry
@@ -32,15 +32,7 @@ const cardVariants = {
 };
 
 // Wraps a studio card with smooth enter/exit animation
-function AnimatedCard({
-  studio,
-  index,
-  children,
-}: {
-  studio: Studio;
-  index: number;
-  children: React.ReactNode;
-}) {
+function AnimatedCard({ studio, index, children }: { studio: Studio; index: number; children: React.ReactNode }) {
   return (
     <motion.div
       key={studio.id}
@@ -56,7 +48,6 @@ function AnimatedCard({
   );
 }
 
-
 // Fix Leaflet default icon paths for bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -70,13 +61,19 @@ const FILTERS = ["Reformer", "Mat", "Beginner", "Advanced", "Near Me"];
 // Fallback image for studios without imageUrl
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop";
 
-// Custom pin icon factory for featured studios (green)
+// Custom pin icon factory for featured studios -- memoized by (price, selected) key
+const pinIconCache = new Map<string, L.DivIcon>();
+
 function createPinIcon(price: number, selected: boolean) {
+  const key = `${price}-${selected}`;
+  const cached = pinIconCache.get(key);
+  if (cached) return cached;
+
   const size = selected ? 44 : 36;
   const color = selected ? "hsl(28, 22%, 34%)" : "hsl(28, 22%, 42%)";
   const shadow = selected ? "0 3px 12px rgba(0,0,0,0.3)" : "0 2px 6px rgba(0,0,0,0.2)";
 
-  return L.divIcon({
+  const icon = L.divIcon({
     className: "",
     iconSize: [size, size + 8],
     iconAnchor: [size / 2, size + 8],
@@ -98,6 +95,9 @@ function createPinIcon(price: number, selected: boolean) {
       </div>
     `,
   });
+
+  pinIconCache.set(key, icon);
+  return icon;
 }
 
 // Current location blue dot
@@ -138,7 +138,7 @@ function FlyToPosition({ position }: { position: [number, number] }) {
       map.flyTo(position, 13, { duration: 1 });
     }
     prevRef.current = position;
-  }, [position[0], position[1]]);
+  }, [position[0], position[1], map]);
   return null;
 }
 
@@ -161,7 +161,9 @@ function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: StudioBo
     handler();
 
     map.on("moveend", handler);
-    return () => { map.off("moveend", handler); };
+    return () => {
+      map.off("moveend", handler);
+    };
   }, [map, onBoundsChange]);
 
   return null;
@@ -201,7 +203,12 @@ export default function MapPage() {
   // The padded bounds mean the result set covers nearby off-screen studios,
   // so markers at the viewport edge don't disappear during small pans.
   const { data: studios = [] } = useStudios(
-    undefined, undefined, undefined, undefined, undefined, undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
     paddedBounds,
   );
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
@@ -259,16 +266,18 @@ export default function MapPage() {
               const size = count < 10 ? 40 : count < 50 ? 48 : 56;
               const fontSize = count < 10 ? 13 : count < 50 ? 14 : 15;
               // Warm terracotta/clay palette — clearly distinct from the brown studio pins
-              const bg = count < 10
-                ? "hsl(16, 50%, 58%)"   // light terracotta
-                : count < 50
-                ? "hsl(12, 55%, 52%)"   // deeper terracotta
-                : "hsl(8, 58%, 46%)";   // rich clay
-              const ring = count < 10
-                ? "hsl(16, 50%, 58%, 0.25)"
-                : count < 50
-                ? "hsl(12, 55%, 52%, 0.25)"
-                : "hsl(8, 58%, 46%, 0.25)";
+              const bg =
+                count < 10
+                  ? "hsl(16, 50%, 58%)" // light terracotta
+                  : count < 50
+                    ? "hsl(12, 55%, 52%)" // deeper terracotta
+                    : "hsl(8, 58%, 46%)"; // rich clay
+              const ring =
+                count < 10
+                  ? "hsl(16, 50%, 58%, 0.25)"
+                  : count < 50
+                    ? "hsl(12, 55%, 52%, 0.25)"
+                    : "hsl(8, 58%, 46%, 0.25)";
               return L.divIcon({
                 html: `
                   <span class="cluster-icon" style="
@@ -332,7 +341,6 @@ export default function MapPage() {
               {tag}
             </Badge>
           ))}
-
         </div>
 
         {/* Geolocation permission banner — shown when using the hardcoded default */}
@@ -355,6 +363,7 @@ export default function MapPage() {
                     <img
                       src={selectedStudio.imageUrl || FALLBACK_IMAGE}
                       alt={selectedStudio.name}
+                      loading="lazy"
                       className="w-full h-full object-cover"
                     />
                   </div>
@@ -396,17 +405,17 @@ export default function MapPage() {
             </StudioDetailDialog>
           </div>
         )}
-
       </div>
 
       {/* === DISCOVERY SECTIONS (always visible below map) === */}
       <div className="p-5 flex flex-col gap-8 bg-background">
-
         {/* Featured Studios -- horizontal scroll */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground">Featured Studios</h2>
-            <button className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">See All</button>
+            <button type="button" className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">
+              See All
+            </button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             <AnimatePresence mode="popLayout">
@@ -418,6 +427,7 @@ export default function MapPage() {
                         <img
                           src={studio.imageUrl || FALLBACK_IMAGE}
                           alt={studio.name}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
@@ -426,7 +436,10 @@ export default function MapPage() {
                         <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
                         {studio.rating} · {studio.neighborhood}
                       </div>
-                      <span className="text-xs font-bold text-primary">{"\u20AC"}{studio.price}/class</span>
+                      <span className="text-xs font-bold text-primary">
+                        {"\u20AC"}
+                        {studio.price}/class
+                      </span>
                     </div>
                   </StudioDetailDialog>
                 </AnimatedCard>
@@ -451,6 +464,7 @@ export default function MapPage() {
                         <img
                           src={studio.imageUrl || FALLBACK_IMAGE}
                           alt={studio.name}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm">
@@ -488,6 +502,7 @@ export default function MapPage() {
                           <img
                             src={studio.imageUrl || FALLBACK_IMAGE}
                             alt={studio.name}
+                            loading="lazy"
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -520,7 +535,9 @@ export default function MapPage() {
         <section>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-bold text-foreground">New Studios</h2>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-1">Recently added</span>
+            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-1">
+              Recently added
+            </span>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <AnimatePresence mode="popLayout">
@@ -532,6 +549,7 @@ export default function MapPage() {
                         <img
                           src={studio.imageUrl || FALLBACK_IMAGE}
                           alt={studio.name}
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute top-2 left-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] font-bold shadow-sm">
@@ -541,7 +559,10 @@ export default function MapPage() {
                       <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
                       <div className="flex items-center justify-between mt-0.5">
                         <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
-                        <span className="text-[11px] font-bold text-primary flex-shrink-0">{"\u20AC"}{studio.price}</span>
+                        <span className="text-[11px] font-bold text-primary flex-shrink-0">
+                          {"\u20AC"}
+                          {studio.price}
+                        </span>
                       </div>
                     </div>
                   </StudioDetailDialog>
@@ -568,6 +589,7 @@ export default function MapPage() {
                           <img
                             src={studio.imageUrl || FALLBACK_IMAGE}
                             alt={studio.name}
+                            loading="lazy"
                             className="w-full h-full object-cover"
                           />
                         </div>

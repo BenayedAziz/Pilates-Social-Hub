@@ -11,7 +11,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useTheme } from "@/hooks/use-theme";
 
 export function Header() {
-  const { cartItems, cartCount, cartTotal, removeFromCart, clearCart } = useApp();
+  const { cartItems, cartCount, cartTotal, removeFromCart } = useApp();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { t, i18n } = useTranslation();
@@ -122,6 +122,7 @@ export function Header() {
                         <img
                           src={item.product.imageUrl}
                           alt={item.product.name}
+                          loading="lazy"
                           className="w-full h-full object-cover"
                         />
                       </div>

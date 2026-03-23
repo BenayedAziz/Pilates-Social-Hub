@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 type MessageHandler = (data: any) => void;
 
@@ -14,12 +14,16 @@ export function useWebSocket() {
 
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
-      ws.onopen = () => setConnected(true);
+      ws.onopen = () => {
+        // Send token after connection to avoid leaking JWT in URL/logs
+        ws.send(JSON.stringify({ type: "auth", token }));
+        setConnected(true);
+      };
 
       ws.onerror = () => {
         // Silently handle connection errors (server might not support WS)

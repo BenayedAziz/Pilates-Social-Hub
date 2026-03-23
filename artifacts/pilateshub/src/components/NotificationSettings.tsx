@@ -1,12 +1,12 @@
-import { useState } from "react";
 import { Bell } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { requestNotificationPermission, notify } from "@/lib/notifications";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Card, CardContent } from "@/components/ui/card";
+import { notify, requestNotificationPermission } from "@/lib/notifications";
 
 export function NotificationSettings() {
   const [permission, setPermission] = useState<NotificationPermission>(
-    "Notification" in window ? Notification.permission : "denied"
+    "Notification" in window ? Notification.permission : "denied",
   );
 
   const enableNotifications = async () => {
@@ -37,17 +37,19 @@ export function NotificationSettings() {
         </h3>
 
         {permission !== "granted" ? (
-          <button type="button" onClick={enableNotifications}
-            className="w-full py-3 bg-primary/10 text-primary font-bold text-sm rounded-xl hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
+          <button
+            type="button"
+            onClick={enableNotifications}
+            className="w-full py-3 bg-primary/10 text-primary font-bold text-sm rounded-xl hover:bg-primary/20 transition-colors flex items-center justify-center gap-2"
+          >
             <Bell className="w-4 h-4" /> Enable Notifications
           </button>
         ) : (
           <div className="flex flex-col gap-2">
-            {settings.map(s => (
+            {settings.map((s) => (
               <label key={s.key} className="flex items-center justify-between py-2">
                 <span className="text-sm text-foreground">{s.label}</span>
-                <input type="checkbox" defaultChecked={s.default}
-                  className="w-4 h-4 accent-primary rounded" />
+                <input type="checkbox" defaultChecked={s.default} className="w-4 h-4 accent-primary rounded" />
               </label>
             ))}
           </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 interface GeoPosition {
   lat: number;
@@ -45,15 +45,15 @@ function readCachedPosition(): GeoPosition | null {
     if (typeof parsed.lat === "number" && typeof parsed.lng === "number") {
       return { lat: parsed.lat, lng: parsed.lng };
     }
-  } catch { /* corrupt entry — ignore */ }
+  } catch {
+    /* corrupt entry — ignore */
+  }
   return null;
 }
 
 export function useGeolocation(): UseGeolocationResult {
   const cachedGeo = readCachedPosition();
-  const [position, setPosition] = useState<GeoPosition | null>(
-    cachedGeo ?? DEFAULT_POSITION,
-  );
+  const [position, setPosition] = useState<GeoPosition | null>(cachedGeo ?? DEFAULT_POSITION);
   const [isDefault, setIsDefault] = useState(!cachedGeo);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

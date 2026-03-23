@@ -22,7 +22,7 @@ export function BottomNav() {
       {tabs.map((tab) => {
         const isActive = location === tab.path;
         return (
-          <Link key={tab.path} href={tab.path}>
+          <Link key={tab.path} href={tab.path} aria-label={t(tab.labelKey)}>
             <div
               className={`flex flex-col items-center gap-1 px-5 py-2 transition-all duration-200 cursor-pointer relative ${isActive ? "text-primary" : "text-muted-foreground/50 hover:text-muted-foreground/80"}`}
             >

@@ -1,14 +1,14 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
-import { ArrowLeft, Camera, Check } from "lucide-react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, Camera, Check } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name too short"),
@@ -120,9 +120,7 @@ export default function EditProfilePage() {
             {...register("name")}
             className="h-11 rounded-xl bg-muted/50 border-border/60 focus:bg-background"
           />
-          {errors.name && (
-            <p className="text-xs text-red-500 font-medium">{errors.name.message}</p>
-          )}
+          {errors.name && <p className="text-xs text-red-500 font-medium">{errors.name.message}</p>}
         </div>
 
         {/* Email Field */}
@@ -166,14 +164,12 @@ export default function EditProfilePage() {
             {...register("bio")}
             className="flex w-full rounded-xl border border-border/60 bg-muted/50 px-3 py-2.5 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring focus:bg-background resize-none"
           />
-          {errors.bio && (
-            <p className="text-xs text-red-500 font-medium">{errors.bio.message}</p>
-          )}
+          {errors.bio && <p className="text-xs text-red-500 font-medium">{errors.bio.message}</p>}
         </div>
 
         {/* Level Selector */}
-        <div className="flex flex-col gap-2">
-          <label className="text-sm font-semibold text-foreground">Level</label>
+        <div className="flex flex-col gap-2" role="radiogroup" aria-label="Pilates level">
+          <span className="text-sm font-semibold text-foreground">Level</span>
           <div className="grid grid-cols-3 gap-3">
             {LEVELS.map((level) => {
               const isSelected = selectedLevel === level.value;
@@ -189,16 +185,10 @@ export default function EditProfilePage() {
                 >
                   <CardContent className="p-3 flex flex-col items-center gap-1.5 text-center">
                     <span className="text-2xl">{level.emoji}</span>
-                    <span
-                      className={`text-xs font-bold ${
-                        isSelected ? "text-primary" : "text-muted-foreground"
-                      }`}
-                    >
+                    <span className={`text-xs font-bold ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
                       {level.label}
                     </span>
-                    {isSelected && (
-                      <Check className="w-3.5 h-3.5 text-primary" />
-                    )}
+                    {isSelected && <Check className="w-3.5 h-3.5 text-primary" />}
                   </CardContent>
                 </Card>
               );
@@ -207,11 +197,7 @@ export default function EditProfilePage() {
         </div>
 
         {/* Save Button */}
-        <Button
-          type="submit"
-          disabled={saving || !isDirty}
-          className="w-full h-12 rounded-xl text-sm font-bold mt-2"
-        >
+        <Button type="submit" disabled={saving || !isDirty} className="w-full h-12 rounded-xl text-sm font-bold mt-2">
           {saving ? (
             <span className="flex items-center gap-2">
               <span className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />

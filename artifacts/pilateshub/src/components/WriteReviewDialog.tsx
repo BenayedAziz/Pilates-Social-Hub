@@ -1,17 +1,11 @@
-import { useState } from "react";
-import { Star } from "lucide-react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { Star } from "lucide-react";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { StudioReview } from "@/data/types";
 
 const reviewSchema = z.object({
@@ -27,12 +21,7 @@ interface WriteReviewDialogProps {
   children: React.ReactNode;
 }
 
-export function WriteReviewDialog({
-  studioName,
-  studioId,
-  onReviewAdded,
-  children,
-}: WriteReviewDialogProps) {
+export function WriteReviewDialog({ studioName, studioId, onReviewAdded, children }: WriteReviewDialogProps) {
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
   const [open, setOpen] = useState(false);
@@ -78,9 +67,7 @@ export function WriteReviewDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-[360px] rounded-2xl border-none shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-lg font-bold text-foreground">
-            Review {studioName}
-          </DialogTitle>
+          <DialogTitle className="text-lg font-bold text-foreground">Review {studioName}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -111,9 +98,7 @@ export function WriteReviewDialog({
                 >
                   <Star
                     className={`w-8 h-8 transition-colors ${
-                      i <= (hoveredRating || rating)
-                        ? "text-yellow-400 fill-yellow-400"
-                        : "text-muted-foreground/30"
+                      i <= (hoveredRating || rating) ? "text-yellow-400 fill-yellow-400" : "text-muted-foreground/30"
                     }`}
                   />
                 </button>
@@ -129,18 +114,11 @@ export function WriteReviewDialog({
               rows={4}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary resize-none"
             />
-            {errors.text && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.text.message}
-              </p>
-            )}
+            {errors.text && <p className="text-xs text-destructive mt-1">{errors.text.message}</p>}
           </div>
 
           {/* Submit */}
-          <Button
-            type="submit"
-            className="w-full bg-primary hover:bg-primary/85 text-white font-bold shadow-sm"
-          >
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/85 text-white font-bold shadow-sm">
             Post Review
           </Button>
         </form>

@@ -1,19 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation } from "wouter";
-import {
-  ArrowLeft,
-  Check,
-  CreditCard,
-  Loader2,
-  Lock,
-  MapPin,
-  Package,
-  ShoppingBag,
-  Tag,
-  Truck,
-} from "lucide-react";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, Check, CreditCard, Loader2, Lock, MapPin, Package, ShoppingBag, Tag, Truck } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { useLocation } from "wouter";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,7 +11,6 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -61,8 +50,7 @@ function getDeliveryEstimate(): string {
   from.setDate(from.getDate() + 3);
   const to = new Date(now);
   to.setDate(to.getDate() + 5);
-  const fmt = (d: Date) =>
-    d.toLocaleDateString("en-GB", { month: "short", day: "numeric" });
+  const fmt = (d: Date) => d.toLocaleDateString("en-GB", { month: "short", day: "numeric" });
   return `${fmt(from)} - ${fmt(to)}`;
 }
 
@@ -96,19 +84,11 @@ function StepIndicator({ current }: { current: number }) {
                       : "bg-muted text-muted-foreground"
                 }`}
               >
-                {isComplete ? (
-                  <Check className="w-4.5 h-4.5" />
-                ) : (
-                  <Icon className="w-4.5 h-4.5" />
-                )}
+                {isComplete ? <Check className="w-4.5 h-4.5" /> : <Icon className="w-4.5 h-4.5" />}
               </div>
               <span
                 className={`text-[11px] font-semibold tracking-wide ${
-                  isActive
-                    ? "text-primary"
-                    : isComplete
-                      ? "text-foreground"
-                      : "text-muted-foreground"
+                  isActive ? "text-primary" : isComplete ? "text-foreground" : "text-muted-foreground"
                 }`}
               >
                 {label}
@@ -141,131 +121,127 @@ function ShippingStep({
   });
 
   return (
-    <form
-      onSubmit={handleSubmit(onContinue)}
-      className="animate-in fade-in slide-in-from-right-4 duration-300"
-    >
+    <form onSubmit={handleSubmit(onContinue)} className="animate-in fade-in slide-in-from-right-4 duration-300">
       <Card className="border-0 shadow-lg bg-card">
         <CardContent className="p-6 space-y-5">
           <div className="flex items-center gap-2.5 mb-1">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <MapPin className="w-4 h-4 text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-foreground">
-              Shipping Information
-            </h2>
+            <h2 className="text-lg font-bold text-foreground">Shipping Information</h2>
           </div>
 
           {/* Name & Email */}
           <div className="grid sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label
+                htmlFor="checkout-name"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
                 Full Name
               </label>
               <Input
+                id="checkout-name"
                 {...register("name")}
                 placeholder="Emma Dubois"
                 className="h-11 rounded-xl bg-background"
               />
-              {errors.name && (
-                <p className="text-xs text-destructive mt-0.5">
-                  {errors.name.message}
-                </p>
-              )}
+              {errors.name && <p className="text-xs text-destructive mt-0.5">{errors.name.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label
+                htmlFor="checkout-email"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
                 Email
               </label>
               <Input
+                id="checkout-email"
                 {...register("email")}
                 type="email"
                 placeholder="emma@example.com"
                 className="h-11 rounded-xl bg-background"
               />
-              {errors.email && (
-                <p className="text-xs text-destructive mt-0.5">
-                  {errors.email.message}
-                </p>
-              )}
+              {errors.email && <p className="text-xs text-destructive mt-0.5">{errors.email.message}</p>}
             </div>
           </div>
 
           {/* Address */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <label
+              htmlFor="checkout-address"
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+            >
               Street Address
             </label>
             <Input
+              id="checkout-address"
               {...register("address")}
               placeholder="12 Rue de Rivoli"
               className="h-11 rounded-xl bg-background"
             />
-            {errors.address && (
-              <p className="text-xs text-destructive mt-0.5">
-                {errors.address.message}
-              </p>
-            )}
+            {errors.address && <p className="text-xs text-destructive mt-0.5">{errors.address.message}</p>}
           </div>
 
           {/* City, Postal, Country */}
           <div className="grid sm:grid-cols-3 gap-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label
+                htmlFor="checkout-city"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
                 City
               </label>
               <Input
+                id="checkout-city"
                 {...register("city")}
                 placeholder="Paris"
                 className="h-11 rounded-xl bg-background"
               />
-              {errors.city && (
-                <p className="text-xs text-destructive mt-0.5">
-                  {errors.city.message}
-                </p>
-              )}
+              {errors.city && <p className="text-xs text-destructive mt-0.5">{errors.city.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label
+                htmlFor="checkout-postalCode"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
                 Postal Code
               </label>
               <Input
+                id="checkout-postalCode"
                 {...register("postalCode")}
                 placeholder="75001"
                 className="h-11 rounded-xl bg-background"
               />
-              {errors.postalCode && (
-                <p className="text-xs text-destructive mt-0.5">
-                  {errors.postalCode.message}
-                </p>
-              )}
+              {errors.postalCode && <p className="text-xs text-destructive mt-0.5">{errors.postalCode.message}</p>}
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <label
+                htmlFor="checkout-country"
+                className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+              >
                 Country
               </label>
               <Input
+                id="checkout-country"
                 {...register("country")}
                 placeholder="France"
                 className="h-11 rounded-xl bg-background"
               />
-              {errors.country && (
-                <p className="text-xs text-destructive mt-0.5">
-                  {errors.country.message}
-                </p>
-              )}
+              {errors.country && <p className="text-xs text-destructive mt-0.5">{errors.country.message}</p>}
             </div>
           </div>
 
           {/* Phone */}
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Phone{" "}
-              <span className="text-muted-foreground/60 normal-case tracking-normal font-normal">
-                (optional)
-              </span>
+            <label
+              htmlFor="checkout-phone"
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-wider"
+            >
+              Phone <span className="text-muted-foreground/60 normal-case tracking-normal font-normal">(optional)</span>
             </label>
             <Input
+              id="checkout-phone"
               {...register("phone")}
               type="tel"
               placeholder="+33 6 12 34 56 78"
@@ -335,21 +311,17 @@ function PaymentStep({
 
           <div className="space-y-3">
             {cartItems.map((item) => (
-              <div
-                key={item.product.id}
-                className="flex items-center gap-3 py-2"
-              >
+              <div key={item.product.id} className="flex items-center gap-3 py-2">
                 <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   <img
                     src={item.product.imageUrl}
                     alt={item.product.name}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm leading-tight truncate">
-                    {item.product.name}
-                  </p>
+                  <p className="font-semibold text-sm leading-tight truncate">{item.product.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {item.product.brand} &middot; Qty: {item.qty}
                   </p>
@@ -405,9 +377,7 @@ function PaymentStep({
         <CardContent className="p-6">
           <div className="flex items-center gap-2.5 mb-3">
             <Tag className="w-4 h-4 text-muted-foreground" />
-            <span className="text-sm font-semibold text-foreground">
-              Promo Code
-            </span>
+            <span className="text-sm font-semibold text-foreground">Promo Code</span>
           </div>
           <div className="flex gap-2">
             <Input
@@ -437,9 +407,7 @@ function PaymentStep({
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <CreditCard className="w-4 h-4 text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-foreground">
-              Payment Method
-            </h2>
+            <h2 className="text-lg font-bold text-foreground">Payment Method</h2>
           </div>
 
           <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white p-5 shadow-xl">
@@ -450,27 +418,18 @@ function PaymentStep({
                 <div className="w-10 h-7 rounded bg-amber-400/90 flex items-center justify-center">
                   <div className="w-6 h-4 rounded-sm border border-amber-600/40 bg-amber-300/40" />
                 </div>
-                <span className="text-xs font-bold tracking-widest opacity-70">
-                  VISA
-                </span>
+                <span className="text-xs font-bold tracking-widest opacity-70">VISA</span>
               </div>
               <p className="font-mono text-lg tracking-[0.2em] mb-4 opacity-90">
-                &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull;
-                &bull;&bull;&bull;&bull; 4242
+                &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 4242
               </p>
               <div className="flex justify-between items-end">
                 <div>
-                  <p className="text-[10px] uppercase tracking-wider opacity-50 mb-0.5">
-                    Card Holder
-                  </p>
-                  <p className="text-sm font-semibold tracking-wide">
-                    EMMA DUBOIS
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wider opacity-50 mb-0.5">Card Holder</p>
+                  <p className="text-sm font-semibold tracking-wide">EMMA DUBOIS</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-wider opacity-50 mb-0.5">
-                    Expires
-                  </p>
+                  <p className="text-[10px] uppercase tracking-wider opacity-50 mb-0.5">Expires</p>
                   <p className="text-sm font-semibold">12/27</p>
                 </div>
               </div>
@@ -566,12 +525,8 @@ function ConfirmationStep({
             <Check className="w-6 h-6 text-white" strokeWidth={3} />
           </div>
         </div>
-        <h2 className="text-2xl font-bold text-foreground mb-1">
-          Order Confirmed!
-        </h2>
-        <p className="text-muted-foreground text-sm">
-          Thank you for your purchase
-        </p>
+        <h2 className="text-2xl font-bold text-foreground mb-1">Order Confirmed!</h2>
+        <p className="text-muted-foreground text-sm">Thank you for your purchase</p>
       </div>
 
       {/* Order details */}
@@ -582,9 +537,7 @@ function ConfirmationStep({
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">
                 Order Number
               </p>
-              <p className="font-bold text-foreground font-mono">
-                {orderNumber}
-              </p>
+              <p className="font-bold text-foreground font-mono">{orderNumber}</p>
             </div>
             <div className="text-right">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-0.5">
@@ -598,37 +551,27 @@ function ConfirmationStep({
           </div>
 
           <div className="bg-primary/5 rounded-xl p-3 text-center">
-            <p className="text-sm text-primary font-semibold">
-              3-5 business days delivery
-            </p>
+            <p className="text-sm text-primary font-semibold">3-5 business days delivery</p>
           </div>
 
           <Separator />
 
           <div className="space-y-3">
             {cartItems.map((item) => (
-              <div
-                key={item.product.id}
-                className="flex items-center gap-3"
-              >
+              <div key={item.product.id} className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 bg-muted">
                   <img
                     src={item.product.imageUrl}
                     alt={item.product.name}
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">
-                    {item.product.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Qty: {item.qty}
-                  </p>
+                  <p className="font-semibold text-sm truncate">{item.product.name}</p>
+                  <p className="text-xs text-muted-foreground">Qty: {item.qty}</p>
                 </div>
-                <p className="font-bold text-sm">
-                  &euro;{(item.product.price * item.qty).toFixed(2)}
-                </p>
+                <p className="font-bold text-sm">&euro;{(item.product.price * item.qty).toFixed(2)}</p>
               </div>
             ))}
           </div>
@@ -652,9 +595,7 @@ function ConfirmationStep({
             </div>
             <div className="flex justify-between font-bold text-base pt-1">
               <span>Total</span>
-              <span className="text-primary">
-                &euro;{total.toFixed(2)}
-              </span>
+              <span className="text-primary">&euro;{total.toFixed(2)}</span>
             </div>
           </div>
         </CardContent>
@@ -710,14 +651,11 @@ export default function CheckoutPage() {
     }
   }, [cartItems.length, step, navigate]);
 
-  const handleShippingContinue = useCallback(
-    (data: ShippingFormData) => {
-      setShippingData(data);
-      setStep(1);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    },
-    [],
-  );
+  const handleShippingContinue = useCallback((data: ShippingFormData) => {
+    setShippingData(data);
+    setStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   const handlePlaceOrder = useCallback(async () => {
     setIsProcessing(true);
@@ -777,9 +715,7 @@ export default function CheckoutPage() {
           ) : (
             <div />
           )}
-          <h1 className="text-sm font-bold text-foreground tracking-wide">
-            Checkout
-          </h1>
+          <h1 className="text-sm font-bold text-foreground tracking-wide">Checkout</h1>
           <div className="w-16" />
         </div>
       </div>
@@ -793,8 +729,7 @@ export default function CheckoutPage() {
           <div className="mb-5 rounded-xl bg-primary/5 border border-primary/10 px-4 py-3 text-center">
             <p className="text-xs font-semibold text-primary">
               <Truck className="w-3.5 h-3.5 inline mr-1.5 -mt-0.5" />
-              Add &euro;{(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} more
-              for free shipping
+              Add &euro;{(FREE_SHIPPING_THRESHOLD - subtotal).toFixed(2)} more for free shipping
             </p>
           </div>
         )}

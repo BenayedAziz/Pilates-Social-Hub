@@ -1,11 +1,11 @@
 import { ArrowLeft, BadgeCheck, Heart, MapPin, ShoppingBag, Star } from "lucide-react";
 import { Link, useRoute } from "wouter";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApp } from "@/context/AppContext";
 import { useBrands, useProducts } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import NotFound from "@/pages/not-found";
 
 const BADGE_COLORS: Record<string, string> = {
@@ -44,7 +44,7 @@ export default function BrandPage() {
     <div className="bg-background min-h-full animate-in fade-in duration-300">
       {/* Cover image with overlay */}
       <div className="h-48 relative overflow-hidden">
-        <img src={brand.coverImageUrl} alt={brand.name} className="w-full h-full object-cover" />
+        <img src={brand.coverImageUrl} alt={brand.name} loading="lazy" className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
         {/* Back button */}
@@ -139,6 +139,7 @@ export default function BrandPage() {
                   <img
                     src={product.imageUrl}
                     alt={product.name}
+                    loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   {product.badge && (

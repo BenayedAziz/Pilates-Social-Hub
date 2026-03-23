@@ -1,12 +1,12 @@
-import { useState } from "react";
 import { ArrowLeft, Check, ChevronRight, Unplug, Watch } from "lucide-react";
-import { Link } from "wouter";
+import { useState } from "react";
 import { toast } from "sonner";
+import { Link } from "wouter";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useWearable } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 // ---------------------------------------------------------------------------
 // Integration definitions
@@ -131,15 +131,13 @@ export default function WearableSettingsPage() {
       <div
         className="relative px-5 pt-7 pb-5 flex items-center gap-3 overflow-hidden"
         style={{
-          background:
-            "linear-gradient(135deg, hsl(38 42% 97%) 0%, hsl(33 25% 93%) 50%, hsl(28 20% 91%) 100%)",
+          background: "linear-gradient(135deg, hsl(38 42% 97%) 0%, hsl(33 25% 93%) 50%, hsl(28 20% 91%) 100%)",
         }}
       >
         <div
           className="absolute inset-0 opacity-[0.03]"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 80% 20%, hsl(28 22% 38%) 0%, transparent 50%)",
+            backgroundImage: "radial-gradient(circle at 80% 20%, hsl(28 22% 38%) 0%, transparent 50%)",
           }}
         />
         <Link href="/me">
@@ -153,9 +151,7 @@ export default function WearableSettingsPage() {
         </Link>
         <div className="relative z-10">
           <h1 className="text-lg font-bold text-foreground">Connected Devices</h1>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Manage your wearable integrations
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">Manage your wearable integrations</p>
         </div>
       </div>
 
@@ -166,8 +162,7 @@ export default function WearableSettingsPage() {
             <div
               className="h-1"
               style={{
-                background:
-                  "linear-gradient(90deg, hsl(120, 50%, 45%) 0%, hsl(120, 40%, 55%) 100%)",
+                background: "linear-gradient(90deg, hsl(120, 50%, 45%) 0%, hsl(120, 40%, 55%) 100%)",
               }}
             />
             <CardContent className="p-4">
@@ -177,44 +172,28 @@ export default function WearableSettingsPage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-foreground">
-                      Whoop 4.0
-                    </h3>
+                    <h3 className="text-sm font-bold text-foreground">Whoop 4.0</h3>
                     <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px] font-bold">
                       Connected
                     </Badge>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Last sync: {data.lastSync}
-                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Last sync: {data.lastSync}</p>
                 </div>
               </div>
 
               {/* Quick stats */}
               <div className="grid grid-cols-3 gap-2 mt-3">
                 <div className="bg-muted/50 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    Recovery
-                  </p>
-                  <p className="text-sm font-bold text-foreground">
-                    {data.recovery}%
-                  </p>
+                  <p className="text-[10px] text-muted-foreground font-medium">Recovery</p>
+                  <p className="text-sm font-bold text-foreground">{data.recovery}%</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    HRV
-                  </p>
-                  <p className="text-sm font-bold text-foreground">
-                    {data.hrv}ms
-                  </p>
+                  <p className="text-[10px] text-muted-foreground font-medium">HRV</p>
+                  <p className="text-sm font-bold text-foreground">{data.hrv}ms</p>
                 </div>
                 <div className="bg-muted/50 rounded-lg p-2 text-center">
-                  <p className="text-[10px] text-muted-foreground font-medium">
-                    Strain
-                  </p>
-                  <p className="text-sm font-bold text-foreground">
-                    {data.strain.toFixed(1)}
-                  </p>
+                  <p className="text-[10px] text-muted-foreground font-medium">Strain</p>
+                  <p className="text-sm font-bold text-foreground">{data.strain.toFixed(1)}</p>
                 </div>
               </div>
 
@@ -239,20 +218,13 @@ export default function WearableSettingsPage() {
           <Card className="border-none shadow-sm">
             <CardContent className="p-0 divide-y divide-border/40">
               {INTEGRATIONS.map((device) => (
-                <div
-                  key={device.name}
-                  className="flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors"
-                >
+                <div key={device.name} className="flex items-center gap-3 p-4 hover:bg-muted/30 transition-colors">
                   <div className="w-10 h-10 rounded-xl bg-muted/60 flex items-center justify-center text-lg flex-shrink-0">
                     {device.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-bold text-foreground">
-                      {device.name}
-                    </h3>
-                    <p className="text-xs text-muted-foreground mt-0.5 truncate">
-                      {device.description}
-                    </p>
+                    <h3 className="text-sm font-bold text-foreground">{device.name}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{device.description}</p>
                   </div>
                   {device.status === "connected" ? (
                     <Badge className="bg-green-100 text-green-700 border-green-200 text-[10px] font-bold flex-shrink-0">
@@ -264,20 +236,13 @@ export default function WearableSettingsPage() {
                       variant="outline"
                       size="sm"
                       className="text-xs font-bold flex-shrink-0"
-                      onClick={() =>
-                        toast.info(
-                          `${device.name} connection initiated (mock)`,
-                        )
-                      }
+                      onClick={() => toast.info(`${device.name} connection initiated (mock)`)}
                     >
                       Connect
                       <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                     </Button>
                   ) : (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] text-muted-foreground/60 font-bold flex-shrink-0"
-                    >
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground/60 font-bold flex-shrink-0">
                       Coming Soon
                     </Badge>
                   )}
@@ -294,12 +259,8 @@ export default function WearableSettingsPage() {
           </h2>
           <Card className="border-none shadow-sm">
             <CardHeader className="p-4 pb-0">
-              <CardTitle className="text-sm font-bold text-foreground">
-                Permissions
-              </CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                Choose which health metrics PilatesHub can access
-              </p>
+              <CardTitle className="text-sm font-bold text-foreground">Permissions</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Choose which health metrics PilatesHub can access</p>
             </CardHeader>
             <CardContent className="p-4 pt-2 divide-y divide-border/40">
               <PermissionToggle
@@ -338,8 +299,8 @@ export default function WearableSettingsPage() {
 
         {/* Privacy note */}
         <p className="text-[10px] text-muted-foreground/40 font-medium text-center px-4 pb-4">
-          Your health data is encrypted and never shared with third parties.
-          PilatesHub uses it only to personalize your experience.
+          Your health data is encrypted and never shared with third parties. PilatesHub uses it only to personalize your
+          experience.
         </p>
       </div>
     </div>

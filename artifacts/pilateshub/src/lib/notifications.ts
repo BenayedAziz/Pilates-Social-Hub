@@ -47,7 +47,7 @@ export const notify = {
 
   newMessage: (senderName: string, preview: string) => {
     sendLocalNotification(`Message from ${senderName}`, {
-      body: preview.length > 50 ? preview.slice(0, 50) + "..." : preview,
+      body: preview.length > 50 ? `${preview.slice(0, 50)}...` : preview,
       tag: "message",
     });
   },

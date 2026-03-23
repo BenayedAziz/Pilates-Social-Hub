@@ -21,12 +21,12 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { ScheduleManager } from "@/components/ScheduleManager";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScheduleManager } from "@/components/ScheduleManager";
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -544,12 +544,25 @@ export default function StudioAdminPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Studio Name</label>
-                    <Input value={studioName} onChange={(e) => setStudioName(e.target.value)} className="text-sm" />
+                    <label htmlFor="admin-studio-name" className="text-xs font-semibold text-foreground mb-1.5 block">
+                      Studio Name
+                    </label>
+                    <Input
+                      id="admin-studio-name"
+                      value={studioName}
+                      onChange={(e) => setStudioName(e.target.value)}
+                      className="text-sm"
+                    />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Description</label>
+                    <label
+                      htmlFor="admin-studio-description"
+                      className="text-xs font-semibold text-foreground mb-1.5 block"
+                    >
+                      Description
+                    </label>
                     <textarea
+                      id="admin-studio-description"
                       value={studioDescription}
                       onChange={(e) => setStudioDescription(e.target.value)}
                       rows={3}
@@ -558,12 +571,18 @@ export default function StudioAdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs font-semibold text-foreground mb-1.5 block">Price per Session</label>
+                      <label
+                        htmlFor="admin-studio-price"
+                        className="text-xs font-semibold text-foreground mb-1.5 block"
+                      >
+                        Price per Session
+                      </label>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                           €
                         </span>
                         <Input
+                          id="admin-studio-price"
                           value={studioPrice}
                           onChange={(e) => setStudioPrice(e.target.value)}
                           className="text-sm pl-7"
@@ -572,13 +591,29 @@ export default function StudioAdminPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-foreground mb-1.5 block">Neighborhood</label>
-                      <Input value={ADMIN_STUDIO.neighborhood} disabled className="text-sm bg-muted/50" />
+                      <label
+                        htmlFor="admin-studio-neighborhood"
+                        className="text-xs font-semibold text-foreground mb-1.5 block"
+                      >
+                        Neighborhood
+                      </label>
+                      <Input
+                        id="admin-studio-neighborhood"
+                        value={ADMIN_STUDIO.neighborhood}
+                        disabled
+                        className="text-sm bg-muted/50"
+                      />
                     </div>
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-foreground mb-1.5 block">Address</label>
+                    <label
+                      htmlFor="admin-studio-address"
+                      className="text-xs font-semibold text-foreground mb-1.5 block"
+                    >
+                      Address
+                    </label>
                     <Input
+                      id="admin-studio-address"
                       value={studioAddress}
                       onChange={(e) => setStudioAddress(e.target.value)}
                       className="text-sm"

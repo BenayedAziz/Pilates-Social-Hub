@@ -22,15 +22,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-const MOCK_USER: AuthUser = {
-  id: 1,
-  name: "Emma D",
-  email: "emma@example.com",
-  initials: "ED",
-  level: "Advanced",
-  bio: "Reformer enthusiast based in Le Marais. 3x per week.",
-};
-
 /**
  * Convert an API user response (which uses displayName) to the
  * frontend AuthUser shape (which uses name + initials).
@@ -61,9 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
-      // No token — auto-login with demo account for easy access
-      setUser(MOCK_USER);
-      localStorage.setItem("pilateshub-onboarded", "true");
+      // No token — require real authentication
       setInitializing(false);
       return;
     }
@@ -79,10 +68,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(toAuthUser(data));
       })
       .catch(() => {
-        // Token is invalid or API is not available — use demo account
+        // Token is invalid or API is not available — require re-authentication
         localStorage.removeItem(TOKEN_KEY);
-        setUser(MOCK_USER);
-        localStorage.setItem("pilateshub-onboarded", "true");
+        setUser(null);
       })
       .finally(() => {
         setInitializing(false);
@@ -142,52 +130,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   }, []);
 
-  const updateProfile = useCallback(
-    async (data: { name?: string; bio?: string; level?: string }): Promise<boolean> => {
-      try {
-        const token = localStorage.getItem(TOKEN_KEY);
-        if (!token) {
-          // No token (mock mode) — update local state directly
-          setUser((prev) => {
-            if (!prev) return prev;
-            const name = data.name ?? prev.name;
-            const initials = name
-              .split(" ")
-              .map((n: string) => n[0])
-              .join("")
-              .toUpperCase()
-              .slice(0, 2);
-            return {
-              ...prev,
-              name,
-              initials,
-              bio: data.bio ?? prev.bio,
-              level: data.level ?? prev.level,
-            };
-          });
-          return true;
-        }
-
-        const res = await fetch("/api/auth/profile", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(data),
+  const updateProfile = useCallback(async (data: { name?: string; bio?: string; level?: string }): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        // No token (mock mode) — update local state directly
+        setUser((prev) => {
+          if (!prev) return prev;
+          const name = data.name ?? prev.name;
+          const initials = name
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2);
+          return {
+            ...prev,
+            name,
+            initials,
+            bio: data.bio ?? prev.bio,
+            level: data.level ?? prev.level,
+          };
         });
-
-        if (!res.ok) return false;
-
-        const updated = await res.json();
-        setUser(toAuthUser(updated));
         return true;
-      } catch {
-        return false;
       }
-    },
-    [],
-  );
+
+      const res = await fetch("/api/auth/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) return false;
+
+      const updated = await res.json();
+      setUser(toAuthUser(updated));
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   const value = useMemo(
     () => ({ user, isAuthenticated: !!user, login, signup, logout, updateProfile }),

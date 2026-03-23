@@ -4,8 +4,26 @@ import type { Product } from "@/data/types";
 import { AppProvider, useApp } from "../AppContext";
 
 const TEST_PRODUCTS: Product[] = [
-  { id: 1, name: "Test Product 1", brand: "TestBrand", price: 29, rating: 4.5, category: "Goodies", image: "", imageUrl: "" },
-  { id: 2, name: "Test Product 2", brand: "TestBrand", price: 49, rating: 4.7, category: "Apparel", image: "", imageUrl: "" },
+  {
+    id: 1,
+    name: "Test Product 1",
+    brand: "TestBrand",
+    price: 29,
+    rating: 4.5,
+    category: "Goodies",
+    image: "",
+    imageUrl: "",
+  },
+  {
+    id: 2,
+    name: "Test Product 2",
+    brand: "TestBrand",
+    price: 49,
+    rating: 4.7,
+    category: "Apparel",
+    image: "",
+    imageUrl: "",
+  },
 ];
 
 const wrapper = ({ children }: { children: React.ReactNode }) => <AppProvider>{children}</AppProvider>;

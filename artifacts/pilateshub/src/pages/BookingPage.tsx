@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-import { useRoute, useLocation } from "wouter";
 import {
   ArrowLeft,
   Calendar,
@@ -13,13 +11,15 @@ import {
   User,
   Zap,
 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import { useLocation, useRoute } from "wouter";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useStudios } from "@/hooks/use-api";
-import { GenericPageSkeleton } from "@/components/PageSkeleton";
-import { toast } from "sonner";
 import { notify } from "@/lib/notifications";
 
 // ---------------------------------------------------------------------------
@@ -36,11 +36,35 @@ interface StudioClass {
 }
 
 const MOCK_CLASSES: StudioClass[] = [
-  { id: 1, name: "Reformer Flow", coach: "Sophie Leclerc", duration: 55, level: "Intermediate", price: 45, spotsLeft: 4 },
+  {
+    id: 1,
+    name: "Reformer Flow",
+    coach: "Sophie Leclerc",
+    duration: 55,
+    level: "Intermediate",
+    price: 45,
+    spotsLeft: 4,
+  },
   { id: 2, name: "Mat Pilates Core", coach: "Julien Moreau", duration: 45, level: "Beginner", price: 38, spotsLeft: 8 },
-  { id: 3, name: "Cadillac Advanced", coach: "Sophie Leclerc", duration: 60, level: "Advanced", price: 55, spotsLeft: 2 },
+  {
+    id: 3,
+    name: "Cadillac Advanced",
+    coach: "Sophie Leclerc",
+    duration: 60,
+    level: "Advanced",
+    price: 55,
+    spotsLeft: 2,
+  },
   { id: 4, name: "Tower Session", coach: "Julien Moreau", duration: 50, level: "All Levels", price: 42, spotsLeft: 6 },
-  { id: 5, name: "Reformer & Stretch", coach: "Marie Dubois", duration: 50, level: "Beginner", price: 40, spotsLeft: 5 },
+  {
+    id: 5,
+    name: "Reformer & Stretch",
+    coach: "Marie Dubois",
+    duration: 50,
+    level: "Beginner",
+    price: 40,
+    spotsLeft: 5,
+  },
   { id: 6, name: "Power Pilates", coach: "Antoine Petit", duration: 55, level: "Advanced", price: 52, spotsLeft: 3 },
 ];
 
@@ -109,12 +133,17 @@ export default function BookingPage() {
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const allSlots = generateSlots();
+  const allSlots = useMemo(() => generateSlots(), []);
 
   // Group slots by day index
   const days = Array.from({ length: 7 }, (_, i) => {
     const daySlots = allSlots.filter((_, idx) => Math.floor(idx / TIMES.length) === i);
-    return { index: i, dayLabel: daySlots[0]?.dayLabel ?? "", dateLabel: daySlots[0]?.dateLabel ?? "", slots: daySlots };
+    return {
+      index: i,
+      dayLabel: daySlots[0]?.dayLabel ?? "",
+      dateLabel: daySlots[0]?.dateLabel ?? "",
+      slots: daySlots,
+    };
   });
 
   // Assign studio-specific classes based on studio coaches
@@ -201,6 +230,7 @@ export default function BookingPage() {
         <div className="flex items-center gap-3 px-4 py-3">
           {currentStep < 4 ? (
             <button
+              type="button"
               onClick={() => {
                 if (currentStep === 1) navigate("/");
                 else setCurrentStep((s) => s - 1);
@@ -316,6 +346,7 @@ export default function BookingPage() {
           <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
             {days.map((day) => (
               <button
+                type="button"
                 key={day.index}
                 onClick={() => {
                   setSelectedDay(day.index);
@@ -327,10 +358,14 @@ export default function BookingPage() {
                     : "bg-card border-border/60 hover:border-accent-cta/40"
                 }`}
               >
-                <span className={`text-[11px] font-semibold ${selectedDay === day.index ? "text-white/80" : "text-muted-foreground"}`}>
+                <span
+                  className={`text-[11px] font-semibold ${selectedDay === day.index ? "text-white/80" : "text-muted-foreground"}`}
+                >
                   {day.dayLabel}
                 </span>
-                <span className={`text-xs font-bold mt-0.5 ${selectedDay === day.index ? "text-white" : "text-foreground"}`}>
+                <span
+                  className={`text-xs font-bold mt-0.5 ${selectedDay === day.index ? "text-white" : "text-foreground"}`}
+                >
                   {day.dateLabel}
                 </span>
               </button>
@@ -346,6 +381,7 @@ export default function BookingPage() {
               const isSelected = selectedSlot?.time === slot.time && selectedSlot?.dateLabel === slot.dateLabel;
               return (
                 <button
+                  type="button"
                   key={slot.time}
                   disabled={slot.isFull}
                   onClick={() => setSelectedSlot(slot)}
@@ -410,7 +446,7 @@ export default function BookingPage() {
         {/* Booking summary card */}
         <Card className="border border-border/60 overflow-hidden">
           <div className="h-28 relative overflow-hidden">
-            <img src={studio.imageUrl} alt={studio.name} className="w-full h-full object-cover" />
+            <img src={studio.imageUrl} alt={studio.name} loading="lazy" className="w-full h-full object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
             <div className="absolute bottom-3 left-4">
               <p className="text-white font-bold text-sm">{studio.name}</p>
@@ -424,7 +460,9 @@ export default function BookingPage() {
               </div>
               <div>
                 <p className="font-bold text-sm text-foreground">{selectedClass.name}</p>
-                <p className="text-xs text-muted-foreground">{selectedClass.level} &middot; {selectedClass.duration} min</p>
+                <p className="text-xs text-muted-foreground">
+                  {selectedClass.level} &middot; {selectedClass.duration} min
+                </p>
               </div>
             </div>
             <Separator />
@@ -433,7 +471,9 @@ export default function BookingPage() {
                 <Calendar className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Date</p>
-                  <p className="text-sm font-semibold text-foreground">{selectedSlot.dayLabel}, {selectedSlot.dateLabel}</p>
+                  <p className="text-sm font-semibold text-foreground">
+                    {selectedSlot.dayLabel}, {selectedSlot.dateLabel}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -502,7 +542,8 @@ export default function BookingPage() {
         <div className="flex items-start gap-2.5 px-1">
           <Shield className="w-4 h-4 text-muted-foreground mt-0.5 flex-shrink-0" />
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Free cancellation up to 12 hours before the session. Late cancellations will be charged the full amount. No-shows may affect future booking priority.
+            Free cancellation up to 12 hours before the session. Late cancellations will be charged the full amount.
+            No-shows may affect future booking priority.
           </p>
         </div>
 
@@ -541,13 +582,14 @@ export default function BookingPage() {
             </div>
           </div>
           <Sparkles className="w-5 h-5 text-accent-cta absolute -top-1 -right-1 animate-pulse" />
-          <Sparkles className="w-4 h-4 text-accent-cta/60 absolute -bottom-1 -left-2 animate-pulse" style={{ animationDelay: "0.5s" }} />
+          <Sparkles
+            className="w-4 h-4 text-accent-cta/60 absolute -bottom-1 -left-2 animate-pulse"
+            style={{ animationDelay: "0.5s" }}
+          />
         </div>
 
         <h2 className="text-xl font-black text-foreground mb-1">Booking Confirmed!</h2>
-        <p className="text-sm text-muted-foreground mb-6 text-center">
-          You're all set. See you on the mat!
-        </p>
+        <p className="text-sm text-muted-foreground mb-6 text-center">You're all set. See you on the mat!</p>
 
         {/* Booking details card */}
         <Card className="w-full border border-accent-cta/20 bg-accent-cta/5 mb-6">
@@ -556,6 +598,7 @@ export default function BookingPage() {
               <img
                 src={studio.imageUrl}
                 alt={studio.name}
+                loading="lazy"
                 className="w-12 h-12 rounded-xl object-cover"
               />
               <div>
@@ -596,7 +639,10 @@ export default function BookingPage() {
 
         {/* Confirmation reference */}
         <p className="text-xs text-muted-foreground mb-6">
-          Booking ref: <span className="font-mono font-bold text-foreground">PH-{Date.now().toString(36).toUpperCase().slice(-6)}</span>
+          Booking ref:{" "}
+          <span className="font-mono font-bold text-foreground">
+            PH-{Date.now().toString(36).toUpperCase().slice(-6)}
+          </span>
         </p>
 
         {/* Action buttons */}
