@@ -10,8 +10,8 @@ import { Separator } from "@/components/ui/separator";
 import { useApp } from "@/context/AppContext";
 import { WriteReviewDialog } from "@/components/WriteReviewDialog";
 import { notify } from "@/lib/notifications";
-import type { Studio } from "@/data/mock-data";
-import { COACHES, STUDIO_CHECKINS, REVIEWS } from "@/data/mock-data";
+import type { Studio } from "@/data/types";
+import { useCoaches, useStudioReviews, useStudioCheckins } from "@/hooks/use-api";
 
 interface StudioDetailDialogProps {
   studio: Studio;
@@ -23,12 +23,15 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [, navigate] = useLocation();
   const [reviewVersion, setReviewVersion] = useState(0);
+  const { data: COACHES = [] } = useCoaches();
+  const { data: apiReviews = [] } = useStudioReviews(studio.id);
+  const { data: apiCheckins = [] } = useStudioCheckins(studio.id);
 
   // Get reviews for this studio
   const studioReviews = useMemo(
-    () => REVIEWS.filter((r) => r.studioId === studio.id),
+    () => apiReviews,
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [studio.id, reviewVersion],
+    [apiReviews, reviewVersion],
   );
 
   // Rating summary
@@ -242,8 +245,8 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
 
           {/* Studio Regulars Leaderboard */}
           {(() => {
-            const studioCheckins = STUDIO_CHECKINS.filter((c) => c.studioId === studio.id).sort(
-              (a, b) => b.checkins - a.checkins,
+            const studioCheckins = [...apiCheckins].sort(
+              (a: any, b: any) => b.checkins - a.checkins,
             );
             if (studioCheckins.length === 0) return null;
             return (

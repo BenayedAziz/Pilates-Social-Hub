@@ -4,7 +4,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApp } from "@/context/AppContext";
-import { BRANDS, PRODUCTS } from "@/data/mock-data";
+import { useBrands, useProducts } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import NotFound from "@/pages/not-found";
 
 const BADGE_COLORS: Record<string, string> = {
@@ -24,14 +25,18 @@ const CATEGORY_LABELS: Record<string, string> = {
 export default function BrandPage() {
   const [, params] = useRoute("/brand/:slug");
   const { wishlist, toggleWishlist, addToCart } = useApp();
+  const { data: BRANDS = [], isLoading: brandsLoading } = useBrands();
+  const { data: PRODUCTS = [], isLoading: productsLoading } = useProducts();
 
-  const brand = BRANDS.find((b) => b.slug === params?.slug);
+  if (brandsLoading || productsLoading) return <GenericPageSkeleton />;
+
+  const brand = BRANDS.find((b: any) => b.slug === params?.slug);
 
   if (!brand) return <NotFound />;
 
   // Match products by brand name (case-insensitive partial match to catch "Manduka PRO", "Manduka eKO", etc.)
   const brandProducts = PRODUCTS.filter(
-    (p) =>
+    (p: any) =>
       p.brand.toLowerCase() === brand.name.toLowerCase() || p.brand.toLowerCase().startsWith(brand.name.toLowerCase()),
   );
 

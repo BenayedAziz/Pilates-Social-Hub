@@ -10,34 +10,45 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     const token = localStorage.getItem("pilateshub-token");
-    if (!token) return;
+    if (!token) return; // No token — skip WebSocket (demo mode)
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
+    try {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws?token=${token}`;
 
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
 
-    ws.onopen = () => setConnected(true);
+      ws.onopen = () => setConnected(true);
 
-    ws.onclose = () => {
-      setConnected(false);
-      wsRef.current = null;
-      // Reconnect after 3 seconds
-      reconnectTimerRef.current = setTimeout(() => {
-        connect();
-      }, 3000);
-    };
+      ws.onerror = () => {
+        // Silently handle connection errors (server might not support WS)
+        ws.close();
+      };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        const handlers = handlersRef.current.get(data.type) || [];
-        handlers.forEach((h) => h(data));
-      } catch {
-        // ignore malformed messages
-      }
-    };
+      ws.onclose = () => {
+        setConnected(false);
+        wsRef.current = null;
+        // Only reconnect if we have a token
+        if (localStorage.getItem("pilateshub-token")) {
+          reconnectTimerRef.current = setTimeout(() => {
+            connect();
+          }, 5000);
+        }
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          const handlers = handlersRef.current.get(data.type) || [];
+          handlers.forEach((h) => h(data));
+        } catch {
+          // ignore malformed messages
+        }
+      };
+    } catch {
+      // WebSocket construction failed — ignore
+    }
   }, []);
 
   useEffect(() => {

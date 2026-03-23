@@ -1,7 +1,8 @@
 import { ArrowLeft, BadgeCheck, ChevronRight, MapPin, Star } from "lucide-react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
-import { BRANDS } from "@/data/mock-data";
+import { useBrands } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 const CATEGORY_LABELS: Record<string, string> = {
   equipment: "Equipment",
@@ -18,6 +19,10 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function BrandsPage() {
+  const { data: BRANDS = [], isLoading } = useBrands();
+
+  if (isLoading) return <GenericPageSkeleton />;
+
   return (
     <div className="bg-background min-h-full animate-in fade-in duration-300">
       {/* Header */}

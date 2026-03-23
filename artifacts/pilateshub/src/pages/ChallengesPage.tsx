@@ -1,12 +1,24 @@
 import { CheckCircle2, Trophy, Users } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BINGO_CARD, CHALLENGES } from "@/data/mock-data";
+import type { BingoCell } from "@/data/types";
+import { useBingoCard, useChallenges } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function ChallengesPage() {
-  const [bingoState, setBingoState] = useState(BINGO_CARD);
+  const { data: CHALLENGES = [], isLoading: challengesLoading } = useChallenges();
+  const { data: apiBingo = [] } = useBingoCard();
+  const [bingoState, setBingoState] = useState<BingoCell[]>([]);
+
+  useEffect(() => {
+    if (apiBingo.length > 0) {
+      setBingoState(apiBingo);
+    }
+  }, [apiBingo]);
+
+  if (challengesLoading) return <GenericPageSkeleton />;
 
   const toggleBingo = (id: number) => {
     setBingoState((prev) => prev.map((cell) => (cell.id === id ? { ...cell, completed: !cell.completed } : cell)));

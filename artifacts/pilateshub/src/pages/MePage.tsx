@@ -11,12 +11,17 @@ import { WearableDashboard } from "@/components/WearableDashboard";
 import { WeeklyRecap } from "@/components/WeeklyRecap";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import { BADGES, CHALLENGES } from "@/data/mock-data";
+import { useBadges, useChallenges } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function MePage() {
   const { user, logout } = useAuth();
   const { currentStreak, totalSessions, totalCalories } = useApp();
   const { t } = useTranslation();
+  const { data: BADGES = [], isLoading: badgesLoading } = useBadges();
+  const { data: CHALLENGES = [] } = useChallenges();
+
+  if (badgesLoading) return <GenericPageSkeleton />;
 
   return (
     <div className="bg-background min-h-full animate-in fade-in duration-300">

@@ -4,16 +4,22 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { COACHES, STUDIOS } from "@/data/mock-data";
+import { useCoaches, useStudios } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import NotFound from "@/pages/not-found";
 
 export default function CoachPage() {
   const [, params] = useRoute("/coach/:slug");
-  const coach = COACHES.find((c) => c.slug === params?.slug);
+  const { data: COACHES = [], isLoading: coachesLoading } = useCoaches();
+  const { data: STUDIOS = [], isLoading: studiosLoading } = useStudios();
+
+  if (coachesLoading || studiosLoading) return <GenericPageSkeleton />;
+
+  const coach = COACHES.find((c: any) => c.slug === params?.slug);
 
   if (!coach) return <NotFound />;
 
-  const studios = STUDIOS.filter((s) => coach.studioIds.includes(s.id));
+  const studios = STUDIOS.filter((s: any) => coach.studioIds.includes(s.id));
 
   return (
     <div className="bg-background min-h-full animate-in fade-in duration-300 pb-24">
@@ -39,7 +45,7 @@ export default function CoachPage() {
           {coach.yearsExperience} years experience
         </p>
         <div className="flex justify-center gap-1.5 mt-2 flex-wrap">
-          {coach.specialties.map((s) => (
+          {coach.specialties.map((s: string) => (
             <Badge key={s} variant="secondary" className="text-xs font-medium">
               {s}
             </Badge>
@@ -98,7 +104,7 @@ export default function CoachPage() {
       <section className="px-5">
         <h2 className="font-bold text-foreground text-base mb-3">Certifications</h2>
         <div className="flex flex-col gap-2">
-          {coach.certifications.map((cert) => (
+          {coach.certifications.map((cert: string) => (
             <div key={cert} className="flex items-center gap-2.5">
               <CheckCircle2 className="w-4 h-4 text-primary flex-shrink-0" />
               <span className="text-sm text-foreground">{cert}</span>

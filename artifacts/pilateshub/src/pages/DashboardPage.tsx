@@ -7,10 +7,18 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { WeeklyRecap } from "@/components/WeeklyRecap";
 import { useApp } from "@/context/AppContext";
-import { BADGES, CALORIE_DATA, CHALLENGES, LEADERBOARD } from "@/data/mock-data";
+import { useBadges, useCalorieData, useChallenges, useLeaderboard } from "@/hooks/use-api";
+import { DashboardPageSkeleton } from "@/components/PageSkeleton";
 
 export default function DashboardPage() {
   const { currentStreak, totalSessions, totalCalories } = useApp();
+  const { data: BADGES = [], isLoading: badgesLoading } = useBadges();
+  const { data: CALORIE_DATA = [] } = useCalorieData();
+  const { data: CHALLENGES = [] } = useChallenges();
+  const { data: LEADERBOARD = [] } = useLeaderboard();
+
+  if (badgesLoading) return <DashboardPageSkeleton />;
+
   const weekDays = ["M", "T", "W", "T", "F", "S", "S"];
   const completedDays = [true, true, true, true, false, true, false];
 

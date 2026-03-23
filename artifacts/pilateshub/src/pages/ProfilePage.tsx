@@ -4,10 +4,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/context/AuthContext";
-import { BADGES } from "@/data/mock-data";
+import { useBadges } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function ProfilePage() {
   const { logout } = useAuth();
+  const { data: BADGES = [], isLoading } = useBadges();
+
+  if (isLoading) return <GenericPageSkeleton />;
+
   return (
     <div className="bg-background min-h-full animate-in fade-in duration-300 pb-10">
       {/* Profile header */}

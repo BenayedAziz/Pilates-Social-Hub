@@ -3,27 +3,30 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
-import { FORUM_POSTS, PRODUCTS, STUDIOS } from "@/data/mock-data";
+import { useForum, useProducts, useStudios } from "@/hooks/use-api";
 
 export function SearchDialog() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
+  const { data: STUDIOS = [] } = useStudios();
+  const { data: PRODUCTS = [] } = useProducts();
+  const { data: FORUM_POSTS = [] } = useForum();
 
   const results = useMemo(() => {
     if (query.length < 2) return { studios: [], products: [], forumPosts: [] };
     const q = query.toLowerCase();
     return {
       studios: STUDIOS.filter(
-        (s) => s.name.toLowerCase().includes(q) || s.neighborhood.toLowerCase().includes(q),
+        (s: any) => s.name.toLowerCase().includes(q) || s.neighborhood.toLowerCase().includes(q),
       ).slice(0, 3),
-      products: PRODUCTS.filter((p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)).slice(
+      products: PRODUCTS.filter((p: any) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q)).slice(
         0,
         3,
       ),
-      forumPosts: FORUM_POSTS.filter((f) => f.title.toLowerCase().includes(q)).slice(0, 3),
+      forumPosts: FORUM_POSTS.filter((f: any) => f.title.toLowerCase().includes(q)).slice(0, 3),
     };
-  }, [query]);
+  }, [query, STUDIOS, PRODUCTS, FORUM_POSTS]);
 
   const hasResults = results.studios.length > 0 || results.products.length > 0 || results.forumPosts.length > 0;
 

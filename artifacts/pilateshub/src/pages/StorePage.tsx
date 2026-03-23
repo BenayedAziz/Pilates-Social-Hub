@@ -6,8 +6,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useApp } from "@/context/AppContext";
-import { BRANDS, PRODUCTS as FALLBACK_PRODUCTS } from "@/data/mock-data";
-import { useProducts } from "@/hooks/use-api";
+import { useBrands, useProducts } from "@/hooks/use-api";
+import { StorePageSkeleton } from "@/components/PageSkeleton";
 
 const CATEGORIES = [
   { key: "All", labelKey: "shop.all", emoji: "" },
@@ -30,8 +30,10 @@ export default function StorePage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const { wishlist, toggleWishlist, addToCart } = useApp();
   const { t } = useTranslation();
-  const { data: apiProducts } = useProducts();
-  const allProducts = apiProducts || FALLBACK_PRODUCTS;
+  const { data: allProducts = [], isLoading: productsLoading } = useProducts();
+  const { data: BRANDS = [] } = useBrands();
+
+  if (productsLoading) return <StorePageSkeleton />;
 
   const filteredProducts =
     activeCategory === "All" ? allProducts : allProducts.filter((p) => p.category === activeCategory);

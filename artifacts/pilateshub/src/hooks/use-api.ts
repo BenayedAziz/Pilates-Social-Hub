@@ -143,6 +143,94 @@ export function useCreateBooking() {
   });
 }
 
+// Brands
+export function useBrands() {
+  return useQuery({
+    queryKey: ["brands"],
+    queryFn: () => apiFetch<any[]>("/brands"),
+  });
+}
+
+// Coaches
+export function useCoaches() {
+  return useQuery({
+    queryKey: ["coaches"],
+    queryFn: () => apiFetch<any[]>("/coaches"),
+  });
+}
+
+// Challenges
+export function useChallenges() {
+  return useQuery({
+    queryKey: ["challenges"],
+    queryFn: () => apiFetch<any[]>("/challenges"),
+  });
+}
+
+// Bingo Card
+export function useBingoCard() {
+  return useQuery({
+    queryKey: ["bingo"],
+    queryFn: () => apiFetch<any[]>("/bingo"),
+  });
+}
+
+// Badges
+export function useBadges() {
+  return useQuery({
+    queryKey: ["badges"],
+    queryFn: () => apiFetch<any[]>("/badges"),
+  });
+}
+
+// Leaderboard
+export function useLeaderboard() {
+  return useQuery({
+    queryKey: ["leaderboard"],
+    queryFn: () => apiFetch<any[]>("/leaderboard"),
+  });
+}
+
+// Calorie Data
+export function useCalorieData() {
+  return useQuery({
+    queryKey: ["calorie-data"],
+    queryFn: () => apiFetch<any[]>("/calorie-data"),
+  });
+}
+
+// Circles
+export function useCircles() {
+  return useQuery({
+    queryKey: ["circles"],
+    queryFn: () => apiFetch<any[]>("/circles"),
+  });
+}
+
+// Wearable Data
+export function useWearable() {
+  return useQuery({
+    queryKey: ["wearable"],
+    queryFn: () => apiFetch<any>("/wearable"),
+  });
+}
+
+// Studio Reviews
+export function useStudioReviews(studioId: number) {
+  return useQuery({
+    queryKey: ["reviews", studioId],
+    queryFn: () => apiFetch<any[]>(`/studios/${studioId}/reviews`),
+  });
+}
+
+// Studio Checkins
+export function useStudioCheckins(studioId: number) {
+  return useQuery({
+    queryKey: ["checkins", studioId],
+    queryFn: () => apiFetch<any[]>(`/studios/${studioId}/checkins`),
+  });
+}
+
 // Auth
 export function useCurrentUser() {
   return useQuery({

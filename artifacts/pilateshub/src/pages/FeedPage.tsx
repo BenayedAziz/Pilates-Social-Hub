@@ -12,8 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useApp } from "@/context/AppContext";
-import { POSTS as FALLBACK_POSTS, LEADERBOARD } from "@/data/mock-data";
-import { useFeed } from "@/hooks/use-api";
+import { useFeed, useLeaderboard } from "@/hooks/use-api";
+import { FeedPageSkeleton } from "@/components/PageSkeleton";
 import CirclesPage from "@/pages/CirclesPage";
 import CommunityPage from "@/pages/CommunityPage";
 
@@ -35,8 +35,8 @@ type LogSessionForm = z.infer<typeof logSessionSchema>;
 
 export default function FeedPage() {
   const { likedPosts, toggleLike, following, toggleFollow } = useApp();
-  const { data: apiPosts } = useFeed();
-  const posts = apiPosts || FALLBACK_POSTS;
+  const { data: posts = [], isLoading: postsLoading } = useFeed();
+  const { data: LEADERBOARD = [] } = useLeaderboard();
   const [kudosAnimation, setKudosAnimation] = useState<number | null>(null);
 
   const handleKudos = (postId: number) => {
@@ -60,6 +60,8 @@ export default function FeedPage() {
     toast.success(`Session logged! ${data.type} at ${data.studio} — ${data.duration}min, ${data.calories} cal`);
     reset();
   };
+
+  if (postsLoading) return <FeedPageSkeleton />;
 
   return (
     <div className="flex flex-col bg-background min-h-full animate-in fade-in duration-300">

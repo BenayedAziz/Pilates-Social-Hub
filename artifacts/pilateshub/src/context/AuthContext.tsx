@@ -57,6 +57,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     if (!token) {
+      // No token — auto-login with demo account for easy access
+      setUser(MOCK_USER);
+      localStorage.setItem("pilateshub-onboarded", "true");
       setInitializing(false);
       return;
     }
@@ -72,8 +75,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(toAuthUser(data));
       })
       .catch(() => {
-        // Token is invalid or API is not available — clear it
+        // Token is invalid or API is not available — use demo account
         localStorage.removeItem(TOKEN_KEY);
+        setUser(MOCK_USER);
+        localStorage.setItem("pilateshub-onboarded", "true");
       })
       .finally(() => {
         setInitializing(false);

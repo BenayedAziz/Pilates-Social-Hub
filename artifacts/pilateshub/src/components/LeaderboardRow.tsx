@@ -1,5 +1,5 @@
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import type { LeaderboardEntry } from "@/data/mock-data";
+import type { LeaderboardEntry } from "@/data/types";
 
 export function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
   return (

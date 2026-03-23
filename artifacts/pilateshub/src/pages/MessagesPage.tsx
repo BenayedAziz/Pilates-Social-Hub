@@ -421,7 +421,7 @@ export default function MessagesPage() {
   // =========================================================================
   if (selectedConvo && activeConvo) {
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex flex-col h-full bg-background">
         {/* Header */}
         <div className="px-5 py-3 bg-card border-b border-border/40 flex items-center gap-3 shrink-0">
           <button
@@ -546,7 +546,7 @@ export default function MessagesPage() {
   // Conversation list view
   // =========================================================================
   return (
-    <div className="p-5">
+    <div className="p-5 bg-background min-h-full">
       <h1 className="text-xl font-bold text-foreground mb-1">Messages</h1>
       <p className="text-xs text-muted-foreground mb-5">Your conversations</p>
 

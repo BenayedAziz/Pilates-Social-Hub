@@ -1,13 +1,25 @@
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CIRCLES, type PilatesCircle } from "@/data/mock-data";
+import type { PilatesCircle } from "@/data/types";
+import { useCircles } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 
 export default function CirclesPage() {
-  const [circles, setCircles] = useState(CIRCLES);
+  const { data: apiCircles = [], isLoading } = useCircles();
+  const [circles, setCircles] = useState<PilatesCircle[]>([]);
+
+  // Sync API data into local state when it arrives
+  useEffect(() => {
+    if (apiCircles.length > 0) {
+      setCircles(apiCircles);
+    }
+  }, [apiCircles]);
+
+  if (isLoading) return <GenericPageSkeleton />;
 
   const toggleJoin = (id: number) => {
     setCircles((prev) => prev.map((c) => (c.id === id ? { ...c, isJoined: !c.isJoined } : c)));

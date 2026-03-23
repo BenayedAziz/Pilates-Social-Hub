@@ -12,8 +12,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
-import { FORUM_POSTS as FALLBACK_FORUM_POSTS } from "@/data/mock-data";
 import { useForum } from "@/hooks/use-api";
+import { CommunityPageSkeleton } from "@/components/PageSkeleton";
 
 const newDiscussionSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
@@ -25,8 +25,9 @@ type NewDiscussionForm = z.infer<typeof newDiscussionSchema>;
 export default function CommunityPage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const { votes, toggleVote } = useApp();
-  const { data: apiForum } = useForum();
-  const allForumPosts = apiForum || FALLBACK_FORUM_POSTS;
+  const { data: allForumPosts = [], isLoading } = useForum();
+
+  if (isLoading) return <CommunityPageSkeleton />;
 
   const {
     register,

@@ -1,7 +1,12 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { PRODUCTS } from "@/data/mock-data";
+import type { Product } from "@/data/types";
 import { AppProvider, useApp } from "../AppContext";
+
+const TEST_PRODUCTS: Product[] = [
+  { id: 1, name: "Test Product 1", brand: "TestBrand", price: 29, rating: 4.5, category: "Goodies", image: "", imageUrl: "" },
+  { id: 2, name: "Test Product 2", brand: "TestBrand", price: 49, rating: 4.7, category: "Apparel", image: "", imageUrl: "" },
+];
 
 const wrapper = ({ children }: { children: React.ReactNode }) => <AppProvider>{children}</AppProvider>;
 
@@ -16,17 +21,17 @@ describe("AppContext", () => {
 
     it("adds product to cart", () => {
       const { result } = renderHook(() => useApp(), { wrapper });
-      act(() => result.current.addToCart(PRODUCTS[0]));
+      act(() => result.current.addToCart(TEST_PRODUCTS[0]));
       expect(result.current.cartItems).toHaveLength(1);
       expect(result.current.cartCount).toBe(1);
-      expect(result.current.cartTotal).toBe(PRODUCTS[0].price);
+      expect(result.current.cartTotal).toBe(TEST_PRODUCTS[0].price);
     });
 
     it("increments quantity for duplicate product", () => {
       const { result } = renderHook(() => useApp(), { wrapper });
       act(() => {
-        result.current.addToCart(PRODUCTS[0]);
-        result.current.addToCart(PRODUCTS[0]);
+        result.current.addToCart(TEST_PRODUCTS[0]);
+        result.current.addToCart(TEST_PRODUCTS[0]);
       });
       expect(result.current.cartItems).toHaveLength(1);
       expect(result.current.cartCount).toBe(2);
@@ -34,16 +39,16 @@ describe("AppContext", () => {
 
     it("removes product from cart", () => {
       const { result } = renderHook(() => useApp(), { wrapper });
-      act(() => result.current.addToCart(PRODUCTS[0]));
-      act(() => result.current.removeFromCart(PRODUCTS[0].id));
+      act(() => result.current.addToCart(TEST_PRODUCTS[0]));
+      act(() => result.current.removeFromCart(TEST_PRODUCTS[0].id));
       expect(result.current.cartItems).toEqual([]);
     });
 
     it("clears cart", () => {
       const { result } = renderHook(() => useApp(), { wrapper });
       act(() => {
-        result.current.addToCart(PRODUCTS[0]);
-        result.current.addToCart(PRODUCTS[1]);
+        result.current.addToCart(TEST_PRODUCTS[0]);
+        result.current.addToCart(TEST_PRODUCTS[1]);
       });
       act(() => result.current.clearCart());
       expect(result.current.cartItems).toEqual([]);

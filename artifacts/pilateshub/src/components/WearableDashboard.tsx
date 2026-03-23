@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MOCK_WEARABLE } from "@/data/mock-data";
+import { useWearable } from "@/hooks/use-api";
 
 // ---------------------------------------------------------------------------
 // Recovery Gauge — circular SVG ring
@@ -86,7 +86,23 @@ function MetricPill({
 // WearableDashboard — main exported component
 // ---------------------------------------------------------------------------
 export function WearableDashboard() {
-  const data = MOCK_WEARABLE;
+  const { data: wearableData, isLoading } = useWearable();
+
+  const data = wearableData ?? {
+    connected: false,
+    provider: "none" as const,
+    lastSync: "",
+    recovery: 0,
+    strain: 0,
+    hrv: 0,
+    restingHr: 0,
+    sleepScore: 0,
+    sleepDuration: 0,
+    caloriesBurned: 0,
+    activeCalories: 0,
+  };
+
+  if (isLoading) return null;
 
   // Disconnected state — connect CTA
   if (!data.connected) {

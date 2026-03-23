@@ -5,9 +5,10 @@ import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { STUDIOS as FALLBACK_STUDIOS, type Studio } from "@/data/mock-data";
+import type { Studio } from "@/data/types";
 import { REAL_STUDIOS, type RealStudio } from "@/data/real-studios";
 import { useStudios } from "@/hooks/use-api";
+import { MapPageSkeleton } from "@/components/PageSkeleton";
 
 // Fix Leaflet default icon paths for bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -208,8 +209,8 @@ function RealStudioPreviewCard({ studio, onClose }: { studio: RealStudio; onClos
 }
 
 export default function MapPage() {
-  const { data: apiStudios } = useStudios();
-  const studios = apiStudios || FALLBACK_STUDIOS;
+  const { data: studios = [], isLoading } = useStudios();
+  if (isLoading) return <MapPageSkeleton />;
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
   const [selectedRealStudio, setSelectedRealStudio] = useState<RealStudio | null>(null);

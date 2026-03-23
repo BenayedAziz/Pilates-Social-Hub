@@ -1,5 +1,40 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
+export function GenericPageSkeleton() {
+  return (
+    <div className="p-4 flex flex-col gap-4 animate-in fade-in duration-300">
+      <Skeleton className="h-8 w-48" />
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Skeleton key={i} className="h-20 w-full rounded-xl" />
+      ))}
+    </div>
+  );
+}
+
+export function CommunityPageSkeleton() {
+  return (
+    <div className="p-4 flex flex-col gap-4 animate-in fade-in duration-300">
+      <div className="flex gap-2 mb-2">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <Skeleton key={i} className="h-8 w-20 rounded-full" />
+        ))}
+      </div>
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex gap-3">
+            <Skeleton className="w-9 h-16" />
+            <div className="flex-1 flex flex-col gap-2">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-3 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function MapPageSkeleton() {
   return (
     <div className="flex flex-col h-full animate-in fade-in duration-300">

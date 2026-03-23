@@ -12,8 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { REVIEWS } from "@/data/mock-data";
-import type { StudioReview } from "@/data/mock-data";
+import type { StudioReview } from "@/data/types";
 
 const reviewSchema = z.object({
   text: z.string().min(10, "Write at least 10 characters"),
@@ -54,7 +53,7 @@ export function WriteReviewDialog({
     }
 
     const newReview: StudioReview = {
-      id: REVIEWS.length + 1 + Math.floor(Math.random() * 1000),
+      id: Date.now(),
       studioId,
       userId: 1,
       userName: "You",
@@ -66,7 +65,6 @@ export function WriteReviewDialog({
       helpful: 0,
     };
 
-    REVIEWS.unshift(newReview);
     onReviewAdded?.(newReview);
 
     toast.success(`Review posted for ${studioName}!`);

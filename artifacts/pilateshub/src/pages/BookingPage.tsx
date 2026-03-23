@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { STUDIOS } from "@/data/mock-data";
+import { useStudios } from "@/hooks/use-api";
+import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { toast } from "sonner";
 import { notify } from "@/lib/notifications";
 
@@ -98,7 +99,9 @@ export default function BookingPage() {
   const [, params] = useRoute("/booking/:studioId");
   const [, navigate] = useLocation();
   const studioId = params ? Number(params.studioId) : null;
-  const foundStudio = STUDIOS.find((s) => s.id === studioId);
+  const { data: STUDIOS = [], isLoading: studiosLoading } = useStudios();
+
+  const foundStudio = STUDIOS.find((s: any) => s.id === studioId);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedClass, setSelectedClass] = useState<StudioClass | null>(null);
@@ -126,6 +129,8 @@ export default function BookingPage() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
+
+  if (studiosLoading) return <GenericPageSkeleton />;
 
   if (!foundStudio) {
     return (
