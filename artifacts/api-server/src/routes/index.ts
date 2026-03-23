@@ -11,6 +11,7 @@ import uploadsRouter from "./uploads";
 import paymentsRouter from "./payments";
 import messagesRouter from "./messages";
 import reviewsRouter from "./reviews";
+import wearablesRouter from "./wearables";
 
 const router: IRouter = Router();
 
@@ -26,5 +27,6 @@ router.use("/uploads", uploadsRouter);
 router.use("/payments", paymentsRouter);
 router.use(messagesRouter);
 router.use(reviewsRouter);
+router.use(wearablesRouter);
 
 export default router;

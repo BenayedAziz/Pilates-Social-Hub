@@ -7,6 +7,7 @@ import { NotificationSettings } from "@/components/NotificationSettings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { WearableDashboard } from "@/components/WearableDashboard";
 import { WeeklyRecap } from "@/components/WeeklyRecap";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
@@ -49,6 +50,9 @@ export default function MePage() {
       <div className="p-5 flex flex-col gap-6">
         {/* Weekly Recap */}
         <WeeklyRecap />
+
+        {/* Wearable Health Metrics */}
+        <WearableDashboard />
 
         {/* Quick Stats Row -- warm gradient cards */}
         <div className="grid grid-cols-3 gap-3">

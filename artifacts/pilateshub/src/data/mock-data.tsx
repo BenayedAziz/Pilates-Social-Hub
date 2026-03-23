@@ -1760,3 +1760,59 @@ export const CIRCLES: PilatesCircle[] = [
     isJoined: false,
   },
 ];
+
+// ---------------------------------------------------------------------------
+// Wearable Integration Types & Mock Data
+// ---------------------------------------------------------------------------
+
+export interface WearableData {
+  connected: boolean;
+  provider: "whoop" | "apple_watch" | "garmin" | "oura" | "none";
+  lastSync: string;
+  recovery: number; // 0-100
+  strain: number; // 0-21
+  hrv: number; // ms
+  restingHr: number; // bpm
+  sleepScore: number; // 0-100
+  sleepDuration: number; // hours
+  caloriesBurned: number;
+  activeCalories: number;
+}
+
+export interface WorkoutMetrics {
+  avgHeartRate: number;
+  maxHeartRate: number;
+  strain: number;
+  calories: number;
+  duration: number;
+  zones: { zone: string; minutes: number; color: string }[];
+}
+
+export const MOCK_WEARABLE: WearableData = {
+  connected: true,
+  provider: "whoop",
+  lastSync: "2 min ago",
+  recovery: 85,
+  strain: 8.4,
+  hrv: 68,
+  restingHr: 54,
+  sleepScore: 82,
+  sleepDuration: 7.5,
+  caloriesBurned: 1847,
+  activeCalories: 423,
+};
+
+export const MOCK_WORKOUT_METRICS: WorkoutMetrics = {
+  avgHeartRate: 132,
+  maxHeartRate: 168,
+  strain: 12.4,
+  calories: 320,
+  duration: 55,
+  zones: [
+    { zone: "Recovery", minutes: 5, color: "hsl(var(--muted))" },
+    { zone: "Light", minutes: 15, color: "hsl(120, 40%, 60%)" },
+    { zone: "Moderate", minutes: 22, color: "hsl(45, 80%, 55%)" },
+    { zone: "Hard", minutes: 10, color: "hsl(15, 80%, 55%)" },
+    { zone: "Max", minutes: 3, color: "hsl(0, 70%, 50%)" },
+  ],
+};

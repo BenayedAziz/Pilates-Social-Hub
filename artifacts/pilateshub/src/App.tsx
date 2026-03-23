@@ -23,6 +23,7 @@ const StorePage = lazy(() => import("@/pages/StorePage"));
 const BookingPage = lazy(() => import("@/pages/BookingPage"));
 const CoachPage = lazy(() => import("@/pages/CoachPage"));
 const StudioAdminPage = lazy(() => import("@/pages/StudioAdminPage"));
+const WearableSettingsPage = lazy(() => import("@/pages/WearableSettingsPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -131,6 +132,11 @@ function AuthenticatedApp() {
             <Route path="/admin/studio">
               <ErrorBoundary>
                 <StudioAdminPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/settings/wearables">
+              <ErrorBoundary>
+                <WearableSettingsPage />
               </ErrorBoundary>
             </Route>
             <Route component={NotFound} />
