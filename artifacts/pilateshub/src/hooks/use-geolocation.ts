@@ -61,10 +61,13 @@ export function useGeolocation(): UseGeolocationResult {
   const requestPermission = useCallback(async () => {
     setLoading(true);
 
-    // Try browser geolocation (works on HTTPS & localhost; may also work on
-    // HTTP in some browsers after explicit user permission).
+    // 1. Try browser geolocation (works on HTTPS & localhost; may also work on
+    //    HTTP in some browsers after explicit user permission).
     const browserGeo = new Promise<GeoPosition | null>((resolve) => {
-      if (!("geolocation" in navigator)) {
+      // On insecure contexts (plain HTTP, not localhost) the Geolocation API
+      // is blocked entirely by modern browsers — skip it to avoid a pointless
+      // timeout and go straight to the IP fallback.
+      if (!window.isSecureContext || !("geolocation" in navigator)) {
         resolve(null);
         return;
       }
@@ -84,18 +87,56 @@ export function useGeolocation(): UseGeolocationResult {
       );
     });
 
-    const loc = await browserGeo;
+    let loc = await browserGeo;
+
+    // 2. Fallback: IP-based geolocation when browser geo is unavailable
+    //    (e.g. plain HTTP). We try multiple free services for resilience.
+    //    NOTE: ip-api.com free tier only works over HTTP, not HTTPS.
+    if (!loc) {
+      const ipGeoServices = [
+        {
+          url: "https://ipapi.co/json/",
+          extract: (d: any) => ({ lat: d.latitude, lng: d.longitude }),
+        },
+        {
+          // ip-api.com free tier requires HTTP (not HTTPS)
+          url: "http://ip-api.com/json/?fields=lat,lon",
+          extract: (d: any) => ({ lat: d.lat, lng: d.lon }),
+        },
+        {
+          url: "https://ipwho.is/",
+          extract: (d: any) => ({ lat: d.latitude, lng: d.longitude }),
+        },
+      ];
+
+      for (const svc of ipGeoServices) {
+        try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 4000);
+          const resp = await fetch(svc.url, { signal: controller.signal });
+          clearTimeout(timeout);
+          if (resp.ok) {
+            const data = await resp.json();
+            const pos = svc.extract(data);
+            if (typeof pos.lat === "number" && typeof pos.lng === "number" && pos.lat !== 0) {
+              loc = pos;
+              break;
+            }
+          }
+        } catch {
+          // Service unavailable — try next one
+        }
+      }
+    }
 
     if (loc) {
-      // Real browser position — persist it for fast future loads.
+      // Real position (browser or IP-based) — persist it for fast future loads.
       setPosition(loc);
       setIsDefault(false);
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...loc, ts: Date.now() }));
     }
-    // If browser geo failed we keep whatever position is already set (either
-    // cached real geo or the Paris default). We intentionally do NOT cache the
-    // default — there is no value in persisting a hardcoded constant, and doing
-    // so is what caused wrong-city bugs with old IP-geolocation data.
+    // If both browser geo and IP geo failed we keep whatever position is
+    // already set (either cached real geo or the Paris default).
 
     setError(null);
     setLoading(false);

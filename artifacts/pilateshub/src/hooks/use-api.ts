@@ -47,12 +47,16 @@ export function useStudios(
   limit?: number,
   bounds?: StudioBounds,
 ) {
-  // Round bounding-box coords to 3 decimal places (~111 m) for the query key
-  // so that tiny pans reuse the cached result and avoid visible flashes.
-  const keySwLat = bounds ? Math.round(bounds.sw_lat * 1000) / 1000 : undefined;
-  const keySwLng = bounds ? Math.round(bounds.sw_lng * 1000) / 1000 : undefined;
-  const keyNeLat = bounds ? Math.round(bounds.ne_lat * 1000) / 1000 : undefined;
-  const keyNeLng = bounds ? Math.round(bounds.ne_lng * 1000) / 1000 : undefined;
+  // Use full-precision bounds in the query key so every pan/zoom triggers a
+  // fresh fetch.  The caller already pads the bounds by 20%, so studios near
+  // the viewport edge are pre-fetched, and keepPreviousData (below) keeps the
+  // old markers visible during the brief loading window. Previous versions
+  // rounded to 3 decimal places (~111 m) which caused studios to disappear
+  // when the user panned by less than the rounding threshold.
+  const keySwLat = bounds?.sw_lat;
+  const keySwLng = bounds?.sw_lng;
+  const keyNeLat = bounds?.ne_lat;
+  const keyNeLng = bounds?.ne_lng;
 
   // Legacy rounded keys for center+radius mode
   const keyLat = lat !== undefined ? Math.round(lat * 1000) / 1000 : undefined;

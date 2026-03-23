@@ -1,11 +1,33 @@
 @import "leaflet/dist/leaflet.css";
 
-/* Marker cluster styles */
-.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+/* Marker cluster styles — override leaflet.markercluster defaults so our
+   custom iconCreateFunction has full control over appearance.
+
+   The library's MarkerCluster.Default.css applies colored backgrounds to
+   .marker-cluster-small/medium/large and the base MarkerCluster.css forces
+   width/height/margin on `.marker-cluster div`. Both must be neutralised
+   so the custom divIcon HTML (which uses the `.cluster-icon` wrapper) can
+   style everything via inline styles.                                      */
+.marker-cluster-small,
+.marker-cluster-medium,
+.marker-cluster-large {
   background: transparent !important;
 }
-.marker-cluster div {
+.marker-cluster {
   background: transparent !important;
+  background-clip: unset !important;
+}
+/* Reset default sizing from MarkerCluster.css for all descendant divs.
+   Our custom cluster HTML uses <span> elements for the ring and inner
+   circle so they are unaffected by this selector.                         */
+.marker-cluster div {
+  width: auto !important;
+  height: auto !important;
+  margin: 0 !important;
+  background: none !important;
+  border-radius: 0 !important;
+  font: inherit !important;
+  text-align: inherit !important;
 }
 
 @import "tailwindcss";

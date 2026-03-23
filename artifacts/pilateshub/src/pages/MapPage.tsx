@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import L from "leaflet";
 import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
@@ -21,13 +21,13 @@ const cardVariants = {
     transition: {
       delay: i * 0.05,
       duration: 0.35,
-      ease: [0.25, 0.1, 0.25, 1],
+      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
     },
   }),
   exit: {
     opacity: 0,
     y: -8,
-    transition: { duration: 0.2, ease: "easeIn" },
+    transition: { duration: 0.2, ease: "easeIn" as const },
   },
 };
 
@@ -171,33 +171,38 @@ export default function MapPage() {
   const { position, loading: geoLoading, isDefault: geoIsDefault, requestPermission } = useGeolocation();
   const mapCenter: [number, number] = position ? [position.lat, position.lng] : [48.856, 2.352];
 
-  // Track the visible bounding box of the map so we can refetch studios on pan/zoom
+  // Track the visible bounding box of the map so we can refetch studios on pan/zoom.
+  // Updated synchronously on every Leaflet moveend — no debounce, no startTransition.
+  // Leaflet's moveend already fires only once at the end of each pan/zoom gesture,
+  // so extra throttling just delays marker updates and causes disappearing studios.
   const [viewBounds, setViewBounds] = useState<StudioBounds | null>(null);
-  const moveEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Use a transition so the viewport state updates (which trigger new API
-  // fetches) are non-urgent — React keeps showing the current UI while the
-  // new data loads in the background, eliminating any visible flash.
-  const [, startTransition] = useTransition();
-
-  // Debounce map move events (600ms) so we don't spam the API, and wrap the
-  // state update in startTransition so React treats it as non-urgent.
   const handleBoundsChange = useCallback((bounds: StudioBounds) => {
-    if (moveEndTimer.current) clearTimeout(moveEndTimer.current);
-    moveEndTimer.current = setTimeout(() => {
-      startTransition(() => {
-        setViewBounds(bounds);
-      });
-    }, 600);
+    setViewBounds(bounds);
   }, []);
 
-  // Pass the visible bounding box to the API — no limit, fetch ALL studios
-  // inside the rectangle. keepPreviousData in useStudios ensures the old
-  // markers stay visible while new data loads. The query key uses rounded
-  // coords (3 decimals) so tiny pans reuse the cache.
+  // Add a 20% padding to the visible bounds so studios near the edges are
+  // pre-fetched. This prevents markers from disappearing during small pans
+  // because the API result already includes nearby off-screen studios.
+  const paddedBounds = useMemo((): StudioBounds | undefined => {
+    if (!viewBounds) return undefined;
+    const latPad = (viewBounds.ne_lat - viewBounds.sw_lat) * 0.2;
+    const lngPad = (viewBounds.ne_lng - viewBounds.sw_lng) * 0.2;
+    return {
+      sw_lat: viewBounds.sw_lat - latPad,
+      sw_lng: viewBounds.sw_lng - lngPad,
+      ne_lat: viewBounds.ne_lat + latPad,
+      ne_lng: viewBounds.ne_lng + lngPad,
+    };
+  }, [viewBounds]);
+
+  // Fetch ALL studios inside the padded bounding box.
+  // keepPreviousData (in useStudios) keeps old markers visible while loading.
+  // The padded bounds mean the result set covers nearby off-screen studios,
+  // so markers at the viewport edge don't disappear during small pans.
   const { data: studios = [] } = useStudios(
     undefined, undefined, undefined, undefined, undefined, undefined,
-    viewBounds ?? undefined,
+    paddedBounds,
   );
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
@@ -250,10 +255,43 @@ export default function MapPage() {
             showCoverageOnHover={false}
             iconCreateFunction={(cluster: any) => {
               const count = cluster.getChildCount();
+              // Size grows with cluster count for visual hierarchy
+              const size = count < 10 ? 40 : count < 50 ? 48 : 56;
+              const fontSize = count < 10 ? 13 : count < 50 ? 14 : 15;
+              // Warm terracotta/clay palette — clearly distinct from the brown studio pins
+              const bg = count < 10
+                ? "hsl(16, 50%, 58%)"   // light terracotta
+                : count < 50
+                ? "hsl(12, 55%, 52%)"   // deeper terracotta
+                : "hsl(8, 58%, 46%)";   // rich clay
+              const ring = count < 10
+                ? "hsl(16, 50%, 58%, 0.25)"
+                : count < 50
+                ? "hsl(12, 55%, 52%, 0.25)"
+                : "hsl(8, 58%, 46%, 0.25)";
               return L.divIcon({
-                html: `<div style="width:36px;height:36px;border-radius:50%;background:hsl(28,22%,42%);color:white;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;border:2.5px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.2);">${count}</div>`,
+                html: `
+                  <span class="cluster-icon" style="
+                    position:relative;display:flex;align-items:center;justify-content:center;
+                    width:${size}px;height:${size}px;
+                  ">
+                    <span style="
+                      position:absolute;inset:0;border-radius:50%;
+                      background:${ring};display:block;
+                    "></span>
+                    <span style="
+                      position:relative;
+                      width:${size - 8}px;height:${size - 8}px;border-radius:50%;
+                      background:${bg};color:white;
+                      display:flex;align-items:center;justify-content:center;
+                      font-weight:900;font-size:${fontSize}px;font-family:system-ui;
+                      border:2.5px solid white;
+                      box-shadow:0 3px 10px rgba(0,0,0,0.25);
+                    ">${count}</span>
+                  </span>`,
                 className: "",
-                iconSize: [36, 36] as [number, number],
+                iconSize: [size, size] as [number, number],
+                iconAnchor: [size / 2, size / 2],
               });
             }}
           >
