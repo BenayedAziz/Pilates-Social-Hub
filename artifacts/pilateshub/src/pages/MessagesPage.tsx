@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useWebSocket } from "@/hooks/use-websocket";
+import { notify } from "@/lib/notifications";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,7 +234,79 @@ export default function MessagesPage() {
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [typingUser, setTypingUser] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const { connected, send, on } = useWebSocket();
+
+  // Listen for incoming real-time messages
+  useEffect(() => {
+    const unsubMessage = on("new_message", (data) => {
+      // If we're currently viewing this conversation, append the message
+      if (data.conversationId === selectedConvo) {
+        const incoming: Message = {
+          id: Date.now() + Math.random(),
+          conversationId: data.conversationId,
+          senderId: data.senderId,
+          content: data.content,
+          createdAt: data.createdAt,
+          readAt: null,
+        };
+        setChatMessages((prev) => [...prev, incoming]);
+      }
+
+      // Update the conversation list preview
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === data.conversationId
+            ? {
+                ...c,
+                lastMessage: data.content,
+                lastMessageAt: data.createdAt,
+                unreadCount: data.conversationId === selectedConvo ? c.unreadCount : c.unreadCount + 1,
+              }
+            : c,
+        ),
+      );
+
+      // Send push notification when page is not focused
+      if (document.hidden || data.conversationId !== selectedConvo) {
+        const convo = conversations.find((c) => c.id === data.conversationId);
+        if (convo) {
+          notify.newMessage(convo.participant.name, data.content);
+        }
+      }
+    });
+
+    return unsubMessage;
+  }, [on, selectedConvo, conversations]);
+
+  // Listen for typing indicators
+  useEffect(() => {
+    const unsubTyping = on("typing", (data) => {
+      if (data.conversationId === selectedConvo) {
+        // Find the participant name
+        const convo = conversations.find((c) => c.id === data.conversationId);
+        if (convo) {
+          setTypingUser(convo.participant.name);
+          // Clear typing indicator after 3 seconds
+          if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+          typingTimerRef.current = setTimeout(() => {
+            setTypingUser(null);
+          }, 3000);
+        }
+      }
+    });
+
+    return unsubTyping;
+  }, [on, selectedConvo, conversations]);
+
+  // Clear typing indicator when switching conversations
+  useEffect(() => {
+    setTypingUser(null);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+  }, [selectedConvo]);
 
   // Fetch conversations on mount
   useEffect(() => {
@@ -278,6 +352,7 @@ export default function MessagesPage() {
 
     const content = newMessage.trim();
     const now = new Date().toISOString();
+    const activeConversation = conversations.find((c) => c.id === selectedConvo);
 
     // Optimistic update
     const optimisticMsg: Message = {
@@ -296,7 +371,17 @@ export default function MessagesPage() {
       prev.map((c) => (c.id === selectedConvo ? { ...c, lastMessage: content, lastMessageAt: now } : c)),
     );
 
-    // Send to API
+    // Send via WebSocket for real-time delivery
+    if (activeConversation) {
+      send({
+        type: "message",
+        conversationId: selectedConvo,
+        recipientId: activeConversation.participant.id,
+        content,
+      });
+    }
+
+    // Send to API (persistence)
     fetch(`/api/messages/conversations/${selectedConvo}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -304,7 +389,23 @@ export default function MessagesPage() {
     }).catch(() => {
       // Message already shown optimistically
     });
-  }, [newMessage, selectedConvo]);
+  }, [newMessage, selectedConvo, conversations, send]);
+
+  // Send typing indicator on input change
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setNewMessage(e.target.value);
+      const activeConversation = conversations.find((c) => c.id === selectedConvo);
+      if (activeConversation && e.target.value.trim()) {
+        send({
+          type: "typing",
+          conversationId: selectedConvo,
+          recipientId: activeConversation.participant.id,
+        });
+      }
+    },
+    [selectedConvo, conversations, send],
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -339,9 +440,18 @@ export default function MessagesPage() {
               {activeConvo.participant.initials}
             </AvatarFallback>
           </Avatar>
-          <div>
+          <div className="flex-1">
             <span className="font-bold text-sm text-foreground">{activeConvo.participant.name}</span>
             <p className="text-[10px] text-muted-foreground leading-tight">Active now</p>
+          </div>
+          {/* Connection status indicator */}
+          <div className="flex items-center gap-1.5" title={connected ? "Connected" : "Disconnected"}>
+            <span
+              className={`w-2 h-2 rounded-full ${connected ? "bg-emerald-400" : "bg-gray-400"}`}
+            />
+            <span className="text-[10px] text-muted-foreground">
+              {connected ? "Live" : "Offline"}
+            </span>
           </div>
         </div>
 
@@ -395,6 +505,16 @@ export default function MessagesPage() {
                   </div>
                 );
               })}
+
+              {/* Typing indicator */}
+              {typingUser && (
+                <div className="flex justify-start mb-2">
+                  <div className="bg-muted text-muted-foreground rounded-2xl rounded-bl-md px-4 py-2.5">
+                    <p className="text-sm italic">{typingUser} is typing...</p>
+                  </div>
+                </div>
+              )}
+
               <div ref={messagesEndRef} />
             </>
           )}
@@ -404,7 +524,7 @@ export default function MessagesPage() {
         <div className="px-4 py-3 bg-card border-t border-border/40 flex items-center gap-2 shrink-0">
           <Input
             value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
+            onChange={handleInputChange}
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             className="flex-1 bg-muted/50 border-0 rounded-full px-4 py-2.5 text-sm focus-visible:ring-1 focus-visible:ring-primary/30 placeholder:text-muted-foreground/50"

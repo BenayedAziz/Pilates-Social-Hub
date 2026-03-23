@@ -1,16 +1,18 @@
 import { Activity, Compass, MessageCircle, ShoppingBag, User } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "wouter";
 
 const tabs = [
-  { path: "/", icon: Compass, label: "Explore" },
-  { path: "/feed", icon: Activity, label: "Feed" },
-  { path: "/messages", icon: MessageCircle, label: "Messages" },
-  { path: "/me", icon: User, label: "Me" },
-  { path: "/store", icon: ShoppingBag, label: "Shop" },
+  { path: "/", icon: Compass, labelKey: "nav.explore" },
+  { path: "/feed", icon: Activity, labelKey: "nav.feed" },
+  { path: "/messages", icon: MessageCircle, labelKey: "nav.messages" },
+  { path: "/me", icon: User, labelKey: "nav.me" },
+  { path: "/store", icon: ShoppingBag, labelKey: "nav.shop" },
 ];
 
 export function BottomNav() {
   const [location] = useLocation();
+  const { t } = useTranslation();
 
   return (
     <nav
@@ -30,7 +32,7 @@ export function BottomNav() {
               <span
                 className={`text-[10px] tracking-wide transition-all duration-200 ${isActive ? "font-semibold" : "font-medium"}`}
               >
-                {tab.label}
+                {t(tab.labelKey)}
               </span>
               {isActive && (
                 <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full bg-primary" />

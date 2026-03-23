@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScheduleManager } from "@/components/ScheduleManager";
 
 // ---------------------------------------------------------------------------
 // Mock Data
@@ -327,9 +328,12 @@ export default function StudioAdminPage() {
 
         {/* ---------- Tabs ---------- */}
         <Tabs defaultValue="bookings" className="w-full">
-          <TabsList className="w-full grid grid-cols-3 mb-4">
+          <TabsList className="w-full grid grid-cols-4 mb-4">
             <TabsTrigger value="bookings" className="text-xs font-semibold gap-1.5">
               <Calendar className="w-3.5 h-3.5" /> Bookings
+            </TabsTrigger>
+            <TabsTrigger value="schedule" className="text-xs font-semibold gap-1.5">
+              <Clock className="w-3.5 h-3.5" /> Schedule
             </TabsTrigger>
             <TabsTrigger value="reviews" className="text-xs font-semibold gap-1.5">
               <Star className="w-3.5 h-3.5" /> Reviews
@@ -415,6 +419,11 @@ export default function StudioAdminPage() {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* -------- Schedule Tab -------- */}
+          <TabsContent value="schedule">
+            <ScheduleManager />
           </TabsContent>
 
           {/* -------- Reviews Tab -------- */}
@@ -644,23 +653,7 @@ export default function StudioAdminPage() {
                 </CardContent>
               </Card>
 
-              {/* Class Schedule Placeholder */}
-              <Card className="border-border/40 shadow-sm">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-bold flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-primary" /> Class Schedule
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="rounded-xl border border-dashed border-border/60 py-8 flex flex-col items-center gap-2">
-                    <Calendar className="w-8 h-8 text-muted-foreground/30" />
-                    <p className="text-sm font-medium text-muted-foreground">Schedule management coming soon</p>
-                    <p className="text-[11px] text-muted-foreground/60">
-                      Define recurring classes, set capacity limits, and manage substitutes.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Class Schedule — now managed via the Schedule tab */}
             </div>
           </TabsContent>
         </Tabs>

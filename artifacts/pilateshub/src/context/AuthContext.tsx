@@ -128,6 +128,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem("pilateshub-onboarded");
+    localStorage.removeItem("pilateshub-preferences");
     setUser(null);
   }, []);
 

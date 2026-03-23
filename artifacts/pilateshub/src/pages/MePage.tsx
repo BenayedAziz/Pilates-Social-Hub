@@ -1,7 +1,9 @@
 import { CheckCircle2, Clock, Settings, Trophy, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { JourneyMap } from "@/components/JourneyMap";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +15,7 @@ import { BADGES, CHALLENGES } from "@/data/mock-data";
 export default function MePage() {
   const { user, logout } = useAuth();
   const { currentStreak, totalSessions, totalCalories } = useApp();
+  const { t } = useTranslation();
 
   return (
     <div className="bg-background min-h-full animate-in fade-in duration-300">
@@ -54,21 +57,21 @@ export default function MePage() {
             style={{ background: "linear-gradient(135deg, hsl(28 22% 38%) 0%, hsl(28 20% 48%) 100%)" }}
           >
             <div className="text-2xl font-bold">{totalSessions}</div>
-            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">Sessions</div>
+            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">{t("me.sessions")}</div>
           </div>
           <div
             className="rounded-2xl p-4 text-center text-white shadow-sm"
             style={{ background: "linear-gradient(135deg, hsl(16 50% 52%) 0%, hsl(16 45% 62%) 100%)" }}
           >
             <div className="text-2xl font-bold">{(totalCalories / 1000).toFixed(1)}k</div>
-            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">Calories</div>
+            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">{t("me.calories")}</div>
           </div>
           <div
             className="rounded-2xl p-4 text-center text-white shadow-sm"
             style={{ background: "linear-gradient(135deg, hsl(42 28% 42%) 0%, hsl(42 28% 55%) 100%)" }}
           >
             <div className="text-2xl font-bold">{currentStreak}</div>
-            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">Day Streak</div>
+            <div className="text-[10px] uppercase tracking-wider opacity-75 font-semibold mt-1">{t("me.dayStreak")}</div>
           </div>
         </div>
 
@@ -79,11 +82,11 @@ export default function MePage() {
         <Card className="border-none shadow-sm">
           <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
             <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-primary" /> Current Challenges
+              <Trophy className="w-4 h-4 text-primary" /> {t("me.currentChallenges")}
             </CardTitle>
             <Link href="/challenges">
               <span className="text-primary text-xs font-bold uppercase tracking-wider cursor-pointer hover:underline">
-                View All
+                {t("me.viewAll")}
               </span>
             </Link>
           </CardHeader>
@@ -125,9 +128,9 @@ export default function MePage() {
         {/* Badges horizontal scroll */}
         <Card className="border-none shadow-sm">
           <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-bold text-foreground">Badges</CardTitle>
+            <CardTitle className="text-sm font-bold text-foreground">{t("me.badges")}</CardTitle>
             <span className="text-primary text-xs font-bold uppercase tracking-wider">
-              {BADGES.filter((b) => b.earned).length}/{BADGES.length} Earned
+              {BADGES.filter((b) => b.earned).length}/{BADGES.length} {t("me.earned")}
             </span>
           </CardHeader>
           <CardContent className="p-4 pt-2">
@@ -158,7 +161,7 @@ export default function MePage() {
         {/* Upcoming Sessions */}
         <Card className="border-none shadow-sm">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-bold text-foreground">Upcoming Sessions</CardTitle>
+            <CardTitle className="text-sm font-bold text-foreground">{t("me.upcomingSessions")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-2 flex flex-col gap-3">
             {[
@@ -186,7 +189,7 @@ export default function MePage() {
         {/* Booking History */}
         <Card className="border-none shadow-sm">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm font-bold text-foreground">Bookings</CardTitle>
+            <CardTitle className="text-sm font-bold text-foreground">{t("me.bookings")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-2 flex flex-col gap-3">
             {/* Upcoming bookings */}
@@ -220,7 +223,7 @@ export default function MePage() {
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <Badge className="mb-2 text-primary border-primary/30 bg-primary/5 font-bold text-xs border">
-                      Upcoming
+                      {t("me.upcoming")}
                     </Badge>
                     <h4 className="font-bold text-sm text-foreground">{booking.type}</h4>
                     <p className="text-xs text-muted-foreground font-medium mt-0.5">
@@ -240,7 +243,7 @@ export default function MePage() {
                     className="flex-1 font-bold h-8 text-xs"
                     onClick={() => toast.info("Reschedule request sent.")}
                   >
-                    Reschedule
+                    {t("me.reschedule")}
                   </Button>
                   <Button
                     variant="outline"
@@ -248,7 +251,7 @@ export default function MePage() {
                     className="flex-1 text-rose-500 hover:text-rose-600 font-bold h-8 text-xs border-border"
                     onClick={() => toast.warning("Booking cancelled.")}
                   >
-                    Cancel
+                    {t("me.cancel")}
                   </Button>
                 </div>
               </div>
@@ -256,7 +259,7 @@ export default function MePage() {
 
             {/* Past sessions */}
             <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider mt-2 px-1">
-              Past Sessions
+              {t("me.pastSessions")}
             </p>
             {[
               { type: "Reformer Advanced", studio: "Studio Harmonie", date: "Oct 12", time: "17:00" },
@@ -278,6 +281,9 @@ export default function MePage() {
           </CardContent>
         </Card>
 
+        {/* Notification Settings */}
+        <NotificationSettings />
+
         {/* Log Out */}
         <button
           type="button"
@@ -287,7 +293,7 @@ export default function MePage() {
           }}
           className="w-full py-3 text-sm font-bold text-red-500 hover:bg-red-50 rounded-xl transition-colors"
         >
-          Log Out
+          {t("me.logOut")}
         </button>
 
         <p className="text-center text-[10px] text-muted-foreground/40 font-medium pb-4">PilatesHub v1.0.0</p>

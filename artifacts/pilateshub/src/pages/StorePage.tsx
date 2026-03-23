@@ -1,5 +1,6 @@
 import { BadgeCheck, ChevronRight, Heart, ShoppingBag, Star } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -9,13 +10,13 @@ import { BRANDS, PRODUCTS as FALLBACK_PRODUCTS } from "@/data/mock-data";
 import { useProducts } from "@/hooks/use-api";
 
 const CATEGORIES = [
-  { key: "All", label: "All", emoji: "" },
-  { key: "Habitat", label: "Habitat", emoji: "\u{1F3E0}" },
-  { key: "Alimentation", label: "Alimentation", emoji: "\u{1F957}" },
-  { key: "Machines", label: "Machines", emoji: "\u{1F3CB}\uFE0F" },
-  { key: "Goodies", label: "Goodies", emoji: "\u{1F381}" },
-  { key: "Apparel", label: "Apparel", emoji: "\u{1F457}" },
-  { key: "Accessoires", label: "Accessoires", emoji: "\u{1F9D8}" },
+  { key: "All", labelKey: "shop.all", emoji: "" },
+  { key: "Habitat", labelKey: "shop.habitat", emoji: "\u{1F3E0}" },
+  { key: "Alimentation", labelKey: "shop.food", emoji: "\u{1F957}" },
+  { key: "Machines", labelKey: "shop.machines", emoji: "\u{1F3CB}\uFE0F" },
+  { key: "Goodies", labelKey: "shop.goodies", emoji: "\u{1F381}" },
+  { key: "Apparel", labelKey: "shop.apparel", emoji: "\u{1F457}" },
+  { key: "Accessoires", labelKey: "shop.accessories", emoji: "\u{1F9D8}" },
 ];
 
 const BADGE_COLORS: Record<string, string> = {
@@ -28,6 +29,7 @@ const BADGE_COLORS: Record<string, string> = {
 export default function StorePage() {
   const [activeCategory, setActiveCategory] = useState("All");
   const { wishlist, toggleWishlist, addToCart } = useApp();
+  const { t } = useTranslation();
   const { data: apiProducts } = useProducts();
   const allProducts = apiProducts || FALLBACK_PRODUCTS;
 
@@ -55,7 +57,7 @@ export default function StorePage() {
                 ${activeCategory === cat.key ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/60 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground"}`}
             >
               {cat.emoji ? `${cat.emoji} ` : ""}
-              {cat.label} ({getCategoryCount(cat.key)})
+              {t(cat.labelKey)} ({getCategoryCount(cat.key)})
             </button>
           ))}
         </div>
@@ -64,10 +66,10 @@ export default function StorePage() {
       {/* Our Brands — horizontal scroll */}
       <div className="px-5 pt-5 pb-2">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="font-bold text-foreground text-base">Our Brands</h2>
+          <h2 className="font-bold text-foreground text-base">{t("shop.ourBrands")}</h2>
           <Link href="/brands">
             <span className="text-xs font-semibold text-primary flex items-center gap-0.5 hover:underline cursor-pointer">
-              View all <ChevronRight className="w-3.5 h-3.5" />
+              {t("shop.viewAll")} <ChevronRight className="w-3.5 h-3.5" />
             </span>
           </Link>
         </div>
@@ -109,8 +111,8 @@ export default function StorePage() {
       {filteredProducts.length === 0 ? (
         <EmptyState
           icon={<ShoppingBag className="w-8 h-8" />}
-          title="No products found"
-          description="Try a different category to find what you're looking for."
+          title={t("shop.noProducts")}
+          description={t("shop.tryDifferentCategory")}
         />
       ) : (
         <div className="p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -159,7 +161,7 @@ export default function StorePage() {
                     size="sm"
                     className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium"
                   >
-                    Add
+                    {t("shop.addToCart")}
                   </Button>
                 </div>
               </CardContent>

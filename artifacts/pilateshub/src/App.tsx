@@ -1,22 +1,28 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { lazy, Suspense, useState } from "react";
 import { Route, Switch } from "wouter";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { AppShell } from "@/components/layout/AppShell";
 import { AppProvider } from "@/context/AppContext";
 import { AuthProvider, useAuth } from "@/context/AuthContext";
-import AuthPage from "@/pages/AuthPage";
-import BrandPage from "@/pages/BrandPage";
-import BrandsPage from "@/pages/BrandsPage";
-import ChallengesPage from "@/pages/ChallengesPage";
-import CirclesPage from "@/pages/CirclesPage";
-import CommunityPage from "@/pages/CommunityPage";
-import FeedPage from "@/pages/FeedPage";
-import MapPage from "@/pages/MapPage";
-import MePage from "@/pages/MePage";
-import MessagesPage from "@/pages/MessagesPage";
-import NotFound from "@/pages/not-found";
-import StorePage from "@/pages/StorePage";
-import StudioAdminPage from "@/pages/StudioAdminPage";
+
+// Lazy load pages for code splitting
+const AuthPage = lazy(() => import("@/pages/AuthPage"));
+const BrandPage = lazy(() => import("@/pages/BrandPage"));
+const BrandsPage = lazy(() => import("@/pages/BrandsPage"));
+const ChallengesPage = lazy(() => import("@/pages/ChallengesPage"));
+const CirclesPage = lazy(() => import("@/pages/CirclesPage"));
+const CommunityPage = lazy(() => import("@/pages/CommunityPage"));
+const FeedPage = lazy(() => import("@/pages/FeedPage"));
+const MapPage = lazy(() => import("@/pages/MapPage"));
+const MePage = lazy(() => import("@/pages/MePage"));
+const MessagesPage = lazy(() => import("@/pages/MessagesPage"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const StorePage = lazy(() => import("@/pages/StorePage"));
+const BookingPage = lazy(() => import("@/pages/BookingPage"));
+const CoachPage = lazy(() => import("@/pages/CoachPage"));
+const StudioAdminPage = lazy(() => import("@/pages/StudioAdminPage"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,74 +33,109 @@ const queryClient = new QueryClient({
   },
 });
 
+function LoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center h-full">
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
+
 function AuthenticatedApp() {
   const { isAuthenticated } = useAuth();
+  const [isOnboarded, setIsOnboarded] = useState(
+    () => localStorage.getItem("pilateshub-onboarded") === "true",
+  );
 
   if (!isAuthenticated) {
-    return <AuthPage />;
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <AuthPage />
+      </Suspense>
+    );
+  }
+
+  if (!isOnboarded) {
+    return (
+      <Suspense fallback={<LoadingSpinner />}>
+        <OnboardingPage onComplete={() => setIsOnboarded(true)} />
+      </Suspense>
+    );
   }
 
   return (
     <AppProvider>
       <AppShell>
-        <Switch>
-          <Route path="/">
-            <ErrorBoundary>
-              <MapPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/feed">
-            <ErrorBoundary>
-              <FeedPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/me">
-            <ErrorBoundary>
-              <MePage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/community">
-            <ErrorBoundary>
-              <CommunityPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/store">
-            <ErrorBoundary>
-              <StorePage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/brands">
-            <ErrorBoundary>
-              <BrandsPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/brand/:slug">
-            <ErrorBoundary>
-              <BrandPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/challenges">
-            <ErrorBoundary>
-              <ChallengesPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/messages">
-            <ErrorBoundary>
-              <MessagesPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/circles">
-            <ErrorBoundary>
-              <CirclesPage />
-            </ErrorBoundary>
-          </Route>
-          <Route path="/admin/studio">
-            <ErrorBoundary>
-              <StudioAdminPage />
-            </ErrorBoundary>
-          </Route>
-          <Route component={NotFound} />
-        </Switch>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Switch>
+            <Route path="/">
+              <ErrorBoundary>
+                <MapPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/feed">
+              <ErrorBoundary>
+                <FeedPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/me">
+              <ErrorBoundary>
+                <MePage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/community">
+              <ErrorBoundary>
+                <CommunityPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/store">
+              <ErrorBoundary>
+                <StorePage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/brands">
+              <ErrorBoundary>
+                <BrandsPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/brand/:slug">
+              <ErrorBoundary>
+                <BrandPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/coach/:slug">
+              <ErrorBoundary>
+                <CoachPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/challenges">
+              <ErrorBoundary>
+                <ChallengesPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/messages">
+              <ErrorBoundary>
+                <MessagesPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/circles">
+              <ErrorBoundary>
+                <CirclesPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/booking/:studioId">
+              <ErrorBoundary>
+                <BookingPage />
+              </ErrorBoundary>
+            </Route>
+            <Route path="/admin/studio">
+              <ErrorBoundary>
+                <StudioAdminPage />
+              </ErrorBoundary>
+            </Route>
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
       </AppShell>
     </AppProvider>
   );

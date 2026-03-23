@@ -81,5 +81,9 @@
     "vitest": "^4.1.0",
     "wouter": "^3.3.5",
     "zod": "catalog:"
+  },
+  "dependencies": {
+    "i18next": "^25.10.3",
+    "react-i18next": "^16.6.0"
   }
 }

@@ -1,5 +1,6 @@
 import { MapPin, MessageCircle, Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { FORUM_POSTS, PRODUCTS, STUDIOS } from "@/data/mock-data";
@@ -7,6 +8,7 @@ import { FORUM_POSTS, PRODUCTS, STUDIOS } from "@/data/mock-data";
 export function SearchDialog() {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   const results = useMemo(() => {
     if (query.length < 2) return { studios: [], products: [], forumPosts: [] };
@@ -44,7 +46,7 @@ export function SearchDialog() {
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search studios, products, discussions..."
+              placeholder={t("common.search")}
               className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60"
             />
           </div>

@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Activity } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ type SignupForm = z.infer<typeof signupSchema>;
 export default function AuthPage() {
   const { login, signup } = useAuth();
   const [loading, setLoading] = useState(false);
+  const { t } = useTranslation();
 
   const loginForm = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -45,9 +47,9 @@ export default function AuthPage() {
     const success = await login(data.email, data.password);
     setLoading(false);
     if (success) {
-      toast.success("Welcome back!");
+      toast.success(t("auth.welcomeBack"));
     } else {
-      toast.error("Invalid email or password");
+      toast.error(t("auth.invalidCredentials"));
     }
   };
 
@@ -56,9 +58,9 @@ export default function AuthPage() {
     const success = await signup(data.name, data.email, data.password);
     setLoading(false);
     if (success) {
-      toast.success("Account created! Welcome to PilatesHub.");
+      toast.success(t("auth.accountCreated"));
     } else {
-      toast.error("Could not create account. Please try again.");
+      toast.error(t("auth.accountError"));
     }
   };
 
@@ -95,13 +97,13 @@ export default function AuthPage() {
                 value="login"
                 className="rounded-lg font-semibold text-xs data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
               >
-                Log In
+                {t("auth.login")}
               </TabsTrigger>
               <TabsTrigger
                 value="signup"
                 className="rounded-lg font-semibold text-xs data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all"
               >
-                Sign Up
+                {t("auth.signup")}
               </TabsTrigger>
             </TabsList>
 
@@ -111,7 +113,7 @@ export default function AuthPage() {
                   <Input
                     {...loginForm.register("email")}
                     type="email"
-                    placeholder="Email"
+                    placeholder={t("auth.email")}
                     className="bg-muted/50 border-border/60 focus:border-primary/40 transition-colors"
                   />
                   {loginForm.formState.errors.email && (
@@ -122,7 +124,7 @@ export default function AuthPage() {
                   <Input
                     {...loginForm.register("password")}
                     type="password"
-                    placeholder="Password"
+                    placeholder={t("auth.password")}
                     className="bg-muted/50 border-border/60 focus:border-primary/40 transition-colors"
                   />
                   {loginForm.formState.errors.password && (
@@ -135,7 +137,7 @@ export default function AuthPage() {
                   disabled={loading}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold mt-2 h-11 btn-premium shadow-md"
                 >
-                  {loading ? "Logging in..." : "Log In"}
+                  {loading ? t("auth.loggingIn") : t("auth.login")}
                 </Button>
               </div>
             </TabsContent>
@@ -145,7 +147,7 @@ export default function AuthPage() {
                 <div>
                   <Input
                     {...signupForm.register("name")}
-                    placeholder="Full Name"
+                    placeholder={t("auth.fullName")}
                     className="bg-muted/50 border-border/60 focus:border-primary/40 transition-colors"
                   />
                   {signupForm.formState.errors.name && (
@@ -156,7 +158,7 @@ export default function AuthPage() {
                   <Input
                     {...signupForm.register("email")}
                     type="email"
-                    placeholder="Email"
+                    placeholder={t("auth.email")}
                     className="bg-muted/50 border-border/60 focus:border-primary/40 transition-colors"
                   />
                   {signupForm.formState.errors.email && (
@@ -167,7 +169,7 @@ export default function AuthPage() {
                   <Input
                     {...signupForm.register("password")}
                     type="password"
-                    placeholder="Password"
+                    placeholder={t("auth.password")}
                     className="bg-muted/50 border-border/60 focus:border-primary/40 transition-colors"
                   />
                   {signupForm.formState.errors.password && (
@@ -178,7 +180,7 @@ export default function AuthPage() {
                   <Input
                     {...signupForm.register("confirmPassword")}
                     type="password"
-                    placeholder="Confirm Password"
+                    placeholder={t("auth.confirmPassword")}
                     className="bg-muted/50 border-border/60 focus:border-primary/40 transition-colors"
                   />
                   {signupForm.formState.errors.confirmPassword && (
@@ -193,7 +195,7 @@ export default function AuthPage() {
                   disabled={loading}
                   className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold mt-2 h-11 btn-premium shadow-md"
                 >
-                  {loading ? "Creating account..." : "Create Account"}
+                  {loading ? t("auth.creatingAccount") : t("auth.createAccount")}
                 </Button>
               </div>
             </TabsContent>
@@ -201,7 +203,7 @@ export default function AuthPage() {
         </div>
 
         <p className="text-center text-[11px] text-muted-foreground/60 mt-6 tracking-wide">
-          By continuing, you agree to our Terms & Privacy Policy
+          {t("auth.terms")}
         </p>
       </div>
     </div>

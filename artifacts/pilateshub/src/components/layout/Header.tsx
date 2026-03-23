@@ -1,5 +1,6 @@
-import { Activity, MessageCircle, Moon, ShoppingCart, Sun, X } from "lucide-react";
+import { Activity, Globe, MessageCircle, Moon, ShoppingCart, Sun, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Link } from "wouter";
 import { SearchDialog } from "@/components/SearchDialog";
@@ -14,7 +15,14 @@ export function Header() {
   const { cartItems, cartCount, cartTotal, removeFromCart, clearCart } = useApp();
   const { user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation();
   const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const toggleLang = () => {
+    const newLang = i18n.language === "fr" ? "en" : "fr";
+    i18n.changeLanguage(newLang);
+    localStorage.setItem("pilateshub-lang", newLang);
+  };
 
   useEffect(() => {
     fetch("/api/messages/unread-count")
@@ -29,7 +37,7 @@ export function Header() {
   }, []);
 
   const handleCheckout = () => {
-    toast.success("Order confirmed! Your items are on their way.");
+    toast.success(t("common.orderConfirmed"));
     clearCart();
   };
 
@@ -63,8 +71,16 @@ export function Header() {
         </Link>
         <button
           type="button"
+          onClick={toggleLang}
+          aria-label="Toggle language"
+          className="p-2 text-muted-foreground hover:text-primary transition-colors text-xs font-bold"
+        >
+          <Globe className="w-5 h-5" />
+        </button>
+        <button
+          type="button"
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={theme === "dark" ? t("common.lightMode") : t("common.darkMode")}
           className="p-2 text-muted-foreground hover:text-primary transition-colors md:hidden"
         >
           {theme === "dark" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -86,16 +102,16 @@ export function Header() {
           </SheetTrigger>
           <SheetContent className="bg-background">
             <SheetHeader>
-              <SheetTitle className="text-lg font-bold">Your Cart</SheetTitle>
+              <SheetTitle className="text-lg font-bold">{t("common.yourCart")}</SheetTitle>
               <SheetDescription>
-                {cartCount} item{cartCount !== 1 ? "s" : ""}
+                {cartCount} {cartCount !== 1 ? t("common.items") : t("common.item")}
               </SheetDescription>
             </SheetHeader>
             <div className="py-6 flex flex-col gap-4">
               {cartItems.length === 0 ? (
                 <div className="text-center py-16 flex flex-col items-center gap-3 text-muted-foreground">
                   <ShoppingCart className="w-10 h-10 opacity-40" />
-                  <p className="text-sm font-medium">Your cart is empty</p>
+                  <p className="text-sm font-medium">{t("common.emptyCart")}</p>
                 </div>
               ) : (
                 <>
@@ -129,14 +145,14 @@ export function Header() {
                   ))}
                   <Separator className="my-2" />
                   <div className="flex justify-between items-center font-bold text-lg">
-                    <span>Total</span>
+                    <span>{t("common.total")}</span>
                     <span className="text-primary">€{cartTotal}</span>
                   </div>
                   <Button
                     onClick={handleCheckout}
                     className="w-full mt-2 bg-primary hover:bg-primary/85 text-white font-bold shadow-lg"
                   >
-                    Checkout
+                    {t("common.checkout")}
                   </Button>
                 </>
               )}
