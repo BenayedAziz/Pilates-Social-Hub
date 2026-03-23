@@ -22,22 +22,58 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
-// Studios
-export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?: number, radius?: number, limit?: number) {
-  // Round coordinates to 3 decimal places (~111 m) for the query key so that
-  // tiny map movements reuse the cached result instead of triggering new fetches
-  // (and causing a visible flash while the new data loads).
+// Studios – bounding-box query params for map views
+export interface StudioBounds {
+  sw_lat: number;
+  sw_lng: number;
+  ne_lat: number;
+  ne_lng: number;
+}
+
+/**
+ * Fetch studios.
+ *
+ * For map views pass a `bounds` object (the visible rectangle) — this sends
+ * sw_lat/sw_lng/ne_lat/ne_lng to the API and returns ALL studios inside.
+ *
+ * Non-map callers can omit all geo args to get a small default set.
+ */
+export function useStudios(
+  q?: string,
+  neighborhood?: string,
+  lat?: number,
+  lng?: number,
+  radius?: number,
+  limit?: number,
+  bounds?: StudioBounds,
+) {
+  // Round bounding-box coords to 3 decimal places (~111 m) for the query key
+  // so that tiny pans reuse the cached result and avoid visible flashes.
+  const keySwLat = bounds ? Math.round(bounds.sw_lat * 1000) / 1000 : undefined;
+  const keySwLng = bounds ? Math.round(bounds.sw_lng * 1000) / 1000 : undefined;
+  const keyNeLat = bounds ? Math.round(bounds.ne_lat * 1000) / 1000 : undefined;
+  const keyNeLng = bounds ? Math.round(bounds.ne_lng * 1000) / 1000 : undefined;
+
+  // Legacy rounded keys for center+radius mode
   const keyLat = lat !== undefined ? Math.round(lat * 1000) / 1000 : undefined;
   const keyLng = lng !== undefined ? Math.round(lng * 1000) / 1000 : undefined;
 
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (neighborhood) params.set("neighborhood", neighborhood);
-  if (lat !== undefined && lng !== undefined) {
+
+  if (bounds) {
+    // Bounding-box mode — no limit
+    params.set("sw_lat", String(bounds.sw_lat));
+    params.set("sw_lng", String(bounds.sw_lng));
+    params.set("ne_lat", String(bounds.ne_lat));
+    params.set("ne_lng", String(bounds.ne_lng));
+  } else if (lat !== undefined && lng !== undefined) {
+    // Legacy center+radius mode
     params.set("lat", String(lat));
     params.set("lng", String(lng));
     params.set("radius", String(radius || 20));
-    params.set("limit", String(limit || 100));
+    params.set("limit", String(limit || 200));
   } else {
     // Default: Paris center, limited results
     params.set("lat", "48.856");
@@ -47,7 +83,9 @@ export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?
   }
   const qs = params.toString();
   return useQuery({
-    queryKey: ["studios", q, neighborhood, keyLat, keyLng, radius, limit],
+    queryKey: bounds
+      ? ["studios", q, neighborhood, "bbox", keySwLat, keySwLng, keyNeLat, keyNeLng]
+      : ["studios", q, neighborhood, keyLat, keyLng, radius, limit],
     queryFn: async () => {
       const data = await apiFetch<any[]>(`/studios${qs ? `?${qs}` : ""}`);
       return data.map((s: any) => ({
@@ -277,6 +315,14 @@ export function useStudioReviews(studioId: number) {
   return useQuery({
     queryKey: ["reviews", studioId],
     queryFn: () => apiFetch<any[]>(`/studios/${studioId}/reviews`),
+  });
+}
+
+// Google Reviews
+export function useGoogleReviews(studioId: number) {
+  return useQuery({
+    queryKey: ["google-reviews", studioId],
+    queryFn: () => apiFetch<any[]>(`/studios/${studioId}/google-reviews`),
   });
 }
 

@@ -1,6 +1,7 @@
+import { AnimatePresence, motion } from "framer-motion";
 import L from "leaflet";
 import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
@@ -8,7 +9,52 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { Studio } from "@/data/types";
 import { useStudios } from "@/hooks/use-api";
+import type { StudioBounds } from "@/hooks/use-api";
 import { useGeolocation } from "@/hooks/use-geolocation";
+
+// Animation variants for staggered card entry
+const cardVariants = {
+  hidden: { opacity: 0, y: 12 },
+  visible: (i: number) => ({
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: i * 0.05,
+      duration: 0.35,
+      ease: [0.25, 0.1, 0.25, 1],
+    },
+  }),
+  exit: {
+    opacity: 0,
+    y: -8,
+    transition: { duration: 0.2, ease: "easeIn" },
+  },
+};
+
+// Wraps a studio card with smooth enter/exit animation
+function AnimatedCard({
+  studio,
+  index,
+  children,
+}: {
+  studio: Studio;
+  index: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <motion.div
+      key={studio.id}
+      custom={index}
+      variants={cardVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      layout
+    >
+      {children}
+    </motion.div>
+  );
+}
 
 
 // Fix Leaflet default icon paths for bundlers
@@ -96,20 +142,27 @@ function FlyToPosition({ position }: { position: [number, number] }) {
   return null;
 }
 
-// Listen to map pan/zoom and report the new center + zoom
-function MapEventHandler({ onMoveEnd }: { onMoveEnd: (center: { lat: number; lng: number }, zoom: number) => void }) {
+// Listen to map pan/zoom and report the visible bounding box
+function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: StudioBounds) => void }) {
   const map = useMap();
 
   useEffect(() => {
     const handler = () => {
-      const center = map.getCenter();
-      const zoom = map.getZoom();
-      onMoveEnd({ lat: center.lat, lng: center.lng }, zoom);
+      const b = map.getBounds();
+      onBoundsChange({
+        sw_lat: b.getSouthWest().lat,
+        sw_lng: b.getSouthWest().lng,
+        ne_lat: b.getNorthEast().lat,
+        ne_lng: b.getNorthEast().lng,
+      });
     };
+
+    // Fire once immediately so we get initial bounds
+    handler();
 
     map.on("moveend", handler);
     return () => { map.off("moveend", handler); };
-  }, [map, onMoveEnd]);
+  }, [map, onBoundsChange]);
 
   return null;
 }
@@ -118,9 +171,8 @@ export default function MapPage() {
   const { position, loading: geoLoading, isDefault: geoIsDefault, requestPermission } = useGeolocation();
   const mapCenter: [number, number] = position ? [position.lat, position.lng] : [48.856, 2.352];
 
-  // Track the current map viewport so we can refetch studios on pan/zoom
-  const [viewCenter, setViewCenter] = useState<{ lat: number; lng: number } | null>(null);
-  const [mapZoom, setMapZoom] = useState(13);
+  // Track the visible bounding box of the map so we can refetch studios on pan/zoom
+  const [viewBounds, setViewBounds] = useState<StudioBounds | null>(null);
   const moveEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Use a transition so the viewport state updates (which trigger new API
@@ -130,34 +182,23 @@ export default function MapPage() {
 
   // Debounce map move events (600ms) so we don't spam the API, and wrap the
   // state update in startTransition so React treats it as non-urgent.
-  const handleMoveEnd = useCallback((center: { lat: number; lng: number }, zoom: number) => {
+  const handleBoundsChange = useCallback((bounds: StudioBounds) => {
     if (moveEndTimer.current) clearTimeout(moveEndTimer.current);
     moveEndTimer.current = setTimeout(() => {
       startTransition(() => {
-        setViewCenter(center);
-        setMapZoom(zoom);
+        setViewBounds(bounds);
       });
     }, 600);
   }, []);
 
-  // Calculate search radius based on zoom level
-  const radius = useMemo(() => {
-    if (mapZoom >= 15) return 3;
-    if (mapZoom >= 13) return 10;
-    if (mapZoom >= 11) return 30;
-    if (mapZoom >= 9) return 80;
-    return 200;
-  }, [mapZoom]);
-
-  // Use the map viewport center for API calls (falls back to geolocation)
-  const apiLat = viewCenter?.lat ?? position?.lat;
-  const apiLng = viewCenter?.lng ?? position?.lng;
-
-  // Pass real position + dynamic radius to the API.
-  // keepPreviousData in useStudios ensures the old markers stay visible while
-  // new data loads. The query key uses rounded coords (3 decimals) so tiny
-  // pans reuse the cache and don't trigger new fetches.
-  const { data: studios = [] } = useStudios(undefined, undefined, apiLat, apiLng, radius, 100);
+  // Pass the visible bounding box to the API — no limit, fetch ALL studios
+  // inside the rectangle. keepPreviousData in useStudios ensures the old
+  // markers stay visible while new data loads. The query key uses rounded
+  // coords (3 decimals) so tiny pans reuse the cache.
+  const { data: studios = [] } = useStudios(
+    undefined, undefined, undefined, undefined, undefined, undefined,
+    viewBounds ?? undefined,
+  );
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
 
@@ -196,7 +237,7 @@ export default function MapPage() {
           <FlyToPosition position={mapCenter} />
 
           {/* Re-fetch studios when user pans/zooms */}
-          <MapEventHandler onMoveEnd={handleMoveEnd} />
+          <MapEventHandler onBoundsChange={handleBoundsChange} />
 
           {/* Current location */}
           <Marker position={mapCenter} icon={locationIcon} />
@@ -330,25 +371,29 @@ export default function MapPage() {
             <button className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">See All</button>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {filteredStudios.slice(0, 5).map((studio) => (
-              <StudioDetailDialog key={studio.id} studio={studio}>
-                <div className="w-56 flex-shrink-0 cursor-pointer group">
-                  <div className="h-32 rounded-2xl overflow-hidden mb-2 shadow-sm">
-                    <img
-                      src={studio.imageUrl || FALLBACK_IMAGE}
-                      alt={studio.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                    <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
-                    {studio.rating} · {studio.neighborhood}
-                  </div>
-                  <span className="text-xs font-bold text-primary">{"\u20AC"}{studio.price}/class</span>
-                </div>
-              </StudioDetailDialog>
-            ))}
+            <AnimatePresence mode="popLayout">
+              {filteredStudios.slice(0, 5).map((studio, i) => (
+                <AnimatedCard key={studio.id} studio={studio} index={i}>
+                  <StudioDetailDialog studio={studio}>
+                    <div className="w-56 flex-shrink-0 cursor-pointer group">
+                      <div className="h-32 rounded-2xl overflow-hidden mb-2 shadow-sm">
+                        <img
+                          src={studio.imageUrl || FALLBACK_IMAGE}
+                          alt={studio.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                        <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                        {studio.rating} · {studio.neighborhood}
+                      </div>
+                      <span className="text-xs font-bold text-primary">{"\u20AC"}{studio.price}/class</span>
+                    </div>
+                  </StudioDetailDialog>
+                </AnimatedCard>
+              ))}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -359,25 +404,29 @@ export default function MapPage() {
             <span className="text-xs text-muted-foreground">Based on your location</span>
           </div>
           <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            {nearYou.map((studio) => (
-              <StudioDetailDialog key={studio.id} studio={studio}>
-                <div className="w-44 flex-shrink-0 cursor-pointer group">
-                  <div className="relative h-28 rounded-2xl overflow-hidden mb-2 shadow-sm">
-                    <img
-                      src={studio.imageUrl || FALLBACK_IMAGE}
-                      alt={studio.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm">
-                      <MapPin className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
-                      {studio.distance}km
+            <AnimatePresence mode="popLayout">
+              {nearYou.map((studio, i) => (
+                <AnimatedCard key={studio.id} studio={studio} index={i}>
+                  <StudioDetailDialog studio={studio}>
+                    <div className="w-44 flex-shrink-0 cursor-pointer group">
+                      <div className="relative h-28 rounded-2xl overflow-hidden mb-2 shadow-sm">
+                        <img
+                          src={studio.imageUrl || FALLBACK_IMAGE}
+                          alt={studio.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm">
+                          <MapPin className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
+                          {studio.distance}km
+                        </div>
+                      </div>
+                      <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
+                      <p className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</p>
                     </div>
-                  </div>
-                  <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
-                  <p className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</p>
-                </div>
-              </StudioDetailDialog>
-            ))}
+                  </StudioDetailDialog>
+                </AnimatedCard>
+              ))}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -391,37 +440,41 @@ export default function MapPage() {
             </div>
           </div>
           <div className="flex flex-col gap-3">
-            {topRated.map((studio, idx) => (
-              <StudioDetailDialog key={studio.id} studio={studio}>
-                <Card className="cursor-pointer group hover:shadow-md transition-shadow rounded-2xl overflow-hidden border-none shadow-sm">
-                  <div className="flex h-20">
-                    <div className="w-20 flex-shrink-0 overflow-hidden">
-                      <img
-                        src={studio.imageUrl || FALLBACK_IMAGE}
-                        alt={studio.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-3 flex-1 flex items-center justify-between">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-black text-accent-cta">#{idx + 1}</span>
-                          <h3 className="font-bold text-sm text-foreground">{studio.name}</h3>
+            <AnimatePresence mode="popLayout">
+              {topRated.map((studio, idx) => (
+                <AnimatedCard key={studio.id} studio={studio} index={idx}>
+                  <StudioDetailDialog studio={studio}>
+                    <Card className="cursor-pointer group hover:shadow-md transition-shadow rounded-2xl overflow-hidden border-none shadow-sm">
+                      <div className="flex h-20">
+                        <div className="w-20 flex-shrink-0 overflow-hidden">
+                          <img
+                            src={studio.imageUrl || FALLBACK_IMAGE}
+                            alt={studio.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <p className="text-xs text-muted-foreground ml-6">{studio.neighborhood}</p>
-                      </div>
-                      <div className="text-right flex-shrink-0 ml-2">
-                        <div className="flex items-center gap-1">
-                          <Star className="w-3.5 h-3.5 text-accent-cta fill-accent-cta" />
-                          <span className="font-bold text-sm">{studio.rating}</span>
+                        <div className="p-3 flex-1 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black text-accent-cta">#{idx + 1}</span>
+                              <h3 className="font-bold text-sm text-foreground">{studio.name}</h3>
+                            </div>
+                            <p className="text-xs text-muted-foreground ml-6">{studio.neighborhood}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0 ml-2">
+                            <div className="flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 text-accent-cta fill-accent-cta" />
+                              <span className="font-bold text-sm">{studio.rating}</span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground">{studio.reviews} reviews</span>
+                          </div>
                         </div>
-                        <span className="text-[10px] text-muted-foreground">{studio.reviews} reviews</span>
                       </div>
-                    </div>
-                  </div>
-                </Card>
-              </StudioDetailDialog>
-            ))}
+                    </Card>
+                  </StudioDetailDialog>
+                </AnimatedCard>
+              ))}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -432,27 +485,31 @@ export default function MapPage() {
             <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-1">Recently added</span>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            {newStudios.map((studio) => (
-              <StudioDetailDialog key={studio.id} studio={studio}>
-                <div className="cursor-pointer group">
-                  <div className="h-28 rounded-2xl overflow-hidden mb-2 shadow-sm relative">
-                    <img
-                      src={studio.imageUrl || FALLBACK_IMAGE}
-                      alt={studio.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                    <div className="absolute top-2 left-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] font-bold shadow-sm">
-                      NEW
+            <AnimatePresence mode="popLayout">
+              {newStudios.map((studio, i) => (
+                <AnimatedCard key={studio.id} studio={studio} index={i}>
+                  <StudioDetailDialog studio={studio}>
+                    <div className="cursor-pointer group">
+                      <div className="h-28 rounded-2xl overflow-hidden mb-2 shadow-sm relative">
+                        <img
+                          src={studio.imageUrl || FALLBACK_IMAGE}
+                          alt={studio.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2 left-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] font-bold shadow-sm">
+                          NEW
+                        </div>
+                      </div>
+                      <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
+                      <div className="flex items-center justify-between mt-0.5">
+                        <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
+                        <span className="text-[11px] font-bold text-primary flex-shrink-0">{"\u20AC"}{studio.price}</span>
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
-                  <div className="flex items-center justify-between mt-0.5">
-                    <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
-                    <span className="text-[11px] font-bold text-primary flex-shrink-0">{"\u20AC"}{studio.price}</span>
-                  </div>
-                </div>
-              </StudioDetailDialog>
-            ))}
+                  </StudioDetailDialog>
+                </AnimatedCard>
+              ))}
+            </AnimatePresence>
           </div>
         </section>
 
@@ -463,40 +520,44 @@ export default function MapPage() {
             <span className="text-xs text-muted-foreground">{filteredStudios.length} studios</span>
           </div>
           <div className="flex flex-col md:grid md:grid-cols-2 gap-3">
-            {filteredStudios.map((studio) => (
-              <StudioDetailDialog key={studio.id} studio={studio}>
-                <Card className="border border-border/40 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer overflow-hidden group rounded-2xl">
-                  <div className="flex h-24">
-                    <div className="w-24 flex-shrink-0 overflow-hidden">
-                      <img
-                        src={studio.imageUrl || FALLBACK_IMAGE}
-                        alt={studio.name}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="p-3 flex-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-start">
-                          <h3 className="font-bold text-sm leading-tight text-foreground">{studio.name}</h3>
-                          <span className="font-bold text-primary text-sm flex-shrink-0 ml-2">
-                            {"\u20AC"}
-                            {studio.price}
-                          </span>
+            <AnimatePresence mode="popLayout">
+              {filteredStudios.map((studio, i) => (
+                <AnimatedCard key={studio.id} studio={studio} index={i}>
+                  <StudioDetailDialog studio={studio}>
+                    <Card className="border border-border/40 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer overflow-hidden group rounded-2xl">
+                      <div className="flex h-24">
+                        <div className="w-24 flex-shrink-0 overflow-hidden">
+                          <img
+                            src={studio.imageUrl || FALLBACK_IMAGE}
+                            alt={studio.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
-                        <p className="text-xs text-muted-foreground/60 mt-0.5">
-                          {studio.neighborhood} {"\u00B7"} {studio.distance}km
-                        </p>
+                        <div className="p-3 flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex justify-between items-start">
+                              <h3 className="font-bold text-sm leading-tight text-foreground">{studio.name}</h3>
+                              <span className="font-bold text-primary text-sm flex-shrink-0 ml-2">
+                                {"\u20AC"}
+                                {studio.price}
+                              </span>
+                            </div>
+                            <p className="text-xs text-muted-foreground/60 mt-0.5">
+                              {studio.neighborhood} {"\u00B7"} {studio.distance}km
+                            </p>
+                          </div>
+                          <div className="flex items-center text-xs font-semibold text-foreground/80 gap-1">
+                            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                            {studio.rating}
+                            <span className="text-muted-foreground/60 font-normal">({studio.reviews})</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center text-xs font-semibold text-foreground/80 gap-1">
-                        <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                        {studio.rating}
-                        <span className="text-muted-foreground/60 font-normal">({studio.reviews})</span>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              </StudioDetailDialog>
-            ))}
+                    </Card>
+                  </StudioDetailDialog>
+                </AnimatedCard>
+              ))}
+            </AnimatePresence>
           </div>
         </section>
 

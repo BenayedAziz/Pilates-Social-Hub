@@ -202,11 +202,26 @@ const router: IRouter = Router();
 
 /**
  * GET /api/studios
- * Query params: ?q=search&neighborhood=Marais&lat=48.856&lng=2.352&radius=20&limit=100
+ *
+ * Bounding-box mode (preferred for map views):
+ *   ?sw_lat=48.8&sw_lng=2.2&ne_lat=48.9&ne_lng=2.5
+ *   Returns ALL studios inside the rectangle. No limit applied.
+ *
+ * Legacy center+radius mode (used by non-map screens):
+ *   ?lat=48.856&lng=2.352&radius=20&limit=100
+ *
+ * Common filters: ?q=search&neighborhood=Marais
  */
 router.get("/studios", async (_req, res) => {
   try {
-    // Geo-filter params
+    // ---- Parse bounding-box params ----
+    const swLat = parseFloat(_req.query["sw_lat"] as string);
+    const swLng = parseFloat(_req.query["sw_lng"] as string);
+    const neLat = parseFloat(_req.query["ne_lat"] as string);
+    const neLng = parseFloat(_req.query["ne_lng"] as string);
+    const hasBBox = !isNaN(swLat) && !isNaN(swLng) && !isNaN(neLat) && !isNaN(neLng);
+
+    // ---- Parse legacy center+radius params ----
     const latParam = parseFloat(_req.query["lat"] as string);
     const lngParam = parseFloat(_req.query["lng"] as string);
     const hasGeo = !isNaN(latParam) && !isNaN(lngParam);
@@ -214,7 +229,18 @@ router.get("/studios", async (_req, res) => {
     const lat = hasGeo ? latParam : 48.856;
     const lng = hasGeo ? lngParam : 2.352;
     const radius = parseFloat(_req.query["radius"] as string) || 20; // km
-    const limit = parseInt(_req.query["limit"] as string) || (hasGeo ? 100 : 50);
+    const rawLimit = parseInt(_req.query["limit"] as string);
+    const limit = Math.min(isNaN(rawLimit) ? (hasGeo ? 200 : 50) : rawLimit, 2000);
+
+    // Helper: check whether a point falls inside the bounding box
+    function insideBBox(sLat: number, sLng: number): boolean {
+      if (!hasBBox) return true;
+      // Handle bounding boxes that wrap around the antimeridian
+      const lngOk = swLng <= neLng
+        ? sLng >= swLng && sLng <= neLng
+        : sLng >= swLng || sLng <= neLng;
+      return sLat >= swLat && sLat <= neLat && lngOk;
+    }
 
     const database = await getDatabase();
 
@@ -246,21 +272,43 @@ router.get("/studios", async (_req, res) => {
 
       const allResults = await query;
 
-      // Apply haversine distance filter + sort + limit
+      if (hasBBox) {
+        // Bounding-box mode: return ALL studios inside the rectangle
+        const bboxCenter = { lat: (swLat + neLat) / 2, lng: (swLng + neLng) / 2 };
+        const filtered = allResults
+          .map((s: any) => {
+            const sLat = s.latitude ?? s.lat ?? 0;
+            const sLng = s.longitude ?? s.lng ?? 0;
+            const distance = (sLat && sLng) ? Math.round(haversine(bboxCenter.lat, bboxCenter.lng, sLat, sLng) * 10) / 10 : 0;
+            return { ...s, distance };
+          })
+          .filter((s: any) => {
+            const sLat = s.latitude ?? s.lat;
+            const sLng = s.longitude ?? s.lng;
+            if (!sLat || !sLng) return true;
+            return insideBBox(sLat, sLng);
+          })
+          .sort((a: any, b: any) => a.distance - b.distance);
+
+        res.json(filtered);
+        return;
+      }
+
+      // Legacy center+radius mode
       const filtered = allResults
+        .map((s: any) => {
+          const sLat = s.latitude ?? s.lat ?? 0;
+          const sLng = s.longitude ?? s.lng ?? 0;
+          const distance = (sLat && sLng) ? Math.round(haversine(lat, lng, sLat, sLng) * 10) / 10 : 0;
+          return { ...s, distance };
+        })
         .filter((s: any) => {
           const sLat = s.latitude ?? s.lat;
           const sLng = s.longitude ?? s.lng;
-          if (!sLat || !sLng) return true; // no coords = include
-          return haversine(lat, lng, sLat, sLng) <= radius;
+          if (!sLat || !sLng) return true;
+          return s.distance <= radius;
         })
-        .sort((a: any, b: any) => {
-          const aLat = a.latitude ?? a.lat ?? 0;
-          const aLng = a.longitude ?? a.lng ?? 0;
-          const bLat = b.latitude ?? b.lat ?? 0;
-          const bLng = b.longitude ?? b.lng ?? 0;
-          return haversine(lat, lng, aLat, aLng) - haversine(lat, lng, bLat, bLng);
-        })
+        .sort((a: any, b: any) => a.distance - b.distance)
         .slice(0, limit);
 
       res.json(filtered);
@@ -287,17 +335,35 @@ router.get("/studios", async (_req, res) => {
       );
     }
 
-    // Apply haversine distance filter + sort + limit on mock data too
+    if (hasBBox) {
+      // Bounding-box mode for mock data
+      const bboxCenter = { lat: (swLat + neLat) / 2, lng: (swLng + neLng) / 2 };
+      const filtered = results
+        .map((s) => ({
+          ...s,
+          distance: (s.latitude && s.longitude) ? Math.round(haversine(bboxCenter.lat, bboxCenter.lng, s.latitude, s.longitude) * 10) / 10 : 0,
+        }))
+        .filter((s) => {
+          if (!s.latitude || !s.longitude) return true;
+          return insideBBox(s.latitude, s.longitude);
+        })
+        .sort((a, b) => a.distance - b.distance);
+
+      res.json(filtered);
+      return;
+    }
+
+    // Legacy center+radius mode for mock data
     const filtered = results
+      .map((s) => ({
+        ...s,
+        distance: (s.latitude && s.longitude) ? Math.round(haversine(lat, lng, s.latitude, s.longitude) * 10) / 10 : 0,
+      }))
       .filter((s) => {
         if (!s.latitude || !s.longitude) return true;
-        return haversine(lat, lng, s.latitude, s.longitude) <= radius;
+        return s.distance <= radius;
       })
-      .sort((a, b) => {
-        const dA = haversine(lat, lng, a.latitude || 0, a.longitude || 0);
-        const dB = haversine(lat, lng, b.latitude || 0, b.longitude || 0);
-        return dA - dB;
-      })
+      .sort((a, b) => a.distance - b.distance)
       .slice(0, limit);
 
     res.json(filtered);
@@ -486,6 +552,42 @@ router.get("/studios/:id/reviews", async (req, res) => {
     res.json(results);
   } catch (_error) {
     res.status(500).json({ error: "Failed to fetch studio reviews" });
+  }
+});
+
+/**
+ * GET /api/studios/:id/google-reviews
+ * Returns Google reviews for a specific studio.
+ */
+router.get("/studios/:id/google-reviews", async (req, res) => {
+  const id = Number(req.params["id"]);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid studio id" });
+    return;
+  }
+
+  try {
+    const database = await getDatabase();
+
+    if (database) {
+      const { db, schema } = database;
+
+      if (schema.googleReviews) {
+        const rows = await db
+          .select()
+          .from(schema.googleReviews)
+          .where(eq(schema.googleReviews.studioId, id))
+          .orderBy(desc(schema.googleReviews.time));
+
+        res.json(rows);
+        return;
+      }
+    }
+
+    // No google reviews available (no DB or no table)
+    res.json([]);
+  } catch (_error) {
+    res.status(500).json({ error: "Failed to fetch Google reviews" });
   }
 });
 

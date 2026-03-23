@@ -36,6 +36,7 @@ export const studios = pgTable("studios", {
   reviewCount: integer("review_count").default(0),
   imageUrl: text("image_url"),
   amenities: jsonb("amenities").$type<string[]>().default([]),
+  googlePlaceId: text("google_place_id"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -242,6 +243,23 @@ export const reviews = pgTable("reviews", {
 export const insertReviewSchema = createInsertSchema(reviews);
 export type Review = typeof reviews.$inferSelect;
 
+// ============= GOOGLE REVIEWS =============
+export const googleReviews = pgTable("google_reviews", {
+  id: serial("id").primaryKey(),
+  studioId: integer("studio_id").references(() => studios.id).notNull(),
+  googleReviewId: text("google_review_id"),
+  authorName: text("author_name").notNull(),
+  authorPhotoUrl: text("author_photo_url"),
+  rating: integer("rating").notNull(),
+  text: text("text"),
+  relativeTimeDescription: text("relative_time_description"),
+  time: integer("time"), // unix timestamp from Google
+  language: text("language"),
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+});
+
+export type GoogleReview = typeof googleReviews.$inferSelect;
+
 // ============= CONVERSATIONS =============
 export const conversations = pgTable("conversations", {
   id: serial("id").primaryKey(),
@@ -282,6 +300,7 @@ export const studiosRelations = relations(studios, ({ many }) => ({
   classes: many(classes),
   bookings: many(bookings),
   reviews: many(reviews),
+  googleReviews: many(googleReviews),
 }));
 
 export const postsRelations = relations(posts, ({ one, many }) => ({
