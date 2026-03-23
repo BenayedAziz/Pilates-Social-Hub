@@ -8,6 +8,7 @@
     "seed": "tsx ./src/seed.ts",
     "scrape": "tsx ./src/scrape-studios.ts",
     "add-images": "tsx src/add-studio-images.ts",
+    "scrape-google": "tsx src/scrape-google-places.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
