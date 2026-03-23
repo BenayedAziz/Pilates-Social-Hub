@@ -9,6 +9,7 @@
     "scrape": "tsx ./src/scrape-studios.ts",
     "add-images": "tsx src/add-studio-images.ts",
     "scrape-google": "tsx src/scrape-google-places.ts",
+    "scrape-global": "tsx src/scrape-global.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
