@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.github
+*.md
+docs/
+attached_assets/
+deploy/.env
+.env
+.env.*
+!deploy/.env.example

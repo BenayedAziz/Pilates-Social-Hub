@@ -1,0 +1,16 @@
+{$DOMAIN:localhost} {
+    # Proxy everything to the Node.js API server which serves both
+    # the API endpoints (/api/*) and the frontend SPA (static files).
+    reverse_proxy api:3000
+
+    # Security headers
+    header {
+        X-Content-Type-Options nosniff
+        X-Frame-Options DENY
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy strict-origin-when-cross-origin
+    }
+
+    # Compression
+    encode gzip zstd
+}

@@ -1,0 +1,51 @@
+# =============================================================================
+# PilatesHub — Production deployment with Caddy (automatic HTTPS)
+#
+# Usage:
+#   cp deploy/.env.example .env   # set DOMAIN and DB_PASSWORD
+#   docker compose -f docker-compose.prod.yml up -d --build
+# =============================================================================
+
+services:
+  api:
+    build:
+      context: .
+      target: runner
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://pilateshub:${DB_PASSWORD:-changeme}@db:5432/pilateshub
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_started
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=pilateshub
+      - POSTGRES_USER=pilateshub
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DOMAIN=${DOMAIN:-localhost}
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

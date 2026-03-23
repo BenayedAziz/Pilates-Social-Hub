@@ -1,0 +1,238 @@
+import { Router, type IRouter } from "express";
+
+// ---------------------------------------------------------------------------
+// Types (mirrors DB schema – swap to Drizzle select types when DB is wired)
+// ---------------------------------------------------------------------------
+interface PilatesClass {
+  id: number;
+  studioId: number;
+  coachId: number | null;
+  title: string;
+  type: string;
+  level: string;
+  description: string | null;
+  duration: number;
+  maxCapacity: number;
+  price: number;
+  scheduledAt: string;
+  studioName: string;
+  coachName: string | null;
+  createdAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Mock data
+// ---------------------------------------------------------------------------
+const classes: PilatesClass[] = [
+  {
+    id: 1,
+    studioId: 1,
+    coachId: 1,
+    title: "Reformer Advanced",
+    type: "reformer",
+    level: "advanced",
+    description: "Challenging reformer class focusing on dynamic movements and spring resistance.",
+    duration: 55,
+    maxCapacity: 10,
+    price: 45,
+    scheduledAt: "2026-03-23T09:00:00Z",
+    studioName: "Studio Harmonie",
+    coachName: "Sophie Leclerc",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 2,
+    studioId: 3,
+    coachId: 5,
+    title: "Mat Pilates Core",
+    type: "mat",
+    level: "intermediate",
+    description: "Core-focused mat class with props including resistance bands and Pilates balls.",
+    duration: 45,
+    maxCapacity: 15,
+    price: 38,
+    scheduledAt: "2026-03-23T10:30:00Z",
+    studioName: "Core & Flow",
+    coachName: "Camille Bernard",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 3,
+    studioId: 2,
+    coachId: 3,
+    title: "Cadillac Intro",
+    type: "cadillac",
+    level: "beginner",
+    description: "Introduction to the Cadillac apparatus. Perfect for newcomers and those working with injuries.",
+    duration: 60,
+    maxCapacity: 6,
+    price: 55,
+    scheduledAt: "2026-03-23T11:00:00Z",
+    studioName: "Pilates Lumière",
+    coachName: "Marie Dubois",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 4,
+    studioId: 4,
+    coachId: 7,
+    title: "Wunda Chair Blast",
+    type: "chair",
+    level: "advanced",
+    description: "High-intensity chair class designed to build strength and balance.",
+    duration: 45,
+    maxCapacity: 8,
+    price: 50,
+    scheduledAt: "2026-03-23T14:00:00Z",
+    studioName: "Reform Studio Paris",
+    coachName: "Isabelle Dupont",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 5,
+    studioId: 5,
+    coachId: 9,
+    title: "Reformer Flow",
+    type: "reformer",
+    level: "intermediate",
+    description: "Flowing reformer sequences linking breath with movement for a mind-body workout.",
+    duration: 50,
+    maxCapacity: 12,
+    price: 42,
+    scheduledAt: "2026-03-23T16:00:00Z",
+    studioName: "Équilibre Pilates",
+    coachName: "Élise Martin",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 6,
+    studioId: 1,
+    coachId: 2,
+    title: "Spine Corrector",
+    type: "spine-corrector",
+    level: "intermediate",
+    description: "Work with the Spine Corrector to improve spinal articulation and flexibility.",
+    duration: 40,
+    maxCapacity: 8,
+    price: 45,
+    scheduledAt: "2026-03-24T09:00:00Z",
+    studioName: "Studio Harmonie",
+    coachName: "Julien Moreau",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 7,
+    studioId: 8,
+    coachId: 15,
+    title: "Tower & Reformer",
+    type: "reformer",
+    level: "advanced",
+    description: "Dual apparatus class alternating between Tower and Reformer for a full-body challenge.",
+    duration: 75,
+    maxCapacity: 8,
+    price: 60,
+    scheduledAt: "2026-03-24T10:00:00Z",
+    studioName: "BodyWork Pilates",
+    coachName: "Céline Blanc",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 8,
+    studioId: 3,
+    coachId: 6,
+    title: "Mat Beginner",
+    type: "mat",
+    level: "beginner",
+    description: "Gentle introduction to classical Pilates mat work. No equipment needed.",
+    duration: 50,
+    maxCapacity: 20,
+    price: 38,
+    scheduledAt: "2026-03-24T11:30:00Z",
+    studioName: "Core & Flow",
+    coachName: "Lucas Fontaine",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 9,
+    studioId: 7,
+    coachId: 13,
+    title: "Reformer Cardio",
+    type: "reformer",
+    level: "intermediate",
+    description: "High-energy reformer class with cardio intervals. Expect to sweat!",
+    duration: 45,
+    maxCapacity: 10,
+    price: 48,
+    scheduledAt: "2026-03-24T14:00:00Z",
+    studioName: "Pilates Zen",
+    coachName: "Audrey Girard",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+  {
+    id: 10,
+    studioId: 5,
+    coachId: 10,
+    title: "Classical Mat",
+    type: "mat",
+    level: "intermediate",
+    description: "Traditional Joseph Pilates mat sequence performed in its original order.",
+    duration: 60,
+    maxCapacity: 15,
+    price: 42,
+    scheduledAt: "2026-03-24T17:00:00Z",
+    studioName: "Équilibre Pilates",
+    coachName: "Pierre Garnier",
+    createdAt: "2024-01-15T10:00:00Z",
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+const router: IRouter = Router();
+
+/**
+ * GET /api/classes
+ * Query params: ?studioId=1&type=reformer
+ */
+router.get("/classes", (req, res) => {
+  let results = [...classes];
+
+  const studioId = req.query["studioId"] as string | undefined;
+  if (studioId) {
+    const sid = Number(studioId);
+    if (Number.isNaN(sid)) {
+      res.status(400).json({ error: "Invalid studioId" });
+      return;
+    }
+    results = results.filter((c) => c.studioId === sid);
+  }
+
+  const type = (req.query["type"] as string | undefined)?.toLowerCase();
+  if (type) {
+    results = results.filter((c) => c.type.toLowerCase() === type);
+  }
+
+  res.json(results);
+});
+
+/**
+ * GET /api/classes/:id
+ */
+router.get("/classes/:id", (req, res) => {
+  const id = Number(req.params["id"]);
+  if (Number.isNaN(id)) {
+    res.status(400).json({ error: "Invalid class id" });
+    return;
+  }
+
+  const cls = classes.find((c) => c.id === id);
+  if (!cls) {
+    res.status(404).json({ error: "Class not found" });
+    return;
+  }
+
+  res.json(cls);
+});
+
+export default router;

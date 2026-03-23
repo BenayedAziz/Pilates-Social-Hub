@@ -1,0 +1,126 @@
+import { Heart, ShoppingBag, Star } from "lucide-react";
+import { useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { useApp } from "@/context/AppContext";
+import { PRODUCTS as FALLBACK_PRODUCTS } from "@/data/mock-data";
+import { useProducts } from "@/hooks/use-api";
+
+const CATEGORIES = [
+  { key: "All", label: "All", emoji: "" },
+  { key: "Habitat", label: "Habitat", emoji: "\u{1F3E0}" },
+  { key: "Alimentation", label: "Alimentation", emoji: "\u{1F957}" },
+  { key: "Machines", label: "Machines", emoji: "\u{1F3CB}\uFE0F" },
+  { key: "Goodies", label: "Goodies", emoji: "\u{1F381}" },
+  { key: "Apparel", label: "Apparel", emoji: "\u{1F457}" },
+  { key: "Accessoires", label: "Accessoires", emoji: "\u{1F9D8}" },
+];
+
+const BADGE_COLORS: Record<string, string> = {
+  New: "bg-primary text-primary-foreground",
+  "Best Seller": "bg-accent-cta text-white",
+  "Promo -20%": "bg-destructive text-white",
+  Exclusif: "bg-foreground text-background",
+};
+
+export default function StorePage() {
+  const [activeCategory, setActiveCategory] = useState("All");
+  const { wishlist, toggleWishlist, addToCart } = useApp();
+  const { data: apiProducts } = useProducts();
+  const allProducts = apiProducts || FALLBACK_PRODUCTS;
+
+  const filteredProducts =
+    activeCategory === "All" ? allProducts : allProducts.filter((p) => p.category === activeCategory);
+
+  const getCategoryCount = (key: string) => {
+    if (key === "All") return allProducts.length;
+    return allProducts.filter((p) => p.category === key).length;
+  };
+
+  return (
+    <div className="bg-background min-h-full animate-in fade-in duration-300">
+      {/* Category filter */}
+      <div className="px-4 py-3 bg-card sticky top-0 z-10 border-b border-border/40">
+        <div role="tablist" className="flex gap-2 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
+          {CATEGORIES.map((cat) => (
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeCategory === cat.key}
+              key={cat.key}
+              onClick={() => setActiveCategory(cat.key)}
+              className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all duration-200 flex-shrink-0 border
+                ${activeCategory === cat.key ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/60 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground"}`}
+            >
+              {cat.emoji ? `${cat.emoji} ` : ""}
+              {cat.label} ({getCategoryCount(cat.key)})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filteredProducts.length === 0 ? (
+        <EmptyState
+          icon={<ShoppingBag className="w-8 h-8" />}
+          title="No products found"
+          description="Try a different category to find what you're looking for."
+        />
+      ) : (
+        <div className="p-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {filteredProducts.map((product) => (
+            <Card
+              key={product.id}
+              className="border-none shadow-sm overflow-hidden flex flex-col bg-card group rounded-2xl card-warm"
+            >
+              <div className="h-36 relative overflow-hidden bg-muted">
+                <img
+                  src={product.imageUrl}
+                  alt={product.name}
+                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                />
+                {product.badge && (
+                  <span
+                    className={`absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold shadow-sm ${BADGE_COLORS[product.badge] || "bg-foreground text-background"}`}
+                  >
+                    {product.badge}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  aria-label={wishlist.has(product.id) ? "Remove from wishlist" : "Add to wishlist"}
+                  onClick={() => toggleWishlist(product.id)}
+                  className={`absolute top-2.5 right-2.5 p-1.5 rounded-full transition-all ${wishlist.has(product.id) ? "bg-destructive/10 text-destructive" : "bg-card/80 backdrop-blur-sm text-muted-foreground hover:text-destructive"}`}
+                >
+                  <Heart className={`w-4 h-4 ${wishlist.has(product.id) ? "fill-current" : ""}`} />
+                </button>
+              </div>
+              <CardContent className="p-3.5 flex-1 flex flex-col">
+                <p className="text-[9px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">
+                  {product.brand}
+                </p>
+                <h3 className="font-semibold text-sm text-foreground leading-tight mb-1 line-clamp-2">
+                  {product.name}
+                </h3>
+                <div className="flex items-center gap-1 mb-2">
+                  <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">{product.rating}</span>
+                </div>
+                <div className="flex items-center justify-between mt-auto">
+                  <span className="font-bold text-base text-primary">&euro;{product.price}</span>
+                  <Button
+                    onClick={() => addToCart(product)}
+                    size="sm"
+                    className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium"
+                  >
+                    Add
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

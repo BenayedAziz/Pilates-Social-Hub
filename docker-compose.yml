@@ -1,0 +1,36 @@
+# =============================================================================
+# PilatesHub — Simple deployment (no reverse proxy)
+#
+# Usage:
+#   cp deploy/.env.example .env   # edit values
+#   docker compose up -d --build
+# =============================================================================
+
+services:
+  api:
+    build:
+      context: .
+      target: runner
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://pilateshub:${DB_PASSWORD:-changeme}@db:5432/pilateshub
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_started
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=pilateshub
+      - POSTGRES_USER=pilateshub
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-changeme}
+    restart: unless-stopped
+
+volumes:
+  pgdata:

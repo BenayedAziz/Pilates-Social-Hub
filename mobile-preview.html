@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PilatesHub — Mobile Preview</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      background: #0f0f17;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    }
+    .wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .phone {
+      width: 280px;
+      height: 606px;
+      border-radius: 38px;
+      border: 5px solid #2a2a3a;
+      overflow: hidden;
+      position: relative;
+      background: #000;
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 20px 60px rgba(0,0,0,0.6),
+        inset 0 0 2px rgba(255,255,255,0.05);
+    }
+    .dynamic-island {
+      position: absolute;
+      top: 7px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90px;
+      height: 26px;
+      background: #000;
+      border-radius: 14px;
+      z-index: 10;
+    }
+    .phone iframe {
+      width: 393px;
+      height: 852px;
+      border: none;
+      background: #fff;
+      transform: scale(0.711);
+      transform-origin: top left;
+    }
+    .label {
+      color: rgba(255,255,255,0.4);
+      font-size: 11px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .label span { color: #567A50; }
+    .controls {
+      display: flex;
+      gap: 8px;
+    }
+    .controls button {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: rgba(255,255,255,0.5);
+      padding: 5px 12px;
+      border-radius: 6px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .controls button:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+    .controls button.active {
+      background: #567A50;
+      color: #fff;
+      border-color: #567A50;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="phone" id="phone">
+      <div class="dynamic-island"></div>
+      <iframe src="http://localhost:5173" id="app-frame"></iframe>
+    </div>
+    <p class="label" id="label"><span>PilatesHub</span> — iPhone 15 Pro</p>
+    <div class="controls">
+      <button class="active" onclick="resize(393, 852, 280, 606, 'iPhone 15 Pro', this)">iPhone 15 Pro</button>
+      <button onclick="resize(430, 932, 306, 663, 'iPhone 15 Pro Max', this)">Pro Max</button>
+      <button onclick="resize(375, 812, 267, 578, 'iPhone 13 Mini', this)">Mini</button>
+      <button onclick="resize(360, 780, 256, 555, 'Android', this)">Android</button>
+    </div>
+  </div>
+  <script>
+    function resize(iw, ih, pw, ph, name, btn) {
+      const phone = document.getElementById('phone');
+      const iframe = document.getElementById('app-frame');
+      const label = document.getElementById('label');
+      phone.style.width = pw + 'px';
+      phone.style.height = ph + 'px';
+      iframe.style.width = iw + 'px';
+      iframe.style.height = ih + 'px';
+      iframe.style.transform = 'scale(' + (pw / iw).toFixed(3) + ')';
+      label.innerHTML = '<span>PilatesHub</span> — ' + name;
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+  </script>
+</body>
+</html>
