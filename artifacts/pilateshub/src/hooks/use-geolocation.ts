@@ -7,66 +7,69 @@ interface GeoPosition {
 
 interface UseGeolocationResult {
   position: GeoPosition | null;
+  /** True while the browser Geolocation API call is in flight. */
   loading: boolean;
   error: string | null;
+  /** True when using the hardcoded default (no real geo or cached geo available). */
+  isDefault: boolean;
   requestPermission: () => void;
 }
 
-// Default fallback: Paris
+// Default fallback: Paris center
 const DEFAULT_POSITION: GeoPosition = { lat: 48.856, lng: 2.352 };
 
+// Key used to persist a *real* browser-geolocation result.
+// We never persist the hardcoded default — only coordinates that came from the
+// browser Geolocation API, so a stale IP-based cache can never resurface.
+const STORAGE_KEY = "pilateshub-geo";
+
 /**
- * IP-based geolocation fallback (works on HTTP, no API key needed).
- * Tries two free providers before falling back to Paris.
+ * Read a cached position that was obtained from the browser Geolocation API.
+ * Returns null when nothing is stored or the entry has expired (>24h).
  */
-async function getPositionFromIP(): Promise<GeoPosition> {
-  try {
-    // Free IP geolocation (no API key needed)
-    const res = await fetch("https://ipapi.co/json/");
-    if (res.ok) {
-      const data = await res.json();
-      if (data.latitude && data.longitude) {
-        return { lat: data.latitude, lng: data.longitude };
-      }
-    }
-  } catch {}
+function readCachedPosition(): GeoPosition | null {
+  // Always clean up the old key from the previous IP-geolocation implementation.
+  // That key could contain stale/wrong coordinates (e.g. Lyon instead of Paris)
+  // from an unreliable IP lookup, causing the map to open in the wrong city.
+  localStorage.removeItem("pilateshub-location");
 
-  // Second fallback
   try {
-    const res = await fetch("https://ip-api.com/json/?fields=lat,lon");
-    if (res.ok) {
-      const data = await res.json();
-      if (data.lat && data.lon) {
-        return { lat: data.lat, lng: data.lon };
-      }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Expire after 24 hours so we eventually re-check
+    if (parsed.ts && Date.now() - parsed.ts > 86_400_000) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
     }
-  } catch {}
-
-  return DEFAULT_POSITION; // Paris
+    if (typeof parsed.lat === "number" && typeof parsed.lng === "number") {
+      return { lat: parsed.lat, lng: parsed.lng };
+    }
+  } catch { /* corrupt entry — ignore */ }
+  return null;
 }
 
 export function useGeolocation(): UseGeolocationResult {
-  const [position, setPosition] = useState<GeoPosition | null>(() => {
-    const saved = localStorage.getItem("pilateshub-location");
-    if (saved) {
-      try { return JSON.parse(saved); } catch { return null; }
-    }
-    return null;
-  });
-  const [loading, setLoading] = useState(!position); // Don't show loading if we have cached position
+  const cachedGeo = readCachedPosition();
+  const [position, setPosition] = useState<GeoPosition | null>(
+    cachedGeo ?? DEFAULT_POSITION,
+  );
+  const [isDefault, setIsDefault] = useState(!cachedGeo);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const requestPermission = useCallback(async () => {
     setLoading(true);
 
-    // Try browser geolocation first (HTTPS / localhost only)
+    // Try browser geolocation (works on HTTPS & localhost; may also work on
+    // HTTP in some browsers after explicit user permission).
     const browserGeo = new Promise<GeoPosition | null>((resolve) => {
       if (!("geolocation" in navigator)) {
         resolve(null);
         return;
       }
 
-      const timeout = setTimeout(() => resolve(null), 3000); // 3s timeout
+      const timeout = setTimeout(() => resolve(null), 5000);
 
       navigator.geolocation.getCurrentPosition(
         (pos) => {
@@ -77,33 +80,33 @@ export function useGeolocation(): UseGeolocationResult {
           clearTimeout(timeout);
           resolve(null);
         },
-        { enableHighAccuracy: false, timeout: 3000, maximumAge: 300000 },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300_000 },
       );
     });
 
-    let loc = await browserGeo;
+    const loc = await browserGeo;
 
-    // Fallback: IP-based geolocation (works on HTTP)
-    if (!loc) {
-      loc = await getPositionFromIP();
+    if (loc) {
+      // Real browser position — persist it for fast future loads.
+      setPosition(loc);
+      setIsDefault(false);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...loc, ts: Date.now() }));
     }
+    // If browser geo failed we keep whatever position is already set (either
+    // cached real geo or the Paris default). We intentionally do NOT cache the
+    // default — there is no value in persisting a hardcoded constant, and doing
+    // so is what caused wrong-city bugs with old IP-geolocation data.
 
-    setPosition(loc);
     setError(null);
     setLoading(false);
-    localStorage.setItem("pilateshub-location", JSON.stringify(loc));
   }, []);
 
   useEffect(() => {
-    if (position) {
-      // We have a cached position -- don't block UI, refresh in background
-      setLoading(false);
-      requestPermission();
-    } else {
-      requestPermission();
-    }
+    // Always attempt a geolocation refresh on mount (non-blocking — we already
+    // have a position from cache or default so the UI renders immediately).
+    requestPermission();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { position, loading, error, requestPermission };
+  return { position, loading, error, isDefault, requestPermission };
 }

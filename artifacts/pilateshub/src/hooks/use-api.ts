@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 const BASE = "/api";
 
@@ -24,6 +24,12 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 
 // Studios
 export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?: number, radius?: number, limit?: number) {
+  // Round coordinates to 3 decimal places (~111 m) for the query key so that
+  // tiny map movements reuse the cached result instead of triggering new fetches
+  // (and causing a visible flash while the new data loads).
+  const keyLat = lat !== undefined ? Math.round(lat * 1000) / 1000 : undefined;
+  const keyLng = lng !== undefined ? Math.round(lng * 1000) / 1000 : undefined;
+
   const params = new URLSearchParams();
   if (q) params.set("q", q);
   if (neighborhood) params.set("neighborhood", neighborhood);
@@ -41,7 +47,7 @@ export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?
   }
   const qs = params.toString();
   return useQuery({
-    queryKey: ["studios", q, neighborhood, lat, lng, radius, limit],
+    queryKey: ["studios", q, neighborhood, keyLat, keyLng, radius, limit],
     queryFn: async () => {
       const data = await apiFetch<any[]>(`/studios${qs ? `?${qs}` : ""}`);
       return data.map((s: any) => ({
@@ -59,6 +65,7 @@ export function useStudios(q?: string, neighborhood?: string, lat?: number, lng?
         neighborhood: s.neighborhood ?? "",
       }));
     },
+    placeholderData: keepPreviousData,
   });
 }
 

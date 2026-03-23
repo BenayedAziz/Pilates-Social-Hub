@@ -1,6 +1,6 @@
 import L from "leaflet";
 import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import type { Studio } from "@/data/types";
 import { useStudios } from "@/hooks/use-api";
 import { useGeolocation } from "@/hooks/use-geolocation";
-import { MapPageSkeleton } from "@/components/PageSkeleton";
+
 
 // Fix Leaflet default icon paths for bundlers
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -115,7 +115,7 @@ function MapEventHandler({ onMoveEnd }: { onMoveEnd: (center: { lat: number; lng
 }
 
 export default function MapPage() {
-  const { position, loading: geoLoading, requestPermission } = useGeolocation();
+  const { position, loading: geoLoading, isDefault: geoIsDefault, requestPermission } = useGeolocation();
   const mapCenter: [number, number] = position ? [position.lat, position.lng] : [48.856, 2.352];
 
   // Track the current map viewport so we can refetch studios on pan/zoom
@@ -123,13 +123,21 @@ export default function MapPage() {
   const [mapZoom, setMapZoom] = useState(13);
   const moveEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce map move events (500ms) so we don't spam the API
+  // Use a transition so the viewport state updates (which trigger new API
+  // fetches) are non-urgent — React keeps showing the current UI while the
+  // new data loads in the background, eliminating any visible flash.
+  const [, startTransition] = useTransition();
+
+  // Debounce map move events (600ms) so we don't spam the API, and wrap the
+  // state update in startTransition so React treats it as non-urgent.
   const handleMoveEnd = useCallback((center: { lat: number; lng: number }, zoom: number) => {
     if (moveEndTimer.current) clearTimeout(moveEndTimer.current);
     moveEndTimer.current = setTimeout(() => {
-      setViewCenter(center);
-      setMapZoom(zoom);
-    }, 500);
+      startTransition(() => {
+        setViewCenter(center);
+        setMapZoom(zoom);
+      });
+    }, 600);
   }, []);
 
   // Calculate search radius based on zoom level
@@ -145,12 +153,13 @@ export default function MapPage() {
   const apiLat = viewCenter?.lat ?? position?.lat;
   const apiLng = viewCenter?.lng ?? position?.lng;
 
-  // Pass real position + dynamic radius to the API
-  const { data: studios = [], isLoading, isFetching } = useStudios(undefined, undefined, apiLat, apiLng, radius, 100);
+  // Pass real position + dynamic radius to the API.
+  // keepPreviousData in useStudios ensures the old markers stay visible while
+  // new data loads. The query key uses rounded coords (3 decimals) so tiny
+  // pans reuse the cache and don't trigger new fetches.
+  const { data: studios = [] } = useStudios(undefined, undefined, apiLat, apiLng, radius, 100);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [selectedStudio, setSelectedStudio] = useState<Studio | null>(null);
-
-  if (isLoading && !studios.length) return <MapPageSkeleton />;
 
   const filteredStudios = activeFilter
     ? studios.filter((s) => {
@@ -247,23 +256,13 @@ export default function MapPage() {
 
         </div>
 
-        {/* Geolocation permission banner */}
-        {!position && !geoLoading && (
+        {/* Geolocation permission banner — shown when using the hardcoded default */}
+        {geoIsDefault && !geoLoading && (
           <div className="absolute top-14 left-3 right-3 z-[1000] bg-card/95 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-border/40 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Enable location for studios near you</span>
             <button type="button" onClick={requestPermission} className="text-xs font-bold text-primary">
               Enable
             </button>
-          </div>
-        )}
-
-        {/* Loading indicator when refetching studios after pan/zoom */}
-        {isFetching && !isLoading && (
-          <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[1000] bg-card/90 backdrop-blur-sm rounded-full px-3 py-1.5 shadow-md">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <span className="text-[10px] font-semibold text-muted-foreground">Loading studios...</span>
-            </div>
           </div>
         )}
 
