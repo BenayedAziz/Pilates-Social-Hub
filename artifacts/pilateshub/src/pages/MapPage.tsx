@@ -4,6 +4,7 @@ import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
+import { CitySearchBar } from "@/components/CitySearchBar";
 import { StudioDetailDialog } from "@/components/StudioDetailDialog";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -143,6 +144,21 @@ function FlyToPosition({ position }: { position: [number, number] }) {
   return null;
 }
 
+// Fly the map to a city when the user picks one from the search bar
+function FlyToCity({ coords }: { coords: { lat: number; lng: number } | null }) {
+  const map = useMap();
+  const prevRef = useRef<{ lat: number; lng: number } | null>(null);
+  useEffect(() => {
+    if (!coords) return;
+    const prev = prevRef.current;
+    if (!prev || prev.lat !== coords.lat || prev.lng !== coords.lng) {
+      map.flyTo([coords.lat, coords.lng], 13, { duration: 1.2 });
+    }
+    prevRef.current = coords;
+  }, [coords, map]);
+  return null;
+}
+
 // Listen to map pan/zoom and report the visible bounding box
 function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: StudioBounds) => void }) {
   const map = useMap();
@@ -182,6 +198,13 @@ export default function MapPage() {
 
   const handleBoundsChange = useCallback((bounds: StudioBounds) => {
     setViewBounds(bounds);
+  }, []);
+
+  // City search: when user selects a city, fly the map there
+  const [cityCoords, setCityCoords] = useState<{ lat: number; lng: number } | null>(null);
+
+  const handleCitySelect = useCallback((lat: number, lng: number, _label: string) => {
+    setCityCoords({ lat, lng });
   }, []);
 
   // Add a 20% padding to the visible bounds so studios near the edges are
@@ -248,6 +271,9 @@ export default function MapPage() {
 
           {/* Fly to new position when geolocation resolves */}
           <FlyToPosition position={mapCenter} />
+
+          {/* Fly to city when user searches */}
+          <FlyToCity coords={cityCoords} />
 
           {/* Re-fetch studios when user pans/zooms */}
           <MapEventHandler onBoundsChange={handleBoundsChange} />
@@ -320,33 +346,39 @@ export default function MapPage() {
           <RecenterButton center={mapCenter} />
         </MapContainer>
 
-        {/* Filter bar - overlays on top of map */}
-        <div
-          className="absolute top-3 left-3 right-3 flex gap-2 overflow-x-auto pb-1 z-[1000]"
-          style={{ scrollbarWidth: "none" }}
-        >
-          <Badge className="px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm font-semibold text-xs border flex-shrink-0 flex items-center gap-1 bg-card text-foreground border-border">
-            <Filter className="w-3 h-3" />
-            Filters
-          </Badge>
-          {FILTERS.map((tag) => (
-            <Badge
-              key={tag}
-              onClick={() => setActiveFilter(activeFilter === tag ? null : tag)}
-              className={`px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm font-semibold text-xs border flex-shrink-0 transition-colors ${
-                activeFilter === tag
-                  ? "bg-primary text-white border-primary"
-                  : "bg-card text-foreground border-border hover:bg-primary hover:text-white hover:border-primary"
-              }`}
-            >
-              {tag}
+        {/* City search + filter bar - overlays on top of map */}
+        <div className="absolute top-3 left-3 right-3 z-[1000] flex flex-col gap-2">
+          {/* City search bar */}
+          <CitySearchBar onCitySelect={handleCitySelect} />
+
+          {/* Filter badges */}
+          <div
+            className="flex gap-2 overflow-x-auto pb-1"
+            style={{ scrollbarWidth: "none" }}
+          >
+            <Badge className="px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm font-semibold text-xs border flex-shrink-0 flex items-center gap-1 bg-card text-foreground border-border">
+              <Filter className="w-3 h-3" />
+              Filters
             </Badge>
-          ))}
+            {FILTERS.map((tag) => (
+              <Badge
+                key={tag}
+                onClick={() => setActiveFilter(activeFilter === tag ? null : tag)}
+                className={`px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm font-semibold text-xs border flex-shrink-0 transition-colors ${
+                  activeFilter === tag
+                    ? "bg-primary text-white border-primary"
+                    : "bg-card text-foreground border-border hover:bg-primary hover:text-white hover:border-primary"
+                }`}
+              >
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
 
         {/* Geolocation permission banner — shown when using the hardcoded default */}
         {geoIsDefault && !geoLoading && (
-          <div className="absolute top-14 left-3 right-3 z-[1000] bg-card/95 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-border/40 flex items-center justify-between">
+          <div className="absolute top-[6.5rem] left-3 right-3 z-[1000] bg-card/95 backdrop-blur-sm rounded-xl px-4 py-2.5 shadow-md border border-border/40 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">Enable location for studios near you</span>
             <button type="button" onClick={requestPermission} className="text-xs font-bold text-primary">
               Enable

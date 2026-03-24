@@ -1,6 +1,6 @@
 === PILATESHUB — COMPLETE FEATURES INVENTORY (Updated March 2026) ===
 
-Total: 19 pages, 16 components, 22 API route modules, 6 hooks, 2 contexts
+Total: 19 pages, 17 components, 22 API route modules, 6 hooks, 2 contexts
 
 ================================================================================
 --- NAVIGATION ---
@@ -176,36 +176,47 @@ SECTIONS:
      - Source badge: "OSM" or "Web"
      - Click: shows RealStudioPreviewCard
 
-  4. Filter bar (overlay on map, horizontal scroll)
+  4. City search bar (overlay on map, above filter bar)
+     - Auto-complete input: "Search city..." placeholder
+     - Geocoding via OpenStreetMap Nominatim (free, no API key)
+     - 300ms debounce, aborts in-flight requests on new input
+     - Dropdown shows up to 5 results with city label + full address
+     - Selecting a result flies the map to that city (zoom 13, 1.2s animation)
+     - Clear (X) button resets search; Escape closes dropdown
+     - Enter key selects first result
+     - Component: CitySearchBar.tsx + FlyToCity (react-leaflet useMap child)
+     - Click outside closes dropdown
+
+  5. Filter bar (overlay on map, horizontal scroll, below city search)
      - "Filters" label badge
      - Quick filters: Reformer, Mat, Beginner, Advanced, Near Me
      - "More Studios" toggle (show/hide real studios layer)
      - Active filter = primary color fill
 
-  5. Map controls
+  6. Map controls
      - Recenter button (Navigation icon, bottom-right) -> flyTo Paris center
      - List/Map toggle button (bottom-left) -> switches view
 
-  6. Map legend (bottom-center when real studios visible)
+  7. Map legend (bottom-center when real studios visible)
      - Featured (brown), Pilates (blue), Yoga (gray)
 
-  7. Featured studio preview card (on marker click)
+  8. Featured studio preview card (on marker click)
      - Studio image thumbnail, name, neighborhood, distance
      - Star rating + review count
      - "View" link -> opens StudioDetailDialog
      - Close (X) button
 
-  8. Real studio preview card (on marker click)
+  9. Real studio preview card (on marker click)
      - Name, sport type badge, source badge
      - Neighborhood, address
      - Opening hours, phone (clickable tel: link)
      - Website link (external), Instagram link
      - "Claim this studio" text
 
-  9. Studio list view (toggled via List button)
-     - Featured Studios section: card grid, image + name + rating
-     - More Studios section: simpler cards, sport type badge, website link
-     - Clicking card -> map view with studio selected
+  10. Studio list view (toggled via List button)
+      - Featured Studios section: card grid, image + name + rating
+      - More Studios section: simpler cards, sport type badge, website link
+      - Clicking card -> map view with studio selected
 
 DATA:
   - Featured studios: from useStudios() hook (GET /api/studios)
@@ -796,6 +807,14 @@ DIALOGS:
     - Reviews list with Write Review button
     - Google Reviews section (from Google Places API, with attribution)
     - Studio Regulars leaderboard (sorted by check-in count, medal badges)
+
+  CitySearchBar -> city geocoding search for map (overlay on MapPage)
+    - Auto-complete input with 300ms debounce
+    - OpenStreetMap Nominatim geocoding (free, no API key)
+    - Up to 5 dropdown results (city label + full display_name)
+    - Selecting a city flies the map to that location (zoom 13)
+    - Clear button, Escape to close, Enter selects first result
+    - Click outside closes dropdown
 
   SearchDialog -> global search (triggered from Header)
     - Auto-focus text input with search icon
