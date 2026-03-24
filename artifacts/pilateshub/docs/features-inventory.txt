@@ -556,44 +556,60 @@ DATA:
 --- PAGE: MESSAGES (/messages) ---
 ================================================================================
 
+FULLY REAL: All data flows through PostgreSQL via Drizzle ORM. Auth-gated.
+
 TWO VIEWS: Conversation List and Chat View
 
 CONVERSATION LIST VIEW:
   - Page title: "Messages", subtitle: "Your conversations"
   - Per conversation row:
-    - Avatar with online indicator (green dot)
+    - Avatar with real online/offline indicator (green dot only for online users)
     - Participant name (bold if unread)
     - Last message preview (truncated, bold if unread)
     - Timestamp (smart: Today=time, Yesterday, weekday, date)
-    - Unread count badge
+    - Unread count badge (real, from DB)
   - Empty state: MessageCircle icon, "No conversations yet"
+  - Loading spinner while fetching
 
 CHAT VIEW (selected conversation):
-  - Header: back button, avatar, participant name, "Active now"
+  - Header: back button, avatar, participant name, real presence ("Active now" / "Offline")
   - WebSocket connection status indicator (green/gray dot, "Live"/"Offline")
   - Message list (scrollable, auto-scroll to bottom)
     - Outgoing: primary color, right-aligned, rounded-br-md
     - Incoming: muted bg, left-aligned, rounded-bl-md
     - Timestamp separators (when > 5 min gap)
-    - Read receipts ("Read" on sent messages)
-    - Typing indicator ("[Name] is typing...")
+    - Read receipts ("Read" on sent messages) — real, persisted in DB
+    - Typing indicator ("[Name] is typing...") — throttled to 1/second
   - Message input bar (bottom, sticky)
     - Text input (rounded-full)
     - Send button (primary, disabled when empty)
     - Enter key sends, Shift+Enter does not
 
 REAL-TIME FEATURES (via useWebSocket):
+  - WebSocket auth: JWT token in URL query string (matches server-side auth)
   - Incoming messages via WebSocket "new_message" event
-  - Typing indicators via WebSocket "typing" event (3s timeout)
+  - Real-time read receipts via "messages_read" / "mark_read" events
+  - Online presence via "presence" broadcast (tracks WebSocket connections)
+  - Typing indicators via WebSocket "typing" event (3s timeout, 1s throttle)
   - Optimistic message sending (shows immediately)
   - Push notifications for messages when page not focused (via notify.newMessage)
-  - Send typing indicator on input change
 
-DATA:
-  - Conversations: GET /api/messages/conversations (fallback to inline mock)
-  - Messages: GET /api/messages/conversations/:id (fallback to inline mock)
-  - Send: POST /api/messages/conversations/:id + WebSocket
-  - Unread count: GET /api/messages/unread-count
+AUTH & SECURITY:
+  - All API routes use authMiddleware (JWT required)
+  - User ID derived from JWT token, not hardcoded
+  - Frontend uses useAuth() context for current user ID
+  - Frontend uses apiFetch() which auto-attaches Bearer token
+  - Header unread badge sends auth header with request
+  - Conversation access verified: user must be a participant
+
+DATA (all backed by PostgreSQL):
+  - Conversations: GET /api/messages/conversations (auth required)
+  - Messages: GET /api/messages/conversations/:id (auth, marks unread as read)
+  - Send: POST /api/messages/conversations/:id (auth) + WebSocket relay
+  - Create: POST /api/messages/conversations (auth, deduplicates 1:1 convos)
+  - Unread count: GET /api/messages/unread-count (auth)
+  - DB tables: conversations, conversation_participants, messages (with read_at)
+  - No mock data or inline fallbacks — empty state shown if no conversations
 
 ================================================================================
 --- PAGE: BOOKING (/booking/:studioId) — DEMO MODE ---
@@ -925,9 +941,11 @@ use-theme.ts:
 
 use-websocket.ts:
   - WebSocket client for real-time messaging
-  - Auto-connects with JWT token from localStorage
+  - Auth: JWT token sent in URL query string (ws://host/ws?token=xxx)
+  - Server-side auth verifies JWT and maps connection to userId
   - Auto-reconnects every 5 seconds on disconnect
   - Event system: on(type, handler) for registering listeners
+  - Event types: new_message, typing, mark_read, messages_read, presence
   - send(data) for outgoing JSON messages
   - connected state for UI indicator
   - Graceful error handling (silent fail if server doesn't support WS)
@@ -1031,11 +1049,13 @@ CALORIE DATA:
 CIRCLES:
   GET  /api/circles -> PilatesCircle[]
 
-MESSAGES:
-  GET  /api/messages/conversations -> Conversation[]
-  GET  /api/messages/conversations/:id -> { messages: Message[] }
-  POST /api/messages/conversations/:id -> send message ({ content })
-  GET  /api/messages/unread-count -> { count: number }
+MESSAGES (all require auth — JWT Bearer token):
+  GET  /api/messages/conversations -> Conversation[] (from DB, with real unread counts)
+  GET  /api/messages/conversations/:id -> { conversation, messages } (marks unread as read)
+  POST /api/messages/conversations -> create conversation ({ participantId, message }; deduplicates)
+  POST /api/messages/conversations/:id -> send message ({ content }; persisted to DB)
+  GET  /api/messages/unread-count -> { count: number } (real count from DB)
+  WS   /ws?token=JWT -> real-time relay (new_message, typing, mark_read, presence)
 
 REVIEWS:
   GET  /api/studios/:id/reviews -> StudioReview[]

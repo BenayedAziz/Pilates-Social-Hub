@@ -1,208 +1,8 @@
 import { Router, type IRouter } from "express";
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-interface AppUser {
-  id: number;
-  name: string;
-  initials: string;
-  color: string;
-}
-
-interface Message {
-  id: number;
-  conversationId: number;
-  senderId: number;
-  content: string;
-  createdAt: string;
-  readAt: string | null;
-}
-
-interface Conversation {
-  id: number;
-  participant: AppUser;
-  lastMessage: string;
-  lastMessageAt: string;
-  unreadCount: number;
-}
-
-// ---------------------------------------------------------------------------
-// Mock users
-// ---------------------------------------------------------------------------
-const USERS: Record<number, AppUser> = {
-  1: { id: 1, name: "Emma D", initials: "ED", color: "bg-rose-200" },
-  2: { id: 2, name: "Sophie B", initials: "SB", color: "bg-green-200" },
-  3: { id: 3, name: "Lucas M", initials: "LM", color: "bg-blue-200" },
-};
-
-const CURRENT_USER_ID = 1;
-
-// ---------------------------------------------------------------------------
-// Mock conversations & messages
-// ---------------------------------------------------------------------------
-const mockConversations: Conversation[] = [
-  {
-    id: 1,
-    participant: USERS[2]!,
-    lastMessage: "Yes! The Saturday morning class at Studio Harmonie is perfect for that.",
-    lastMessageAt: "2026-03-23T09:15:00Z",
-    unreadCount: 2,
-  },
-  {
-    id: 2,
-    participant: USERS[3]!,
-    lastMessage: "Just finished day 12 of the challenge. My core is on fire!",
-    lastMessageAt: "2026-03-22T18:30:00Z",
-    unreadCount: 0,
-  },
-  {
-    id: 3,
-    participant: { id: 4, name: "Marie C", initials: "MC", color: "bg-purple-200" },
-    lastMessage: "Let me know when you want to check out that new studio in the 11th!",
-    lastMessageAt: "2026-03-21T14:45:00Z",
-    unreadCount: 1,
-  },
-];
-
-const mockMessages: Record<number, Message[]> = {
-  1: [
-    {
-      id: 1,
-      conversationId: 1,
-      senderId: 2,
-      content: "Hey Emma! Have you tried any good reformer classes lately?",
-      createdAt: "2026-03-23T08:00:00Z",
-      readAt: "2026-03-23T08:05:00Z",
-    },
-    {
-      id: 2,
-      conversationId: 1,
-      senderId: 1,
-      content: "I've been going to Studio Harmonie a lot. Their advanced reformer flow is incredible!",
-      createdAt: "2026-03-23T08:12:00Z",
-      readAt: "2026-03-23T08:15:00Z",
-    },
-    {
-      id: 3,
-      conversationId: 1,
-      senderId: 2,
-      content: "Ooh nice! I'm looking for something to improve my spine articulation. Any suggestions?",
-      createdAt: "2026-03-23T08:20:00Z",
-      readAt: "2026-03-23T08:22:00Z",
-    },
-    {
-      id: 4,
-      conversationId: 1,
-      senderId: 1,
-      content: "Definitely try the Cadillac class at Pilates Lumiere. Coach Isabelle is amazing for that.",
-      createdAt: "2026-03-23T08:45:00Z",
-      readAt: "2026-03-23T09:00:00Z",
-    },
-    {
-      id: 5,
-      conversationId: 1,
-      senderId: 2,
-      content: "That sounds perfect! Do they have weekend classes?",
-      createdAt: "2026-03-23T09:05:00Z",
-      readAt: null,
-    },
-    {
-      id: 6,
-      conversationId: 1,
-      senderId: 2,
-      content: "Yes! The Saturday morning class at Studio Harmonie is perfect for that.",
-      createdAt: "2026-03-23T09:15:00Z",
-      readAt: null,
-    },
-  ],
-  2: [
-    {
-      id: 7,
-      conversationId: 2,
-      senderId: 3,
-      content: "Hey! Are you doing the 30-day core challenge too?",
-      createdAt: "2026-03-20T10:00:00Z",
-      readAt: "2026-03-20T10:05:00Z",
-    },
-    {
-      id: 8,
-      conversationId: 2,
-      senderId: 1,
-      content: "Yes! I started last week. Already feeling the difference in my posture.",
-      createdAt: "2026-03-20T10:30:00Z",
-      readAt: "2026-03-20T10:35:00Z",
-    },
-    {
-      id: 9,
-      conversationId: 2,
-      senderId: 3,
-      content: "Same here. The teaser progressions are killing me though!",
-      createdAt: "2026-03-21T14:00:00Z",
-      readAt: "2026-03-21T14:10:00Z",
-    },
-    {
-      id: 10,
-      conversationId: 2,
-      senderId: 1,
-      content: "Haha tell me about it. I can barely hold the V-sit for 10 seconds.",
-      createdAt: "2026-03-21T14:20:00Z",
-      readAt: "2026-03-21T14:25:00Z",
-    },
-    {
-      id: 11,
-      conversationId: 2,
-      senderId: 3,
-      content: "Just finished day 12 of the challenge. My core is on fire!",
-      createdAt: "2026-03-22T18:30:00Z",
-      readAt: "2026-03-22T18:35:00Z",
-    },
-  ],
-  3: [
-    {
-      id: 12,
-      conversationId: 3,
-      senderId: 4,
-      content: "Emma! Did you see the new studio that opened near Bastille?",
-      createdAt: "2026-03-20T09:00:00Z",
-      readAt: "2026-03-20T09:10:00Z",
-    },
-    {
-      id: 13,
-      conversationId: 3,
-      senderId: 1,
-      content: "No, which one? I'm always looking for new places to try!",
-      createdAt: "2026-03-20T09:15:00Z",
-      readAt: "2026-03-20T09:20:00Z",
-    },
-    {
-      id: 14,
-      conversationId: 3,
-      senderId: 4,
-      content: "It's called BodyWork Pilates. They have reformer, tower, and even aerial classes.",
-      createdAt: "2026-03-20T11:00:00Z",
-      readAt: "2026-03-20T11:05:00Z",
-    },
-    {
-      id: 15,
-      conversationId: 3,
-      senderId: 1,
-      content: "Aerial pilates?! That sounds amazing. We should go together!",
-      createdAt: "2026-03-20T11:30:00Z",
-      readAt: "2026-03-20T11:35:00Z",
-    },
-    {
-      id: 16,
-      conversationId: 3,
-      senderId: 4,
-      content: "Let me know when you want to check out that new studio in the 11th!",
-      createdAt: "2026-03-21T14:45:00Z",
-      readAt: null,
-    },
-  ],
-};
-
-let nextMessageId = 17;
+import { getDatabase } from "../lib/database";
+import { eq, and, desc, sql, ne, isNull } from "drizzle-orm";
+import { authMiddleware } from "../middleware/auth";
+import { logger } from "../lib/logger";
 
 // ---------------------------------------------------------------------------
 // Router
@@ -211,59 +11,256 @@ const router: IRouter = Router();
 
 /**
  * GET /api/messages/conversations
- * List all conversations for the current user.
+ * List all conversations for the authenticated user, sorted by most recent.
  */
-router.get("/messages/conversations", (_req, res) => {
+router.get("/messages/conversations", authMiddleware, async (req, res) => {
+  const userId = req.user!.userId;
+
   try {
+    const database = await getDatabase();
+    if (!database) {
+      res.json([]);
+      return;
+    }
+
+    const { db, schema } = database;
+
+    // Find all conversation IDs the user participates in
+    const participantRows = await db
+      .select({ conversationId: schema.conversationParticipants.conversationId })
+      .from(schema.conversationParticipants)
+      .where(eq(schema.conversationParticipants.userId, userId));
+
+    const convoIds = participantRows.map((r: any) => r.conversationId);
+
+    if (convoIds.length === 0) {
+      res.json([]);
+      return;
+    }
+
+    // Build conversations with last message + unread count + other participant info
+    const conversations = [];
+
+    for (const convoId of convoIds) {
+      // Get the other participant(s) — for 1:1, there's exactly one other
+      const otherParticipants = await db
+        .select({
+          userId: schema.conversationParticipants.userId,
+          displayName: schema.users.displayName,
+          avatarUrl: schema.users.avatarUrl,
+        })
+        .from(schema.conversationParticipants)
+        .leftJoin(schema.users, eq(schema.conversationParticipants.userId, schema.users.id))
+        .where(
+          and(
+            eq(schema.conversationParticipants.conversationId, convoId),
+            ne(schema.conversationParticipants.userId, userId),
+          ),
+        );
+
+      if (otherParticipants.length === 0) continue;
+
+      const other = otherParticipants[0];
+      const name = other.displayName || "User";
+      const initials = name
+        .split(" ")
+        .map((n: string) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+
+      // Hash-based color from user ID
+      const colors = [
+        "bg-rose-200", "bg-green-200", "bg-blue-200", "bg-purple-200",
+        "bg-yellow-200", "bg-orange-200", "bg-teal-200", "bg-indigo-200",
+      ];
+      const color = colors[other.userId % colors.length];
+
+      // Get last message
+      const [lastMsg] = await db
+        .select({
+          content: schema.messages.content,
+          createdAt: schema.messages.createdAt,
+        })
+        .from(schema.messages)
+        .where(eq(schema.messages.conversationId, convoId))
+        .orderBy(desc(schema.messages.createdAt))
+        .limit(1);
+
+      // Count unread messages (sent by others, not read yet)
+      const [unreadResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.messages)
+        .where(
+          and(
+            eq(schema.messages.conversationId, convoId),
+            ne(schema.messages.senderId, userId),
+            isNull(schema.messages.readAt),
+          ),
+        );
+
+      conversations.push({
+        id: convoId,
+        participant: {
+          id: other.userId,
+          name,
+          initials,
+          color,
+        },
+        lastMessage: lastMsg?.content || "",
+        lastMessageAt: lastMsg?.createdAt
+          ? new Date(lastMsg.createdAt).toISOString()
+          : new Date().toISOString(),
+        unreadCount: unreadResult?.count || 0,
+      });
+    }
+
     // Sort by most recent message
-    const sorted = [...mockConversations].sort(
+    conversations.sort(
       (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
     );
-    res.json(sorted);
+
+    res.json(conversations);
   } catch (error) {
+    logger.error({ error }, "Failed to fetch conversations");
     res.status(500).json({ error: "Failed to fetch conversations" });
   }
 });
 
 /**
  * GET /api/messages/conversations/:id
- * Get all messages in a conversation.
+ * Get all messages in a conversation. Marks unread messages as read.
  */
-router.get("/messages/conversations/:id", (req, res) => {
+router.get("/messages/conversations/:id", authMiddleware, async (req, res) => {
+  const userId = req.user!.userId;
   const id = Number(req.params["id"]);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid conversation id" });
     return;
   }
 
-  const convo = mockConversations.find((c) => c.id === id);
-  if (!convo) {
-    res.status(404).json({ error: "Conversation not found" });
-    return;
-  }
-
-  const msgs = mockMessages[id] || [];
-
-  // Mark unread messages as read
-  for (const msg of msgs) {
-    if (!msg.readAt && msg.senderId !== CURRENT_USER_ID) {
-      msg.readAt = new Date().toISOString();
+  try {
+    const database = await getDatabase();
+    if (!database) {
+      res.status(404).json({ error: "Conversation not found" });
+      return;
     }
-  }
-  convo.unreadCount = 0;
 
-  res.json({
-    conversation: convo,
-    messages: msgs,
-  });
+    const { db, schema } = database;
+
+    // Verify the user is a participant in this conversation
+    const [participant] = await db
+      .select()
+      .from(schema.conversationParticipants)
+      .where(
+        and(
+          eq(schema.conversationParticipants.conversationId, id),
+          eq(schema.conversationParticipants.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!participant) {
+      res.status(404).json({ error: "Conversation not found" });
+      return;
+    }
+
+    // Fetch messages
+    const msgs = await db
+      .select({
+        id: schema.messages.id,
+        conversationId: schema.messages.conversationId,
+        senderId: schema.messages.senderId,
+        content: schema.messages.content,
+        createdAt: schema.messages.createdAt,
+        readAt: schema.messages.readAt,
+      })
+      .from(schema.messages)
+      .where(eq(schema.messages.conversationId, id))
+      .orderBy(schema.messages.createdAt);
+
+    // Format messages with ISO strings
+    const formattedMsgs = msgs.map((m: any) => ({
+      id: m.id,
+      conversationId: m.conversationId,
+      senderId: m.senderId,
+      content: m.content,
+      createdAt: new Date(m.createdAt).toISOString(),
+      readAt: m.readAt ? new Date(m.readAt).toISOString() : null,
+    }));
+
+    // Mark unread messages from other users as read
+    await db
+      .update(schema.messages)
+      .set({ readAt: new Date() })
+      .where(
+        and(
+          eq(schema.messages.conversationId, id),
+          ne(schema.messages.senderId, userId),
+          isNull(schema.messages.readAt),
+        ),
+      );
+
+    // Build conversation info for the response
+    const otherParticipants = await db
+      .select({
+        userId: schema.conversationParticipants.userId,
+        displayName: schema.users.displayName,
+      })
+      .from(schema.conversationParticipants)
+      .leftJoin(schema.users, eq(schema.conversationParticipants.userId, schema.users.id))
+      .where(
+        and(
+          eq(schema.conversationParticipants.conversationId, id),
+          ne(schema.conversationParticipants.userId, userId),
+        ),
+      );
+
+    const other = otherParticipants[0];
+    const name = other?.displayName || "User";
+    const initials = name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+
+    const colors = [
+      "bg-rose-200", "bg-green-200", "bg-blue-200", "bg-purple-200",
+      "bg-yellow-200", "bg-orange-200", "bg-teal-200", "bg-indigo-200",
+    ];
+    const color = colors[(other?.userId || 0) % colors.length];
+
+    const lastMsg = formattedMsgs[formattedMsgs.length - 1];
+
+    res.json({
+      conversation: {
+        id,
+        participant: {
+          id: other?.userId,
+          name,
+          initials,
+          color,
+        },
+        lastMessage: lastMsg?.content || "",
+        lastMessageAt: lastMsg?.createdAt || new Date().toISOString(),
+        unreadCount: 0, // Just marked as read
+      },
+      messages: formattedMsgs,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to fetch messages");
+    res.status(500).json({ error: "Failed to fetch messages" });
+  }
 });
 
 /**
  * POST /api/messages/conversations
- * Create a new conversation with a user.
+ * Create a new conversation with a user, or return existing one.
  * Body: { participantId: number, message: string }
  */
-router.post("/messages/conversations", (req, res) => {
+router.post("/messages/conversations", authMiddleware, async (req, res) => {
+  const userId = req.user!.userId;
   const { participantId, message } = req.body as {
     participantId?: number;
     message?: string;
@@ -274,36 +271,139 @@ router.post("/messages/conversations", (req, res) => {
     return;
   }
 
-  const participant = USERS[participantId];
-  if (!participant) {
-    res.status(404).json({ error: "User not found" });
+  if (participantId === userId) {
+    res.status(400).json({ error: "Cannot message yourself" });
     return;
   }
 
-  const now = new Date().toISOString();
-  const newConvoId = Math.max(...mockConversations.map((c) => c.id)) + 1;
+  try {
+    const database = await getDatabase();
+    if (!database) {
+      res.status(500).json({ error: "Database not available" });
+      return;
+    }
 
-  const newConvo: Conversation = {
-    id: newConvoId,
-    participant,
-    lastMessage: message,
-    lastMessageAt: now,
-    unreadCount: 0,
-  };
+    const { db, schema } = database;
 
-  const newMsg: Message = {
-    id: nextMessageId++,
-    conversationId: newConvoId,
-    senderId: CURRENT_USER_ID,
-    content: message,
-    createdAt: now,
-    readAt: null,
-  };
+    // Verify the target user exists
+    const [targetUser] = await db
+      .select({ id: schema.users.id, displayName: schema.users.displayName })
+      .from(schema.users)
+      .where(eq(schema.users.id, participantId))
+      .limit(1);
 
-  mockConversations.push(newConvo);
-  mockMessages[newConvoId] = [newMsg];
+    if (!targetUser) {
+      res.status(404).json({ error: "User not found" });
+      return;
+    }
 
-  res.status(201).json({ conversation: newConvo, message: newMsg });
+    // Check for existing 1:1 conversation between these two users
+    const myConvos = await db
+      .select({ conversationId: schema.conversationParticipants.conversationId })
+      .from(schema.conversationParticipants)
+      .where(eq(schema.conversationParticipants.userId, userId));
+
+    const theirConvos = await db
+      .select({ conversationId: schema.conversationParticipants.conversationId })
+      .from(schema.conversationParticipants)
+      .where(eq(schema.conversationParticipants.userId, participantId));
+
+    const myConvoIds = new Set(myConvos.map((r: any) => r.conversationId));
+    const sharedConvoIds = theirConvos
+      .map((r: any) => r.conversationId)
+      .filter((id: number) => myConvoIds.has(id));
+
+    // Check if any shared conversation is a 1:1 (exactly 2 participants)
+    let existingConvoId: number | null = null;
+    for (const cId of sharedConvoIds) {
+      const [countResult] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.conversationParticipants)
+        .where(eq(schema.conversationParticipants.conversationId, cId));
+      if (countResult?.count === 2) {
+        existingConvoId = cId;
+        break;
+      }
+    }
+
+    let convoId: number;
+
+    if (existingConvoId) {
+      // Use existing conversation — just add the new message
+      convoId = existingConvoId;
+    } else {
+      // Create new conversation
+      const [newConvo] = await db
+        .insert(schema.conversations)
+        .values({})
+        .returning({ id: schema.conversations.id });
+      convoId = newConvo.id;
+
+      // Add both participants
+      await db.insert(schema.conversationParticipants).values([
+        { conversationId: convoId, userId },
+        { conversationId: convoId, userId: participantId },
+      ]);
+    }
+
+    // Insert the message
+    const now = new Date();
+    const [newMsg] = await db
+      .insert(schema.messages)
+      .values({
+        conversationId: convoId,
+        senderId: userId,
+        content: message,
+        createdAt: now,
+      })
+      .returning();
+
+    // Update conversation timestamp
+    await db
+      .update(schema.conversations)
+      .set({ updatedAt: now })
+      .where(eq(schema.conversations.id, convoId));
+
+    // Build participant info for response
+    const name = targetUser.displayName || "User";
+    const initials = name
+      .split(" ")
+      .map((n: string) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+    const colors = [
+      "bg-rose-200", "bg-green-200", "bg-blue-200", "bg-purple-200",
+      "bg-yellow-200", "bg-orange-200", "bg-teal-200", "bg-indigo-200",
+    ];
+    const color = colors[participantId % colors.length];
+
+    res.status(201).json({
+      conversation: {
+        id: convoId,
+        participant: {
+          id: participantId,
+          name,
+          initials,
+          color,
+        },
+        lastMessage: message,
+        lastMessageAt: now.toISOString(),
+        unreadCount: 0,
+      },
+      message: {
+        id: newMsg.id,
+        conversationId: convoId,
+        senderId: userId,
+        content: message,
+        createdAt: now.toISOString(),
+        readAt: null,
+      },
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to create conversation");
+    res.status(500).json({ error: "Failed to create conversation" });
+  }
 });
 
 /**
@@ -311,7 +411,8 @@ router.post("/messages/conversations", (req, res) => {
  * Send a message in a conversation.
  * Body: { content: string }
  */
-router.post("/messages/conversations/:id", (req, res) => {
+router.post("/messages/conversations/:id", authMiddleware, async (req, res) => {
+  const userId = req.user!.userId;
   const id = Number(req.params["id"]);
   if (Number.isNaN(id)) {
     res.status(400).json({ error: "Invalid conversation id" });
@@ -324,41 +425,113 @@ router.post("/messages/conversations/:id", (req, res) => {
     return;
   }
 
-  const convo = mockConversations.find((c) => c.id === id);
-  if (!convo) {
-    res.status(404).json({ error: "Conversation not found" });
-    return;
+  try {
+    const database = await getDatabase();
+    if (!database) {
+      res.status(500).json({ error: "Database not available" });
+      return;
+    }
+
+    const { db, schema } = database;
+
+    // Verify the user is a participant
+    const [participant] = await db
+      .select()
+      .from(schema.conversationParticipants)
+      .where(
+        and(
+          eq(schema.conversationParticipants.conversationId, id),
+          eq(schema.conversationParticipants.userId, userId),
+        ),
+      )
+      .limit(1);
+
+    if (!participant) {
+      res.status(404).json({ error: "Conversation not found" });
+      return;
+    }
+
+    const now = new Date();
+    const [newMsg] = await db
+      .insert(schema.messages)
+      .values({
+        conversationId: id,
+        senderId: userId,
+        content,
+        createdAt: now,
+      })
+      .returning();
+
+    // Update conversation timestamp
+    await db
+      .update(schema.conversations)
+      .set({ updatedAt: now })
+      .where(eq(schema.conversations.id, id));
+
+    res.status(201).json({
+      id: newMsg.id,
+      conversationId: id,
+      senderId: userId,
+      content,
+      createdAt: now.toISOString(),
+      readAt: null,
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to send message");
+    res.status(500).json({ error: "Failed to send message" });
   }
-
-  const now = new Date().toISOString();
-  const newMsg: Message = {
-    id: nextMessageId++,
-    conversationId: id,
-    senderId: CURRENT_USER_ID,
-    content,
-    createdAt: now,
-    readAt: null,
-  };
-
-  if (!mockMessages[id]) {
-    mockMessages[id] = [];
-  }
-  mockMessages[id].push(newMsg);
-
-  // Update conversation last message
-  convo.lastMessage = content;
-  convo.lastMessageAt = now;
-
-  res.status(201).json(newMsg);
 });
 
 /**
  * GET /api/messages/unread-count
  * Get total unread message count for header badge.
  */
-router.get("/messages/unread-count", (_req, res) => {
-  const total = mockConversations.reduce((sum, c) => sum + c.unreadCount, 0);
-  res.json({ count: total });
+router.get("/messages/unread-count", authMiddleware, async (req, res) => {
+  const userId = req.user!.userId;
+
+  try {
+    const database = await getDatabase();
+    if (!database) {
+      res.json({ count: 0 });
+      return;
+    }
+
+    const { db, schema } = database;
+
+    // Get all conversation IDs the user is in
+    const participantRows = await db
+      .select({ conversationId: schema.conversationParticipants.conversationId })
+      .from(schema.conversationParticipants)
+      .where(eq(schema.conversationParticipants.userId, userId));
+
+    const convoIds = participantRows.map((r: any) => r.conversationId);
+
+    if (convoIds.length === 0) {
+      res.json({ count: 0 });
+      return;
+    }
+
+    // Count unread messages across all conversations
+    let total = 0;
+    for (const convoId of convoIds) {
+      const [result] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.messages)
+        .where(
+          and(
+            eq(schema.messages.conversationId, convoId),
+            ne(schema.messages.senderId, userId),
+            isNull(schema.messages.readAt),
+          ),
+        );
+      total += result?.count || 0;
+    }
+
+    res.json({ count: total });
+  } catch (error) {
+    logger.error({ error }, "Failed to fetch unread count");
+    res.status(500).json({ error: "Failed to fetch unread count" });
+  }
 });
 
 export default router;

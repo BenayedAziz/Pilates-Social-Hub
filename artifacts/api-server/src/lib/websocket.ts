@@ -1,6 +1,8 @@
 import { WebSocketServer, WebSocket } from "ws";
 import type { Server } from "http";
+import { eq, and, ne, isNull } from "drizzle-orm";
 import { verifyToken } from "../middleware/auth";
+import { getDatabase } from "./database";
 import { logger } from "./logger";
 
 interface ConnectedClient {
@@ -38,6 +40,9 @@ export function setupWebSocket(server: Server) {
     clients.set(userId, existing);
     logger.info({ userId }, "WebSocket client connected");
 
+    // Broadcast presence to all connected users
+    broadcastPresence();
+
     ws.on("message", (raw) => {
       try {
         const data = JSON.parse(raw.toString());
@@ -55,15 +60,18 @@ export function setupWebSocket(server: Server) {
       );
       if (clients.get(userId)?.length === 0) clients.delete(userId);
       logger.info({ userId }, "WebSocket client disconnected");
+      broadcastPresence();
     });
   });
 
   return wss;
 }
 
-function handleMessage(senderId: number, data: any) {
+async function handleMessage(senderId: number, data: any) {
   if (data.type === "message" && data.conversationId && data.content) {
-    // Broadcast to the recipient
+    // Relay to the recipient for real-time delivery.
+    // Persistence is handled by the POST /api/messages/conversations/:id route,
+    // which the frontend always calls alongside the WS send.
     if (data.recipientId) {
       sendToUser(data.recipientId, {
         type: "new_message",
@@ -84,6 +92,56 @@ function handleMessage(senderId: number, data: any) {
       });
     }
   }
+
+  // Handle mark_read events from the frontend
+  if (data.type === "mark_read" && data.conversationId) {
+    try {
+      const database = await getDatabase();
+      if (database) {
+        const { db, schema } = database;
+        await db
+          .update(schema.messages)
+          .set({ readAt: new Date() })
+          .where(
+            and(
+              eq(schema.messages.conversationId, data.conversationId),
+              ne(schema.messages.senderId, senderId),
+              isNull(schema.messages.readAt),
+            ),
+          );
+
+        // Notify the other user that their messages were read
+        if (data.recipientId) {
+          sendToUser(data.recipientId, {
+            type: "messages_read",
+            conversationId: data.conversationId,
+            readBy: senderId,
+            readAt: new Date().toISOString(),
+          });
+        }
+      }
+    } catch (error) {
+      logger.error({ error }, "Failed to mark messages as read");
+    }
+  }
+}
+
+/**
+ * Broadcast the list of online user IDs to all connected clients.
+ */
+function broadcastPresence() {
+  const onlineUserIds = Array.from(clients.keys());
+  const payload = JSON.stringify({
+    type: "presence",
+    onlineUserIds,
+  });
+  for (const [, userClients] of clients) {
+    for (const { ws } of userClients) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(payload);
+      }
+    }
+  }
 }
 
 export function sendToUser(userId: number, data: any) {
@@ -94,4 +152,11 @@ export function sendToUser(userId: number, data: any) {
       ws.send(message);
     }
   });
+}
+
+/**
+ * Get the set of currently online user IDs.
+ */
+export function getOnlineUserIds(): number[] {
+  return Array.from(clients.keys());
 }

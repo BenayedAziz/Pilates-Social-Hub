@@ -10,18 +10,17 @@ export function useWebSocket() {
 
   const connect = useCallback(() => {
     const token = localStorage.getItem("pilateshub-token");
-    if (!token) return; // No token — skip WebSocket (demo mode)
+    if (!token) return; // No token — skip WebSocket (not authenticated)
 
     try {
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      // Send token in URL query string to match server-side auth
+      const wsUrl = `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
 
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        // Send token after connection to avoid leaking JWT in URL/logs
-        ws.send(JSON.stringify({ type: "auth", token }));
         setConnected(true);
       };
 

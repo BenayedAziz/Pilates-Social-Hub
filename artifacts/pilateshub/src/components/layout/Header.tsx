@@ -26,14 +26,20 @@ export function Header() {
   };
 
   useEffect(() => {
-    fetch("/api/messages/unread-count")
-      .then((res) => res.json())
+    const token = localStorage.getItem("pilateshub-token");
+    if (!token) return; // No auth — skip unread count
+    fetch("/api/messages/unread-count", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Unauthorized");
+        return res.json();
+      })
       .then((data) => {
         if (typeof data.count === "number") setUnreadMessages(data.count);
       })
       .catch(() => {
-        // Fallback: 3 unread from mock data
-        setUnreadMessages(3);
+        setUnreadMessages(0);
       });
   }, []);
 

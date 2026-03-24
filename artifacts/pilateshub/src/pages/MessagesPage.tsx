@@ -3,7 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/AuthContext";
 import { useWebSocket } from "@/hooks/use-websocket";
+import { apiFetch } from "@/hooks/api-fetch";
 import { notify } from "@/lib/notifications";
 
 // ---------------------------------------------------------------------------
@@ -32,172 +34,6 @@ interface Message {
   createdAt: string;
   readAt: string | null;
 }
-
-// ---------------------------------------------------------------------------
-// Mock data (inline fallback — mirrors the API mock data)
-// ---------------------------------------------------------------------------
-const CURRENT_USER_ID = 1;
-
-const fallbackConversations: Conversation[] = [
-  {
-    id: 1,
-    participant: { id: 2, name: "Sophie B", initials: "SB", color: "bg-green-200" },
-    lastMessage: "Yes! The Saturday morning class at Studio Harmonie is perfect for that.",
-    lastMessageAt: "2026-03-23T09:15:00Z",
-    unreadCount: 2,
-  },
-  {
-    id: 2,
-    participant: { id: 3, name: "Lucas M", initials: "LM", color: "bg-blue-200" },
-    lastMessage: "Just finished day 12 of the challenge. My core is on fire!",
-    lastMessageAt: "2026-03-22T18:30:00Z",
-    unreadCount: 0,
-  },
-  {
-    id: 3,
-    participant: { id: 4, name: "Marie C", initials: "MC", color: "bg-purple-200" },
-    lastMessage: "Let me know when you want to check out that new studio in the 11th!",
-    lastMessageAt: "2026-03-21T14:45:00Z",
-    unreadCount: 1,
-  },
-];
-
-const fallbackMessages: Record<number, Message[]> = {
-  1: [
-    {
-      id: 1,
-      conversationId: 1,
-      senderId: 2,
-      content: "Hey Emma! Have you tried any good reformer classes lately?",
-      createdAt: "2026-03-23T08:00:00Z",
-      readAt: "2026-03-23T08:05:00Z",
-    },
-    {
-      id: 2,
-      conversationId: 1,
-      senderId: 1,
-      content: "I've been going to Studio Harmonie a lot. Their advanced reformer flow is incredible!",
-      createdAt: "2026-03-23T08:12:00Z",
-      readAt: "2026-03-23T08:15:00Z",
-    },
-    {
-      id: 3,
-      conversationId: 1,
-      senderId: 2,
-      content: "Ooh nice! I'm looking for something to improve my spine articulation. Any suggestions?",
-      createdAt: "2026-03-23T08:20:00Z",
-      readAt: "2026-03-23T08:22:00Z",
-    },
-    {
-      id: 4,
-      conversationId: 1,
-      senderId: 1,
-      content: "Definitely try the Cadillac class at Pilates Lumiere. Coach Isabelle is amazing for that.",
-      createdAt: "2026-03-23T08:45:00Z",
-      readAt: "2026-03-23T09:00:00Z",
-    },
-    {
-      id: 5,
-      conversationId: 1,
-      senderId: 2,
-      content: "That sounds perfect! Do they have weekend classes?",
-      createdAt: "2026-03-23T09:05:00Z",
-      readAt: null,
-    },
-    {
-      id: 6,
-      conversationId: 1,
-      senderId: 2,
-      content: "Yes! The Saturday morning class at Studio Harmonie is perfect for that.",
-      createdAt: "2026-03-23T09:15:00Z",
-      readAt: null,
-    },
-  ],
-  2: [
-    {
-      id: 7,
-      conversationId: 2,
-      senderId: 3,
-      content: "Hey! Are you doing the 30-day core challenge too?",
-      createdAt: "2026-03-20T10:00:00Z",
-      readAt: "2026-03-20T10:05:00Z",
-    },
-    {
-      id: 8,
-      conversationId: 2,
-      senderId: 1,
-      content: "Yes! I started last week. Already feeling the difference in my posture.",
-      createdAt: "2026-03-20T10:30:00Z",
-      readAt: "2026-03-20T10:35:00Z",
-    },
-    {
-      id: 9,
-      conversationId: 2,
-      senderId: 3,
-      content: "Same here. The teaser progressions are killing me though!",
-      createdAt: "2026-03-21T14:00:00Z",
-      readAt: "2026-03-21T14:10:00Z",
-    },
-    {
-      id: 10,
-      conversationId: 2,
-      senderId: 1,
-      content: "Haha tell me about it. I can barely hold the V-sit for 10 seconds.",
-      createdAt: "2026-03-21T14:20:00Z",
-      readAt: "2026-03-21T14:25:00Z",
-    },
-    {
-      id: 11,
-      conversationId: 2,
-      senderId: 3,
-      content: "Just finished day 12 of the challenge. My core is on fire!",
-      createdAt: "2026-03-22T18:30:00Z",
-      readAt: "2026-03-22T18:35:00Z",
-    },
-  ],
-  3: [
-    {
-      id: 12,
-      conversationId: 3,
-      senderId: 4,
-      content: "Emma! Did you see the new studio that opened near Bastille?",
-      createdAt: "2026-03-20T09:00:00Z",
-      readAt: "2026-03-20T09:10:00Z",
-    },
-    {
-      id: 13,
-      conversationId: 3,
-      senderId: 1,
-      content: "No, which one? I'm always looking for new places to try!",
-      createdAt: "2026-03-20T09:15:00Z",
-      readAt: "2026-03-20T09:20:00Z",
-    },
-    {
-      id: 14,
-      conversationId: 3,
-      senderId: 4,
-      content: "It's called BodyWork Pilates. They have reformer, tower, and even aerial classes.",
-      createdAt: "2026-03-20T11:00:00Z",
-      readAt: "2026-03-20T11:05:00Z",
-    },
-    {
-      id: 15,
-      conversationId: 3,
-      senderId: 1,
-      content: "Aerial pilates?! That sounds amazing. We should go together!",
-      createdAt: "2026-03-20T11:30:00Z",
-      readAt: "2026-03-20T11:35:00Z",
-    },
-    {
-      id: 16,
-      conversationId: 3,
-      senderId: 4,
-      content: "Let me know when you want to check out that new studio in the 11th!",
-      createdAt: "2026-03-21T14:45:00Z",
-      readAt: null,
-    },
-  ],
-};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -229,17 +65,32 @@ function formatChatTime(dateStr: string): string {
 // Component
 // ---------------------------------------------------------------------------
 export default function MessagesPage() {
-  const [conversations, setConversations] = useState<Conversation[]>(fallbackConversations);
+  const { user } = useAuth();
+  const currentUserId = user?.id ?? 0;
+
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConvo, setSelectedConvo] = useState<number | null>(null);
   const [chatMessages, setChatMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [typingUser, setTypingUser] = useState<string | null>(null);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<number>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingThrottleRef = useRef<number>(0);
 
   const { connected, send, on } = useWebSocket();
+
+  // Listen for presence updates
+  useEffect(() => {
+    const unsubPresence = on("presence", (data) => {
+      if (Array.isArray(data.onlineUserIds)) {
+        setOnlineUserIds(new Set(data.onlineUserIds));
+      }
+    });
+    return unsubPresence;
+  }, [on]);
 
   // Listen for incoming real-time messages
   useEffect(() => {
@@ -247,7 +98,7 @@ export default function MessagesPage() {
       // If we're currently viewing this conversation, append the message
       if (data.conversationId === selectedConvo) {
         const incoming: Message = {
-          id: Date.now() + Math.random(),
+          id: data.id || Date.now() + Math.random(),
           conversationId: data.conversationId,
           senderId: data.senderId,
           content: data.content,
@@ -255,6 +106,16 @@ export default function MessagesPage() {
           readAt: null,
         };
         setChatMessages((prev) => [...prev, incoming]);
+
+        // Mark as read since user is viewing this conversation
+        const activeConversation = conversations.find((c) => c.id === data.conversationId);
+        if (activeConversation) {
+          send({
+            type: "mark_read",
+            conversationId: data.conversationId,
+            recipientId: data.senderId,
+          });
+        }
       }
 
       // Update the conversation list preview
@@ -281,7 +142,23 @@ export default function MessagesPage() {
     });
 
     return unsubMessage;
-  }, [on, selectedConvo, conversations]);
+  }, [on, selectedConvo, conversations, send]);
+
+  // Listen for read receipt events
+  useEffect(() => {
+    const unsubRead = on("messages_read", (data) => {
+      if (data.conversationId === selectedConvo) {
+        setChatMessages((prev) =>
+          prev.map((msg) =>
+            msg.senderId === currentUserId && !msg.readAt
+              ? { ...msg, readAt: data.readAt }
+              : msg,
+          ),
+        );
+      }
+    });
+    return unsubRead;
+  }, [on, selectedConvo, currentUserId]);
 
   // Listen for typing indicators
   useEffect(() => {
@@ -311,14 +188,15 @@ export default function MessagesPage() {
 
   // Fetch conversations on mount
   useEffect(() => {
-    fetch("/api/messages/conversations")
-      .then((res) => res.json())
+    setLoading(true);
+    apiFetch<Conversation[]>("/messages/conversations")
       .then((data) => {
         if (Array.isArray(data)) setConversations(data);
       })
       .catch(() => {
-        // Use fallback data
-      });
+        // No fallback — just show empty state
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   // Fetch messages when a conversation is selected
@@ -326,19 +204,20 @@ export default function MessagesPage() {
     if (!selectedConvo) return;
 
     setLoading(true);
-    fetch(`/api/messages/conversations/${selectedConvo}`)
-      .then((res) => res.json())
+    apiFetch<{ conversation: Conversation; messages: Message[] }>(
+      `/messages/conversations/${selectedConvo}`,
+    )
       .then((data) => {
         if (data.messages) {
           setChatMessages(data.messages);
-        } else {
-          setChatMessages(fallbackMessages[selectedConvo] || []);
         }
         // Clear unread count locally
-        setConversations((prev) => prev.map((c) => (c.id === selectedConvo ? { ...c, unreadCount: 0 } : c)));
+        setConversations((prev) =>
+          prev.map((c) => (c.id === selectedConvo ? { ...c, unreadCount: 0 } : c)),
+        );
       })
       .catch(() => {
-        setChatMessages(fallbackMessages[selectedConvo] || []);
+        setChatMessages([]);
       })
       .finally(() => setLoading(false));
   }, [selectedConvo]);
@@ -362,7 +241,7 @@ export default function MessagesPage() {
     const optimisticMsg: Message = {
       id: Date.now(),
       conversationId: selectedConvo,
-      senderId: CURRENT_USER_ID,
+      senderId: currentUserId,
       content,
       createdAt: now,
       readAt: null,
@@ -385,27 +264,31 @@ export default function MessagesPage() {
       });
     }
 
-    // Send to API (persistence)
-    fetch(`/api/messages/conversations/${selectedConvo}`, {
+    // Send to API (persistence) — the WebSocket handler also persists,
+    // but this ensures the message is saved even if WS is disconnected
+    apiFetch(`/messages/conversations/${selectedConvo}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ content }),
     }).catch(() => {
       // Message already shown optimistically
     });
-  }, [newMessage, selectedConvo, conversations, send]);
+  }, [newMessage, selectedConvo, conversations, send, currentUserId]);
 
-  // Send typing indicator on input change
+  // Send typing indicator on input change (throttled to 1 per second)
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setNewMessage(e.target.value);
       const activeConversation = conversations.find((c) => c.id === selectedConvo);
       if (activeConversation && e.target.value.trim()) {
-        send({
-          type: "typing",
-          conversationId: selectedConvo,
-          recipientId: activeConversation.participant.id,
-        });
+        const now = Date.now();
+        if (now - typingThrottleRef.current >= 1000) {
+          typingThrottleRef.current = now;
+          send({
+            type: "typing",
+            conversationId: selectedConvo,
+            recipientId: activeConversation.participant.id,
+          });
+        }
       }
     },
     [selectedConvo, conversations, send],
@@ -424,6 +307,8 @@ export default function MessagesPage() {
   // Chat view
   // =========================================================================
   if (selectedConvo && activeConvo) {
+    const isOnline = onlineUserIds.has(activeConvo.participant.id);
+
     return (
       <div className="flex flex-col bg-background absolute inset-0">
         {/* Header */}
@@ -446,7 +331,9 @@ export default function MessagesPage() {
           </Avatar>
           <div className="flex-1">
             <span className="font-bold text-sm text-foreground">{activeConvo.participant.name}</span>
-            <p className="text-[10px] text-muted-foreground leading-tight">Active now</p>
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              {isOnline ? "Active now" : "Offline"}
+            </p>
           </div>
           {/* Connection status indicator */}
           <div className="flex items-center gap-1.5" title={connected ? "Connected" : "Disconnected"}>
@@ -464,7 +351,7 @@ export default function MessagesPage() {
           ) : (
             <>
               {chatMessages.map((msg, idx) => {
-                const isMe = msg.senderId === CURRENT_USER_ID;
+                const isMe = msg.senderId === currentUserId;
                 const showTimestamp =
                   idx === 0 ||
                   new Date(msg.createdAt).getTime() - new Date(chatMessages[idx - 1].createdAt).getTime() >
@@ -550,7 +437,11 @@ export default function MessagesPage() {
       <h1 className="text-xl font-bold text-foreground mb-1">Messages</h1>
       <p className="text-xs text-muted-foreground mb-5">Your conversations</p>
 
-      {conversations.length === 0 ? (
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : conversations.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-4 text-muted-foreground">
           <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
             <MessageCircle className="w-7 h-7 opacity-40" />
@@ -560,50 +451,55 @@ export default function MessagesPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-1">
-          {conversations.map((convo) => (
-            <button
-              key={convo.id}
-              type="button"
-              onClick={() => setSelectedConvo(convo.id)}
-              className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/50 active:bg-muted/70 transition-colors text-left"
-            >
-              <div className="relative shrink-0">
-                <Avatar className="h-12 w-12">
-                  <AvatarFallback className={`${convo.participant.color} text-foreground font-bold text-sm`}>
-                    {convo.participant.initials}
-                  </AvatarFallback>
-                </Avatar>
-                {/* Online indicator */}
-                <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-card rounded-full" />
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span
-                    className={`text-sm ${convo.unreadCount > 0 ? "font-bold text-foreground" : "font-semibold text-foreground/90"}`}
-                  >
-                    {convo.participant.name}
-                  </span>
-                  <span className="text-[10px] text-muted-foreground shrink-0">
-                    {formatMessageTime(convo.lastMessageAt)}
-                  </span>
+          {conversations.map((convo) => {
+            const isOnline = onlineUserIds.has(convo.participant.id);
+            return (
+              <button
+                key={convo.id}
+                type="button"
+                onClick={() => setSelectedConvo(convo.id)}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-muted/50 active:bg-muted/70 transition-colors text-left"
+              >
+                <div className="relative shrink-0">
+                  <Avatar className="h-12 w-12">
+                    <AvatarFallback className={`${convo.participant.color} text-foreground font-bold text-sm`}>
+                      {convo.participant.initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {/* Online indicator — only show green dot if user is actually online */}
+                  {isOnline && (
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 border-2 border-card rounded-full" />
+                  )}
                 </div>
-                <p
-                  className={`text-xs mt-0.5 truncate ${
-                    convo.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
-                  }`}
-                >
-                  {convo.lastMessage}
-                </p>
-              </div>
 
-              {convo.unreadCount > 0 && (
-                <span className="w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 shadow-sm">
-                  {convo.unreadCount}
-                </span>
-              )}
-            </button>
-          ))}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`text-sm ${convo.unreadCount > 0 ? "font-bold text-foreground" : "font-semibold text-foreground/90"}`}
+                    >
+                      {convo.participant.name}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      {formatMessageTime(convo.lastMessageAt)}
+                    </span>
+                  </div>
+                  <p
+                    className={`text-xs mt-0.5 truncate ${
+                      convo.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                    }`}
+                  >
+                    {convo.lastMessage}
+                  </p>
+                </div>
+
+                {convo.unreadCount > 0 && (
+                  <span className="w-5 h-5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center shrink-0 shadow-sm">
+                    {convo.unreadCount}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
