@@ -496,7 +496,8 @@ export default function MapPage() {
           </div>
         </button>
 
-        {/* Scrollable discovery content */}
+        {/* Scrollable discovery content — only rendered when sheet is open */}
+        {sheetOpen && (
         <div
           className="bg-background overflow-y-auto overscroll-contain touch-auto"
           style={{ maxHeight: `${sheetContentHeight}px` }}
@@ -711,6 +712,7 @@ export default function MapPage() {
             <div className="h-4" />
           </div>
         </div>
+        )}
       </motion.div>
     </div>
   );
