@@ -396,12 +396,7 @@ SECTIONS:
      - Each with emoji prefix and count
      - i18n-aware labels
 
-  2. Our Brands (horizontal scroll)
-     - Per brand: cover image, logo emoji, name, verified badge, rating, product count
-     - Click -> /brand/:slug
-     - "View All" link -> /brands
-
-  3. Product grid (2-col mobile, 3-col md, 4-col lg)
+  2. Product grid (2-col mobile, 3-col md, 4-col lg)
      Per product card:
      - Image with hover zoom
      - Badge (New, Best Seller, Promo -20%, Exclusif) with color coding
@@ -415,12 +410,11 @@ SECTIONS:
      Lululemon, Balanced Body, Merrithew, Bala) with verified product URLs.
      No internal cart — shop acts as a curated affiliate directory.
 
-  4. Empty state: when no products match category
+  3. Empty state: when no products match category
 
 DATA:
   - Products: useProducts() -> GET /api/products(?category=...)
     - Each product includes externalUrl linking to the brand's real product page
-  - Brands: useBrands() -> GET /api/brands
   - Wishlist: local Set<number> in AppContext
 
 ================================================================================
