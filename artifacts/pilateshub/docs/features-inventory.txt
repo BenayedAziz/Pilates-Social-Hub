@@ -216,15 +216,6 @@ SECTIONS:
       - More Studios section: simpler cards, sport type badge, website link
       - Clicking card -> map view with studio selected
 
-  11. Collapsible discovery sections (below map)
-      - All 5 sections collapsed by default so map takes visual priority
-      - Sections: Featured Studios, Near You, Top Rated, New Studios, All Studios
-      - Each section header is a full-width button with title + ChevronDown icon
-      - ChevronDown rotates 180deg when expanded
-      - aria-expanded attribute for accessibility
-      - Animated expand/collapse via framer-motion (height + opacity, 250ms easeInOut)
-      - State tracked per-section via expandedSections record
-
 DATA:
   - Featured studios: from useStudios() hook (GET /api/studios)
   - Real studios: static REAL_STUDIOS array from real-studios.ts (~40 studios, sourced from OSM + web)
