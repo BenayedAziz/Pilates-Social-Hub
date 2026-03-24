@@ -61,11 +61,12 @@ const FILTERS = ["Reformer", "Mat", "Beginner", "Advanced", "Near Me"];
 // Fallback image for studios without imageUrl
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=400&fit=crop";
 
-// Custom pin icon factory for featured studios -- memoized by (price, selected) key
+// Custom pin icon factory for studio markers -- memoized by (initial, selected) key
 const pinIconCache = new Map<string, L.DivIcon>();
 
-function createPinIcon(price: number, selected: boolean) {
-  const key = `${price}-${selected}`;
+function createPinIcon(name: string, selected: boolean) {
+  const initial = name.charAt(0).toUpperCase() || "P";
+  const key = `${initial}-${selected}`;
   const cached = pinIconCache.get(key);
   if (cached) return cached;
 
@@ -83,10 +84,10 @@ function createPinIcon(price: number, selected: boolean) {
           width:${size}px;height:${size}px;border-radius:50%;
           background:${color};color:white;
           display:flex;align-items:center;justify-content:center;
-          font-weight:900;font-size:${selected ? 13 : 11}px;font-family:system-ui;
+          font-weight:900;font-size:${selected ? 15 : 13}px;font-family:system-ui;
           border:2.5px solid white;box-shadow:${shadow};
           transition:transform 0.2s;
-        ">\u20AC${price}</div>
+        ">${initial}</div>
         <div style="
           width:0;height:0;
           border-left:5px solid transparent;border-right:5px solid transparent;
@@ -308,7 +309,7 @@ export default function MapPage() {
               <Marker
                 key={`studio-${studio.id}`}
                 position={[studio.lat, studio.lng]}
-                icon={createPinIcon(studio.price, selectedStudio?.id === studio.id)}
+                icon={createPinIcon(studio.name, selectedStudio?.id === studio.id)}
                 eventHandlers={{
                   click: () => handleStudioClick(studio),
                 }}
@@ -370,10 +371,6 @@ export default function MapPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
                       <h3 className="font-bold text-sm text-foreground truncate">{selectedStudio.name}</h3>
-                      <span className="font-black text-primary text-sm ml-2">
-                        {"\u20AC"}
-                        {selectedStudio.price}
-                      </span>
                     </div>
                     <p className="text-xs text-muted-foreground/60 mt-0.5">
                       {selectedStudio.neighborhood} {"\u00B7"} {selectedStudio.distance}km
@@ -436,10 +433,6 @@ export default function MapPage() {
                         <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
                         {studio.rating} · {studio.neighborhood}
                       </div>
-                      <span className="text-xs font-bold text-primary">
-                        {"\u20AC"}
-                        {studio.price}/class
-                      </span>
                     </div>
                   </StudioDetailDialog>
                 </AnimatedCard>
@@ -559,10 +552,10 @@ export default function MapPage() {
                       <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
                       <div className="flex items-center justify-between mt-0.5">
                         <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
-                        <span className="text-[11px] font-bold text-primary flex-shrink-0">
-                          {"\u20AC"}
-                          {studio.price}
-                        </span>
+                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground flex-shrink-0">
+                          <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                          {studio.rating}
+                        </div>
                       </div>
                     </div>
                   </StudioDetailDialog>
@@ -595,13 +588,7 @@ export default function MapPage() {
                         </div>
                         <div className="p-3 flex-1 flex flex-col justify-between">
                           <div>
-                            <div className="flex justify-between items-start">
-                              <h3 className="font-bold text-sm leading-tight text-foreground">{studio.name}</h3>
-                              <span className="font-bold text-primary text-sm flex-shrink-0 ml-2">
-                                {"\u20AC"}
-                                {studio.price}
-                              </span>
-                            </div>
+                            <h3 className="font-bold text-sm leading-tight text-foreground">{studio.name}</h3>
                             <p className="text-xs text-muted-foreground/60 mt-0.5">
                               {studio.neighborhood} {"\u00B7"} {studio.distance}km
                             </p>

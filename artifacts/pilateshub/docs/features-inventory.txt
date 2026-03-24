@@ -165,8 +165,8 @@ SECTIONS:
      - Paris center: [48.862, 2.352], default zoom 13
      - Current location blue pulsing dot marker
 
-  2. Featured studio markers (warm brown pins)
-     - Price displayed inside pin (e.g., "EUR 45")
+  2. Studio markers (warm brown pins with initial letter)
+     - Studio name initial displayed inside pin (e.g., "S" for Studio Harmonie)
      - Click: shows preview card, toggles selection
      - Selected state: larger pin with stronger shadow
      - Custom L.divIcon with inline SVG/HTML
@@ -190,7 +190,7 @@ SECTIONS:
      - Featured (brown), Pilates (blue), Yoga (gray)
 
   7. Featured studio preview card (on marker click)
-     - Studio image thumbnail, name, price, neighborhood, distance
+     - Studio image thumbnail, name, neighborhood, distance
      - Star rating + review count
      - "View" link -> opens StudioDetailDialog
      - Close (X) button
@@ -203,7 +203,7 @@ SECTIONS:
      - "Claim this studio" text
 
   9. Studio list view (toggled via List button)
-     - Featured Studios section: card grid, image + name + price + rating
+     - Featured Studios section: card grid, image + name + rating
      - More Studios section: simpler cards, sport type badge, website link
      - Clicking card -> map view with studio selected
 
@@ -681,7 +681,7 @@ TOP BAR:
 SECTIONS:
   1. Studio header (warm gradient background)
      - Studio name + Verified badge
-     - Address, rating, review count, coach count, price
+     - Address, rating, review count, coach count
      - "Edit Profile" button
 
   2. Analytics grid (2x2 on mobile, 4-col on desktop)
@@ -721,7 +721,7 @@ SECTIONS:
     - Average rating badge
 
   SETTINGS TAB:
-    - Studio Details form: name, description (textarea), price, neighborhood (disabled), address
+    - Studio Details form: name, description (textarea), neighborhood (disabled), address
     - "Save Changes" button -> toast
     - Coaches management: list with avatars, remove (hover reveal)
     - Add coach: input + "Add" button
@@ -781,7 +781,7 @@ LAYOUT:
 
 DIALOGS:
   StudioDetailDialog -> studio detail sheet (triggered from map/list)
-    - Studio image (h-44), name, price badge, rating, reviews, distance
+    - Studio image (h-44), name, rating, reviews, distance
     - Description
     - Coaches list (linked to /coach/:slug if profile exists)
     - Smart Directory CTA (Model B — primary action):
@@ -1053,7 +1053,7 @@ COMMON PATTERNS:
 --- DATA TYPES (src/data/types.ts) ---
 ================================================================================
 
-  Studio: id, name, neighborhood, rating, reviews, price, distance, coords, lat, lng, description, coaches[], imageUrl
+  Studio: id, name, neighborhood, rating, reviews, price (unused in UI), distance, coords, lat, lng, description, coaches[], imageUrl
   AppUser: id, name, initials, color
   Post: id, user, type, studio, duration, calories, likes, comments, timeAgo, hasPhoto
   CalorieDataPoint: week, calories

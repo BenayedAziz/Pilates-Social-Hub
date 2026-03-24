@@ -75,7 +75,7 @@ export function SearchDialog() {
                         <div>
                           <p className="text-sm font-semibold text-foreground">{studio.name}</p>
                           <p className="text-xs text-muted-foreground/60">
-                            {studio.neighborhood} · €{studio.price}
+                            {studio.neighborhood} · {studio.distance}km
                           </p>
                         </div>
                       </div>

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
@@ -48,9 +48,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
 
   return (
     <Dialog>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
+      <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-[360px] rounded-2xl p-0 overflow-hidden border-none shadow-xl">
         <div className="h-44 relative overflow-hidden">
           <img src={studio.imageUrl} alt={studio.name} loading="lazy" className="w-full h-full object-cover" />
@@ -62,9 +60,6 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
         <div className="p-5">
           <div className="flex justify-between items-start mb-2">
             <h2 className="text-xl font-bold text-foreground leading-tight">{studio.name}</h2>
-            <Badge className="bg-secondary text-primary font-bold border-none ml-2 flex-shrink-0">
-              €{studio.price}
-            </Badge>
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
             <Star className="w-4 h-4 text-yellow-400 fill-yellow-400 flex-shrink-0" />
@@ -103,12 +98,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
 
           {/* External Booking CTA — Smart Directory (Model B) */}
           {hasWebsite ? (
-            <a
-              href={studio.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block w-full"
-            >
+            <a href={studio.website} target="_blank" rel="noopener noreferrer" className="block w-full">
               <Button
                 className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold shadow-sm gap-2"
                 type="button"

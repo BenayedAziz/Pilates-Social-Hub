@@ -5,7 +5,6 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  DollarSign,
   Edit3,
   Eye,
   MapPin,
@@ -40,7 +39,6 @@ const ADMIN_STUDIO = {
     "A serene reformer studio in the heart of Le Marais. We blend classical Pilates with modern training techniques in a warm, welcoming space designed for all levels.",
   rating: 4.9,
   reviews: 234,
-  price: 45,
   coaches: ["Sophie Leclerc", "Julien Moreau", "Camille Dubois"],
   verified: true,
 };
@@ -169,7 +167,6 @@ export default function StudioAdminPage() {
   // Settings form state
   const [studioName, setStudioName] = useState(ADMIN_STUDIO.name);
   const [studioDescription, setStudioDescription] = useState(ADMIN_STUDIO.description);
-  const [studioPrice, setStudioPrice] = useState(ADMIN_STUDIO.price.toString());
   const [studioAddress, setStudioAddress] = useState(ADMIN_STUDIO.address);
   const [coaches, setCoaches] = useState(ADMIN_STUDIO.coaches);
   const [newCoach, setNewCoach] = useState("");
@@ -268,9 +265,6 @@ export default function StudioAdminPage() {
             </span>
             <span className="flex items-center gap-1">
               <Users className="w-3.5 h-3.5" /> {ADMIN_STUDIO.coaches.length} coaches
-            </span>
-            <span className="flex items-center gap-1">
-              <DollarSign className="w-3.5 h-3.5" /> {ADMIN_STUDIO.price}/session
             </span>
           </div>
         </div>
@@ -570,26 +564,6 @@ export default function StudioAdminPage() {
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label
-                        htmlFor="admin-studio-price"
-                        className="text-xs font-semibold text-foreground mb-1.5 block"
-                      >
-                        Price per Session
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                          €
-                        </span>
-                        <Input
-                          id="admin-studio-price"
-                          value={studioPrice}
-                          onChange={(e) => setStudioPrice(e.target.value)}
-                          className="text-sm pl-7"
-                          type="number"
-                        />
-                      </div>
-                    </div>
                     <div>
                       <label
                         htmlFor="admin-studio-neighborhood"

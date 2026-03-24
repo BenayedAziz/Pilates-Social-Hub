@@ -86,15 +86,6 @@ describe("StudioDetailDialog", () => {
     expect(screen.getByText("Reformer Club")).toBeInTheDocument();
   });
 
-  it("renders studio price", () => {
-    render(
-      <StudioDetailDialog studio={mockStudio}>
-        <button>Open</button>
-      </StudioDetailDialog>,
-    );
-    expect(screen.getByText(/€45/)).toBeInTheDocument();
-  });
-
   it("renders studio description", () => {
     render(
       <StudioDetailDialog studio={mockStudio}>
