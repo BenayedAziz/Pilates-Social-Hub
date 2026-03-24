@@ -261,21 +261,25 @@ export default function MapPage() {
   // Motion value for drag-based sheet control
   const sheetY = useMotionValue(0);
 
-  // Height of the discovery panel content (viewport height minus some top padding)
-  const sheetMaxHeight = typeof window !== "undefined" ? window.innerHeight * 0.75 : 600;
+  // Handle bar height (the visible part when collapsed)
+  const HANDLE_HEIGHT = 48;
+  // Scrollable content area height
+  const sheetContentHeight = typeof window !== "undefined" ? window.innerHeight * 0.75 : 600;
+  // Total distance the sheet travels when expanding (content area)
+  const expandedY = -(sheetContentHeight);
 
   const handleDragEnd = useCallback(
     (_: any, info: PanInfo) => {
       // If dragged upward enough or fast enough, open the sheet
       if (info.offset.y < -50 || info.velocity.y < -300) {
         setSheetOpen(true);
-        animate(sheetY, -sheetMaxHeight, { type: "spring", stiffness: 300, damping: 30 });
+        animate(sheetY, expandedY, { type: "spring", stiffness: 300, damping: 30 });
       } else {
         setSheetOpen(false);
         animate(sheetY, 0, { type: "spring", stiffness: 300, damping: 30 });
       }
     },
-    [sheetMaxHeight, sheetY],
+    [expandedY, sheetY],
   );
 
   const toggleSheet = useCallback(() => {
@@ -284,9 +288,9 @@ export default function MapPage() {
       animate(sheetY, 0, { type: "spring", stiffness: 300, damping: 30 });
     } else {
       setSheetOpen(true);
-      animate(sheetY, -sheetMaxHeight, { type: "spring", stiffness: 300, damping: 30 });
+      animate(sheetY, expandedY, { type: "spring", stiffness: 300, damping: 30 });
     }
-  }, [sheetOpen, sheetMaxHeight, sheetY]);
+  }, [sheetOpen, expandedY, sheetY]);
 
   return (
     <div className="relative flex flex-col h-full animate-in fade-in duration-300 overflow-hidden">
@@ -470,12 +474,13 @@ export default function MapPage() {
       {/* === BOTTOM SHEET: Discovery sections === */}
       <motion.div
         ref={sheetRef}
-        style={{ y: sheetY }}
         drag="y"
-        dragConstraints={{ top: -sheetMaxHeight, bottom: 0 }}
+        dragConstraints={{ top: -(sheetContentHeight), bottom: 0 }}
         dragElastic={0.1}
         onDragEnd={handleDragEnd}
-        className="absolute bottom-0 left-0 right-0 z-[1001] touch-none"
+        className="absolute left-0 right-0 z-[1001] touch-none"
+        initial={false}
+        style={{ y: sheetY, top: "100%", marginTop: -HANDLE_HEIGHT }}
       >
         {/* Handle bar */}
         <button
@@ -494,7 +499,7 @@ export default function MapPage() {
         {/* Scrollable discovery content */}
         <div
           className="bg-background overflow-y-auto overscroll-contain touch-auto"
-          style={{ maxHeight: `${sheetMaxHeight - 48}px` }}
+          style={{ maxHeight: `${sheetContentHeight}px` }}
         >
           <div className="p-5 flex flex-col gap-8">
             {/* Featured Studios -- horizontal scroll */}
