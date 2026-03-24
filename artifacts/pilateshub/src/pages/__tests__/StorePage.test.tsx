@@ -7,7 +7,6 @@ vi.mock("@/context/AppContext", () => ({
   useApp: () => ({
     wishlist: new Set<number>(),
     toggleWishlist: vi.fn(),
-    addToCart: vi.fn(),
   }),
 }));
 
@@ -23,6 +22,7 @@ vi.mock("react-i18next", () => ({
         "shop.goodies": "Goodies",
         "shop.apparel": "Apparel",
         "shop.accessories": "Accessories",
+        "shop.viewProduct": "View",
       };
       return m[key] || key;
     },
@@ -40,23 +40,27 @@ vi.mock("@/hooks/use-api", () => ({
     data: [
       {
         id: 1,
-        name: "Grip Socks",
+        name: "Half Toe Elle Grip Socks",
         brand: "ToeSox",
-        price: 19,
-        rating: 4.5,
-        category: "Goodies",
+        price: 22,
+        rating: 4.8,
+        category: "Accessoires",
         image: "bg-pink-100",
         imageUrl: "",
+        externalUrl: "https://www.toesox.com/collections/pilates/products/half-toe-elle-grip-socks",
+        badge: "Best Seller",
       },
       {
-        id: 2,
-        name: "Reformer Mat",
-        brand: "Balanced",
-        price: 59,
+        id: 6,
+        name: "Ultra-Fit Circle",
+        brand: "Balanced Body",
+        price: 35,
         rating: 4.8,
         category: "Machines",
         image: "bg-blue-100",
         imageUrl: "",
+        externalUrl: "https://www.pilates.com/products/pilates-rings-ultra-fit-circle/",
+        badge: "Best Seller",
       },
     ],
     isLoading: false,
@@ -85,14 +89,23 @@ describe("StorePage", () => {
 
   it("renders product names", () => {
     render(<StorePage />);
-    expect(screen.getByText("Grip Socks")).toBeInTheDocument();
-    expect(screen.getByText("Reformer Mat")).toBeInTheDocument();
+    expect(screen.getByText("Half Toe Elle Grip Socks")).toBeInTheDocument();
+    expect(screen.getByText("Ultra-Fit Circle")).toBeInTheDocument();
   });
 
   it("renders product prices", () => {
     render(<StorePage />);
-    expect(screen.getByText(/€19/)).toBeInTheDocument();
-    expect(screen.getByText(/€59/)).toBeInTheDocument();
+    expect(screen.getByText(/22/)).toBeInTheDocument();
+    expect(screen.getByText(/35/)).toBeInTheDocument();
+  });
+
+  it("renders View buttons that link externally", () => {
+    render(<StorePage />);
+    const viewButtons = screen.getAllByText("View");
+    expect(viewButtons.length).toBeGreaterThanOrEqual(2);
+    // Check that the link wraps have target="_blank"
+    const externalLinks = document.querySelectorAll('a[target="_blank"]');
+    expect(externalLinks.length).toBeGreaterThanOrEqual(2);
   });
 
   it("filters products by category", () => {
@@ -101,13 +114,13 @@ describe("StorePage", () => {
     const machinesTab = screen.getAllByRole("tab").find((t) => t.textContent?.includes("Machines"));
     if (machinesTab) {
       fireEvent.click(machinesTab);
-      expect(screen.getByText("Reformer Mat")).toBeInTheDocument();
-      expect(screen.queryByText("Grip Socks")).not.toBeInTheDocument();
+      expect(screen.getByText("Ultra-Fit Circle")).toBeInTheDocument();
+      expect(screen.queryByText("Half Toe Elle Grip Socks")).not.toBeInTheDocument();
     }
   });
 });
 
-describe("StorePage — loading state", () => {
+describe("StorePage -- loading state", () => {
   it("shows skeleton while loading", async () => {
     const apiModule = await import("@/hooks/use-api");
     vi.mocked(apiModule.useProducts).mockReturnValue({ data: [], isLoading: true } as any);
@@ -120,23 +133,27 @@ describe("StorePage — loading state", () => {
       data: [
         {
           id: 1,
-          name: "Grip Socks",
+          name: "Half Toe Elle Grip Socks",
           brand: "ToeSox",
-          price: 19,
-          rating: 4.5,
-          category: "Goodies",
+          price: 22,
+          rating: 4.8,
+          category: "Accessoires",
           image: "bg-pink-100",
           imageUrl: "",
+          externalUrl: "https://www.toesox.com/collections/pilates/products/half-toe-elle-grip-socks",
+          badge: "Best Seller",
         },
         {
-          id: 2,
-          name: "Reformer Mat",
-          brand: "Balanced",
-          price: 59,
+          id: 6,
+          name: "Ultra-Fit Circle",
+          brand: "Balanced Body",
+          price: 35,
           rating: 4.8,
           category: "Machines",
           image: "bg-blue-100",
           imageUrl: "",
+          externalUrl: "https://www.pilates.com/products/pilates-rings-ultra-fit-circle/",
+          badge: "Best Seller",
         },
       ],
       isLoading: false,

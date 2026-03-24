@@ -187,8 +187,10 @@ export const products = pgTable("products", {
   description: text("description"),
   price: integer("price").notNull(), // in cents for precision, or whole euros
   rating: real("rating").default(0),
-  category: varchar("category", { length: 50 }).notNull(), // Apparel, Mats, Bands, Accessories
+  category: varchar("category", { length: 50 }).notNull(), // Apparel, Mats, Equipment, Accessories, Recovery
   imageUrl: text("image_url"),
+  externalUrl: text("external_url"), // link to brand's real product page
+  badge: varchar("badge", { length: 50 }),
   inStock: boolean("in_stock").default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

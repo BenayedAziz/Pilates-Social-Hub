@@ -71,6 +71,7 @@ export interface Product {
   subcategory?: string;
   image: string;
   imageUrl: string;
+  externalUrl?: string;
   badge?: string;
 }
 

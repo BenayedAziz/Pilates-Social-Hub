@@ -62,7 +62,7 @@ export const en = {
     goodies: "Goodies",
     apparel: "Apparel",
     accessories: "Accessoires",
-    addToCart: "Add",
+    viewProduct: "View",
     ourBrands: "Our Brands",
     viewAll: "View all",
     noProducts: "No products found",

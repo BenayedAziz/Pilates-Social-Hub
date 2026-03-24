@@ -3,7 +3,7 @@ import { getDatabase } from "../lib/database";
 import { eq, ilike } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
-// Types (mirrors DB schema – used for mock fallback)
+// Types (mirrors DB schema -- used for mock fallback)
 // ---------------------------------------------------------------------------
 interface Product {
   id: number;
@@ -14,34 +14,46 @@ interface Product {
   rating: number | null;
   category: string;
   imageUrl: string | null;
+  externalUrl: string | null;
+  badge: string | null;
   inStock: boolean;
   createdAt: string;
 }
 
 // ---------------------------------------------------------------------------
-// Mock data (fallback when DATABASE_URL is not set)
+// Real products data (fallback when DATABASE_URL is not set)
+// All products link to real brand pages — no cart needed.
 // ---------------------------------------------------------------------------
 const mockProducts: Product[] = [
-  { id: 1, name: "Premium Grip Socks", brand: "ToeSox", description: "Non-slip Pilates socks with full-toe design for maximum grip on reformer and mat.", price: 18, rating: 4.8, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 2, name: "Reformer Straps", brand: "Balanced Body", description: "Padded reformer loop straps for comfortable and secure hand/foot placement.", price: 45, rating: 4.9, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 3, name: "Pilates Ring", brand: "STOTT", description: "14-inch magic circle with padded handles for inner/outer thigh and arm toning.", price: 28, rating: 4.6, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 4, name: "Cork Yoga Mat", brand: "Manduka", description: "Eco-friendly cork surface with natural rubber base. 5mm thick for joint cushioning.", price: 89, rating: 4.7, category: "Mats", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 5, name: "Resistance Band Set", brand: "TheraBand", description: "Set of 5 colour-coded bands from light to extra-heavy resistance.", price: 32, rating: 4.5, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 6, name: "Foam Roller", brand: "TriggerPoint", description: "GRID pattern foam roller for deep-tissue myofascial release and recovery.", price: 35, rating: 4.8, category: "Recovery", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 7, name: 'Pilates Ball 9"', brand: "OPTP", description: "Soft, inflatable mini stability ball for core engagement and alignment work.", price: 12, rating: 4.4, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 8, name: "Grip Gloves", brand: "Gaiam", description: "Fingerless grip gloves with silicone dots for improved equipment handling.", price: 22, rating: 4.3, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 9, name: "Spine Corrector", brand: "Peak Pilates", description: "Professional-grade spine corrector for back extension and abdominal work.", price: 195, rating: 4.9, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 10, name: "Workout Leggings", brand: "Lululemon", description: "High-waist Align leggings with four-way stretch and moisture-wicking fabric.", price: 98, rating: 4.7, category: "Apparel", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 11, name: "Sports Bra", brand: "Alo Yoga", description: "Medium-support sports bra with breathable mesh panels and removable cups.", price: 68, rating: 4.6, category: "Apparel", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 12, name: "Water Bottle", brand: "Hydro Flask", description: "24oz insulated stainless steel bottle keeps water cold for 24 hours.", price: 42, rating: 4.8, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 13, name: "Massage Gun", brand: "Theragun", description: "Percussive therapy device with 5 speed settings and 4 attachment heads.", price: 299, rating: 4.9, category: "Recovery", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 14, name: "Jump Board", brand: "Balanced Body", description: "Reformer jump board attachment for low-impact cardio and plyometric training.", price: 245, rating: 4.7, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 15, name: "Towel Set", brand: "Manduka", description: "Microfiber towel set (small + large) with quick-dry and anti-bacterial properties.", price: 36, rating: 4.5, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 16, name: "Ankle Weights", brand: "Bala", description: "Stylish 1lb wrist/ankle weights with adjustable strap closure.", price: 55, rating: 4.6, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 17, name: "Pilates Box", brand: "STOTT", description: "Foam sitting box for reformer - used for seated, prone, and side-lying exercises.", price: 85, rating: 4.4, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 18, name: "Tank Top", brand: "Beyond Yoga", description: "Lightweight tank with open back design for breathability during class.", price: 58, rating: 4.5, category: "Apparel", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 19, name: "Stretching Strap", brand: "ProsourceFit", description: "10-loop stretching strap for flexibility training and assisted stretches.", price: 14, rating: 4.3, category: "Equipment", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
-  { id: 20, name: "Gym Bag", brand: "Lululemon", description: "Spacious duffle bag with separate shoe compartment and yoga mat straps.", price: 128, rating: 4.7, category: "Accessories", imageUrl: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  // --- Accessories (grip socks, towels, bags) ---
+  { id: 1, name: "Half Toe Elle Grip Socks", brand: "ToeSox", description: "Ballet-inspired grip socks with secure crisscross elastics and five-toe design for natural movement on reformer and mat.", price: 22, rating: 4.8, category: "Accessoires", imageUrl: null, externalUrl: "https://www.toesox.com/collections/pilates/products/half-toe-elle-grip-socks", badge: "Best Seller", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 2, name: "Maddie Grip Socks", brand: "Tavi", description: "Achilles coverage and arch support with delicate mesh detailing and patented grip technology for studio stability.", price: 20, rating: 4.7, category: "Accessoires", imageUrl: null, externalUrl: "https://www.tavinoir.com/maddie-grip-socks.html", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 3, name: "Full Toe Low Rise Grip Socks", brand: "ToeSox", description: "Low-profile full-toe grip socks with non-slip sole for Pilates, barre, and yoga.", price: 18, rating: 4.6, category: "Accessoires", imageUrl: null, externalUrl: "https://www.toesox.com/products/full-toe-low-rise-grip-socks", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 4, name: "eQua Yoga Mat Towel", brand: "Manduka", description: "Microfiber hot yoga towel with moisture-activated grip. Ultra-soft, quick-dry, and machine washable.", price: 42, rating: 4.7, category: "Accessoires", imageUrl: null, externalUrl: "https://www.manduka.com/products/equa-yoga-mat-towel", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 5, name: "Everywhere Belt Bag 1L", brand: "Lululemon", description: "Sleek belt bag for phone, keys, and wallet. Water-repellent fabric with adjustable strap.", price: 48, rating: 4.8, category: "Accessoires", imageUrl: null, externalUrl: "https://shop.lululemon.com/p/bags/Everywhere-Belt-Bag/_/prod8900747", badge: "New", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+
+  // --- Equipment (rings, bands, weights, reformer accessories) ---
+  { id: 6, name: "Ultra-Fit Circle", brand: "Balanced Body", description: "Flexible plastic Pilates ring with soft rubberized shell for inner/outer thigh and arm toning.", price: 35, rating: 4.8, category: "Machines", imageUrl: null, externalUrl: "https://www.pilates.com/products/pilates-rings-ultra-fit-circle/", badge: "Best Seller", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 7, name: "Fitness Circle Pro 14\"", brand: "Merrithew", description: "Professional 14-inch Pilates ring to improve muscle tone for thighs, upper arms, and chest.", price: 40, rating: 4.7, category: "Machines", imageUrl: null, externalUrl: "https://www.merrithew.com/shop/ProductDetail/ST06000_Fitness-Circle-Pro--14-Inch-black", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 8, name: "Flex-Band Two-Pack", brand: "Merrithew", description: "Regular and extra-strength resistance bands for adding upper and lower body resistance to matwork.", price: 24, rating: 4.6, category: "Machines", imageUrl: null, externalUrl: "https://www.merrithew.com/shop/ProductDetail/ST02033_Flexband-Twopack", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 9, name: "Fabric Resistance Bands", brand: "Balanced Body", description: "Super-soft tensioned fabric bands with non-slip lining. Available in light, medium, and heavy resistance.", price: 30, rating: 4.5, category: "Machines", imageUrl: null, externalUrl: "https://www.pilates.com/products/resistance-bands/", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 10, name: "Bala Bangles", brand: "Bala", description: "Stylish 1 lb wrist and ankle weights made of steel wrapped in baby-soft silicone.", price: 55, rating: 4.6, category: "Machines", imageUrl: null, externalUrl: "https://shopbala.com/products/bala-bangles", badge: "New", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 11, name: "Padded Jumpboard", brand: "Balanced Body", description: "Reformer jump board for low-impact cardio and plyometric training with superior comfort.", price: 245, rating: 4.9, category: "Machines", imageUrl: null, externalUrl: "https://www.pilates.com/products/pilates-jump-board/", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 12, name: "Reformer Box Extra Tall", brand: "Merrithew", description: "Extra-tall reformer sitting box for greater range of motion in seated and lying exercises.", price: 195, rating: 4.4, category: "Machines", imageUrl: null, externalUrl: "https://www.merrithew.com/shop/ProductDetail/ST02001_Reformer-Box--Extra-Tall", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+
+  // --- Mats ---
+  { id: 13, name: "PRO Yoga Mat 6mm", brand: "Manduka", description: "Best-selling 6 mm mat with high-density stability, unmatched durability, and lifetime guarantee. Made in Germany.", price: 120, rating: 4.9, category: "Habitat", imageUrl: null, externalUrl: "https://www.manduka.com/products/manduka-pro-yoga-mat", badge: "Best Seller", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 14, name: "PRO Travel Yoga Mat 2mm", brand: "Manduka", description: "Foldable 2 mm travel mat with high-density support and lifetime guarantee.", price: 72, rating: 4.6, category: "Habitat", imageUrl: null, externalUrl: "https://www.manduka.com/products/pro-travel-yoga-mat", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+
+  // --- Apparel ---
+  { id: 15, name: "Align High-Rise Pant 25\"", brand: "Lululemon", description: "Buttery-soft Nulu fabric leggings with weightless, four-way stretch feel for Pilates and yoga.", price: 98, rating: 4.8, category: "Apparel", imageUrl: null, externalUrl: "https://shop.lululemon.com/p/womens-leggings/Align-Pant-2/_/prod2020012", badge: "Best Seller", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 16, name: "Align High-Rise Pant 28\"", brand: "Lululemon", description: "Full-length Align leggings in weightlessly soft Nulu fabric with no front seam.", price: 98, rating: 4.7, category: "Apparel", imageUrl: null, externalUrl: "https://shop.lululemon.com/p/womens-leggings/Align-Pant-Full-Length-28/_/prod8780551", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 17, name: "Energy Bra Medium Support", brand: "Lululemon", description: "All-sport bra voted most likely to be worn multiple times a week. B-D cups, medium support.", price: 52, rating: 4.7, category: "Apparel", imageUrl: null, externalUrl: "https://shop.lululemon.com/p/women-sports-bras/Energy-Bra-32925/_/prod9360058", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 18, name: "Energy Longline Bra", brand: "Lululemon", description: "Medium-support longline sports bra in sweat-wicking fabric for comfort and versatility.", price: 58, rating: 4.6, category: "Apparel", imageUrl: null, externalUrl: "https://shop.lululemon.com/p/women-sports-bras/Energy-Bra-Long-Line/_/prod9030660", badge: "New", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+
+  // --- Recovery ---
+  { id: 19, name: "Foam Roller Deluxe 36\"", brand: "Merrithew", description: "Closed-cell foam roller with non-skid surface to activate deep core muscles and improve balance.", price: 45, rating: 4.8, category: "Goodies", imageUrl: null, externalUrl: "https://www.merrithew.com/shop/ProductDetail/ST06091_Foam-Roller-Deluxe--36-Inch-black", badge: "Best Seller", inStock: true, createdAt: "2024-01-10T10:00:00Z" },
+  { id: 20, name: "Foam Roller Soft Density 18\"", brand: "Merrithew", description: "Rounded-edge soft-density roller with textured non-slip surface for gentle recovery.", price: 22, rating: 4.5, category: "Goodies", imageUrl: null, externalUrl: "https://www.merrithew.com/shop/ProductDetail/ST06203_Foam-Roller-Soft-Density--18-Inch", badge: null, inStock: true, createdAt: "2024-01-10T10:00:00Z" },
 ];
 
 // ---------------------------------------------------------------------------

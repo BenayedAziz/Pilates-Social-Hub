@@ -40,10 +40,8 @@ HEADER (sticky, top of all authenticated pages):
     - Unread badge counter (fetches from /api/messages/unread-count)
   - Language toggle (Globe icon) -> toggles EN/FR, persists to localStorage
   - Dark mode toggle (mobile only): Moon/Sun icon
-  - Cart button (ShoppingCart icon) -> opens Cart Sheet (side drawer)
-    - Badge counter on icon when cart has items
-    - Cart sheet: item list, remove, total, checkout button
   - Profile avatar button (user initials) -> /me
+  NOTE: Cart/checkout removed from header — shop now links to external brand pages
 
 ROUTES (defined in App.tsx via wouter, all lazy-loaded):
   - / -> MapPage (Explore)
@@ -394,7 +392,7 @@ SECTIONS:
 
 SECTIONS:
   1. Category filter (sticky, horizontal scroll with tablist role)
-     - All, Habitat, Alimentation, Machines, Goodies, Apparel, Accessoires
+     - All, Habitat, Machines, Apparel, Accessoires, Goodies
      - Each with emoji prefix and count
      - i18n-aware labels
 
@@ -412,15 +410,18 @@ SECTIONS:
      - Product name (line-clamp-2)
      - Star rating
      - Price in EUR
-     - "Add to Cart" button -> adds to AppContext cart
+     - "View" button with ExternalLink icon -> opens brand's real product page (target="_blank")
+     NOTE: All 20 products are real items from real brands (ToeSox, Tavi, Manduka,
+     Lululemon, Balanced Body, Merrithew, Bala) with verified product URLs.
+     No internal cart — shop acts as a curated affiliate directory.
 
   4. Empty state: when no products match category
 
 DATA:
   - Products: useProducts() -> GET /api/products(?category=...)
+    - Each product includes externalUrl linking to the brand's real product page
   - Brands: useBrands() -> GET /api/brands
   - Wishlist: local Set<number> in AppContext
-  - Cart: local CartItem[] in AppContext
 
 ================================================================================
 --- PAGE: BRANDS (/brands) ---
@@ -460,7 +461,7 @@ SECTIONS:
 
   3. Products by this brand (grid)
      - Same product card as StorePage
-     - Wishlist toggle, Add to Cart
+     - Wishlist toggle, "View" button -> opens brand's real product page (target="_blank")
      - Empty state when no products
 
 DATA:

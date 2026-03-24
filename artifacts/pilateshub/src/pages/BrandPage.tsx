@@ -1,4 +1,4 @@
-import { ArrowLeft, BadgeCheck, Heart, MapPin, ShoppingBag, Star } from "lucide-react";
+import { ArrowLeft, BadgeCheck, ExternalLink, Heart, MapPin, ShoppingBag, Star } from "lucide-react";
 import { Link, useRoute } from "wouter";
 import { GenericPageSkeleton } from "@/components/PageSkeleton";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 export default function BrandPage() {
   const [, params] = useRoute("/brand/:slug");
-  const { wishlist, toggleWishlist, addToCart } = useApp();
+  const { wishlist, toggleWishlist } = useApp();
   const { data: BRANDS = [], isLoading: brandsLoading } = useBrands();
   const { data: PRODUCTS = [], isLoading: productsLoading } = useProducts();
 
@@ -175,13 +175,33 @@ export default function BrandPage() {
                   </div>
                   <div className="flex items-center justify-between mt-auto">
                     <span className="font-bold text-base text-primary">&euro;{product.price}</span>
-                    <Button
-                      onClick={() => addToCart(product)}
-                      size="sm"
-                      className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium"
-                    >
-                      Add
-                    </Button>
+                    {product.externalUrl ? (
+                      <a
+                        href={product.externalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          size="sm"
+                          className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium gap-1"
+                        >
+                          View <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </a>
+                    ) : (
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(`${product.brand} ${product.name}`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button
+                          size="sm"
+                          className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium gap-1"
+                        >
+                          View <ExternalLink className="w-3 h-3" />
+                        </Button>
+                      </a>
+                    )}
                   </div>
                 </CardContent>
               </Card>

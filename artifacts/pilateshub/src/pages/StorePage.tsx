@@ -1,4 +1,4 @@
-import { BadgeCheck, ChevronRight, Heart, ShoppingBag, Star } from "lucide-react";
+import { BadgeCheck, ChevronRight, ExternalLink, Heart, ShoppingBag, Star } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "wouter";
@@ -12,11 +12,10 @@ import { useBrands, useProducts } from "@/hooks/use-api";
 const CATEGORIES = [
   { key: "All", labelKey: "shop.all", emoji: "" },
   { key: "Habitat", labelKey: "shop.habitat", emoji: "\u{1F3E0}" },
-  { key: "Alimentation", labelKey: "shop.food", emoji: "\u{1F957}" },
   { key: "Machines", labelKey: "shop.machines", emoji: "\u{1F3CB}\uFE0F" },
-  { key: "Goodies", labelKey: "shop.goodies", emoji: "\u{1F381}" },
   { key: "Apparel", labelKey: "shop.apparel", emoji: "\u{1F457}" },
   { key: "Accessoires", labelKey: "shop.accessories", emoji: "\u{1F9D8}" },
+  { key: "Goodies", labelKey: "shop.goodies", emoji: "\u{1F381}" },
 ];
 
 const BADGE_COLORS: Record<string, string> = {
@@ -28,7 +27,7 @@ const BADGE_COLORS: Record<string, string> = {
 
 export default function StorePage() {
   const [activeCategory, setActiveCategory] = useState("All");
-  const { wishlist, toggleWishlist, addToCart } = useApp();
+  const { wishlist, toggleWishlist } = useApp();
   const { t } = useTranslation();
   const { data: allProducts = [], isLoading: productsLoading } = useProducts();
   const { data: BRANDS = [] } = useBrands();
@@ -65,7 +64,7 @@ export default function StorePage() {
         </div>
       </div>
 
-      {/* Our Brands — horizontal scroll */}
+      {/* Our Brands -- horizontal scroll */}
       <div className="px-5 pt-5 pb-2">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-foreground text-base">{t("shop.ourBrands")}</h2>
@@ -160,13 +159,33 @@ export default function StorePage() {
                 </div>
                 <div className="flex items-center justify-between mt-auto">
                   <span className="font-bold text-base text-primary">&euro;{product.price}</span>
-                  <Button
-                    onClick={() => addToCart(product)}
-                    size="sm"
-                    className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium"
-                  >
-                    {t("shop.addToCart")}
-                  </Button>
+                  {product.externalUrl ? (
+                    <a
+                      href={product.externalUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button
+                        size="sm"
+                        className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium gap-1"
+                      >
+                        {t("shop.viewProduct")} <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    </a>
+                  ) : (
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(`${product.brand} ${product.name}`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button
+                        size="sm"
+                        className="bg-accent-cta hover:bg-accent-cta/85 text-white font-semibold text-xs px-3.5 h-8 active:scale-95 transition-all btn-premium gap-1"
+                      >
+                        {t("shop.viewProduct")} <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    </a>
+                  )}
                 </div>
               </CardContent>
             </Card>
