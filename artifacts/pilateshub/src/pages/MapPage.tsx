@@ -1,6 +1,6 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion, type PanInfo, useMotionValue } from "framer-motion";
 import L from "leaflet";
-import { ChevronRight, Filter, MapPin, Navigation, Star, X } from "lucide-react";
+import { ChevronRight, ChevronUp, Filter, MapPin, Navigation, Star, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, TileLayer, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -123,7 +123,7 @@ function RecenterButton({ center }: { center: [number, number] }) {
       type="button"
       aria-label="Center on my location"
       onClick={() => map.flyTo(center, 14, { duration: 0.8 })}
-      className="absolute bottom-3 right-3 w-10 h-10 bg-card rounded-full shadow-lg flex items-center justify-center text-foreground/80 hover:text-primary transition-colors z-[1000] border border-border/40"
+      className="absolute bottom-14 right-3 w-10 h-10 bg-card rounded-full shadow-lg flex items-center justify-center text-foreground/80 hover:text-primary transition-colors z-[1000] border border-border/40"
     >
       <Navigation className="w-4 h-4" />
     </button>
@@ -254,10 +254,44 @@ export default function MapPage() {
   const nearYou = [...studios].sort((a, b) => (a.distance || 0) - (b.distance || 0)).slice(0, 4);
   const newStudios = [...studios].reverse().slice(0, 4);
 
+  // Bottom sheet state: "collapsed" = only handle visible, "expanded" = full discovery panel
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Motion value for drag-based sheet control
+  const sheetY = useMotionValue(0);
+
+  // Height of the discovery panel content (viewport height minus some top padding)
+  const sheetMaxHeight = typeof window !== "undefined" ? window.innerHeight * 0.75 : 600;
+
+  const handleDragEnd = useCallback(
+    (_: any, info: PanInfo) => {
+      // If dragged upward enough or fast enough, open the sheet
+      if (info.offset.y < -50 || info.velocity.y < -300) {
+        setSheetOpen(true);
+        animate(sheetY, -sheetMaxHeight, { type: "spring", stiffness: 300, damping: 30 });
+      } else {
+        setSheetOpen(false);
+        animate(sheetY, 0, { type: "spring", stiffness: 300, damping: 30 });
+      }
+    },
+    [sheetMaxHeight, sheetY],
+  );
+
+  const toggleSheet = useCallback(() => {
+    if (sheetOpen) {
+      setSheetOpen(false);
+      animate(sheetY, 0, { type: "spring", stiffness: 300, damping: 30 });
+    } else {
+      setSheetOpen(true);
+      animate(sheetY, -sheetMaxHeight, { type: "spring", stiffness: 300, damping: 30 });
+    }
+  }, [sheetOpen, sheetMaxHeight, sheetY]);
+
   return (
-    <div className="flex flex-col h-full animate-in fade-in duration-300">
-      {/* === LEAFLET MAP === */}
-      <div className="relative h-[40vh] md:h-[55vh] flex-shrink-0">
+    <div className="relative flex flex-col h-full animate-in fade-in duration-300 overflow-hidden">
+      {/* === LEAFLET MAP (fills all available space) === */}
+      <div className="relative flex-1 min-h-0">
         <MapContainer
           center={mapCenter}
           zoom={13}
@@ -352,10 +386,7 @@ export default function MapPage() {
           <CitySearchBar onCitySelect={handleCitySelect} />
 
           {/* Filter badges */}
-          <div
-            className="flex gap-2 overflow-x-auto pb-1"
-            style={{ scrollbarWidth: "none" }}
-          >
+          <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
             <Badge className="px-3 py-1.5 rounded-full whitespace-nowrap cursor-pointer shadow-sm font-semibold text-xs border flex-shrink-0 flex items-center gap-1 bg-card text-foreground border-border">
               <Filter className="w-3 h-3" />
               Filters
@@ -388,7 +419,7 @@ export default function MapPage() {
 
         {/* Selected featured studio preview card */}
         {selectedStudio && (
-          <div className="absolute bottom-16 left-3 right-3 z-[1000] animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="absolute bottom-14 left-3 right-3 z-[1000] animate-in slide-in-from-bottom-4 fade-in duration-200">
             <StudioDetailDialog studio={selectedStudio}>
               <Card className="bg-card/95 backdrop-blur-md border-none shadow-xl cursor-pointer hover:shadow-2xl transition-shadow overflow-hidden">
                 <div className="flex p-3 gap-3">
@@ -436,213 +467,246 @@ export default function MapPage() {
         )}
       </div>
 
-      {/* === DISCOVERY SECTIONS (always visible below map) === */}
-      <div className="p-5 flex flex-col gap-8 bg-background">
-        {/* Featured Studios -- horizontal scroll */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">Featured Studios</h2>
-            <button type="button" className="text-xs font-bold text-primary hover:text-primary/80 transition-colors">
-              See All
-            </button>
+      {/* === BOTTOM SHEET: Discovery sections === */}
+      <motion.div
+        ref={sheetRef}
+        style={{ y: sheetY }}
+        drag="y"
+        dragConstraints={{ top: -sheetMaxHeight, bottom: 0 }}
+        dragElastic={0.1}
+        onDragEnd={handleDragEnd}
+        className="absolute bottom-0 left-0 right-0 z-[1001] touch-none"
+      >
+        {/* Handle bar */}
+        <button
+          type="button"
+          className="w-full flex flex-col items-center pt-2 pb-3 cursor-pointer bg-background rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.12)] border-none outline-none"
+          onClick={toggleSheet}
+          aria-label={sheetOpen ? "Collapse discovery panel" : "Expand discovery panel"}
+        >
+          <div className="w-10 h-1 rounded-full bg-muted-foreground/30 mb-1.5" />
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+            <ChevronUp className={`w-3.5 h-3.5 transition-transform duration-300 ${sheetOpen ? "rotate-180" : ""}`} />
+            {sheetOpen ? "Close" : "Explore studios"}
           </div>
-          <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            <AnimatePresence mode="popLayout">
-              {filteredStudios.slice(0, 5).map((studio, i) => (
-                <AnimatedCard key={studio.id} studio={studio} index={i}>
-                  <StudioDetailDialog studio={studio}>
-                    <div className="w-56 flex-shrink-0 cursor-pointer group">
-                      <div className="h-32 rounded-2xl overflow-hidden mb-2 shadow-sm">
-                        <img
-                          src={studio.imageUrl || FALLBACK_IMAGE}
-                          alt={studio.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      </div>
-                      <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                        <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
-                        {studio.rating} · {studio.neighborhood}
-                      </div>
-                    </div>
-                  </StudioDetailDialog>
-                </AnimatedCard>
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
+        </button>
 
-        {/* Near You -- horizontal scroll, sorted by distance */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">Near You</h2>
-            <span className="text-xs text-muted-foreground">Based on your location</span>
-          </div>
-          <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
-            <AnimatePresence mode="popLayout">
-              {nearYou.map((studio, i) => (
-                <AnimatedCard key={studio.id} studio={studio} index={i}>
-                  <StudioDetailDialog studio={studio}>
-                    <div className="w-44 flex-shrink-0 cursor-pointer group">
-                      <div className="relative h-28 rounded-2xl overflow-hidden mb-2 shadow-sm">
-                        <img
-                          src={studio.imageUrl || FALLBACK_IMAGE}
-                          alt={studio.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm">
-                          <MapPin className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
-                          {studio.distance}km
+        {/* Scrollable discovery content */}
+        <div
+          className="bg-background overflow-y-auto overscroll-contain touch-auto"
+          style={{ maxHeight: `${sheetMaxHeight - 48}px` }}
+        >
+          <div className="p-5 flex flex-col gap-8">
+            {/* Featured Studios -- horizontal scroll */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-foreground">Featured Studios</h2>
+                <button
+                  type="button"
+                  className="text-xs font-bold text-primary hover:text-primary/80 transition-colors"
+                >
+                  See All
+                </button>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                <AnimatePresence mode="popLayout">
+                  {filteredStudios.slice(0, 5).map((studio, i) => (
+                    <AnimatedCard key={studio.id} studio={studio} index={i}>
+                      <StudioDetailDialog studio={studio}>
+                        <div className="w-56 flex-shrink-0 cursor-pointer group">
+                          <div className="h-32 rounded-2xl overflow-hidden mb-2 shadow-sm">
+                            <img
+                              src={studio.imageUrl || FALLBACK_IMAGE}
+                              alt={studio.name}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          </div>
+                          <h3 className="font-bold text-sm text-foreground truncate">{studio.name}</h3>
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                            <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                            {studio.rating} · {studio.neighborhood}
+                          </div>
                         </div>
-                      </div>
-                      <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
-                      <p className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</p>
-                    </div>
-                  </StudioDetailDialog>
-                </AnimatedCard>
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
+                      </StudioDetailDialog>
+                    </AnimatedCard>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </section>
 
-        {/* Top Rated -- sorted by rating, ranked list */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">Top Rated</h2>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
-              Highest reviewed
-            </div>
-          </div>
-          <div className="flex flex-col gap-3">
-            <AnimatePresence mode="popLayout">
-              {topRated.map((studio, idx) => (
-                <AnimatedCard key={studio.id} studio={studio} index={idx}>
-                  <StudioDetailDialog studio={studio}>
-                    <Card className="cursor-pointer group hover:shadow-md transition-shadow rounded-2xl overflow-hidden border-none shadow-sm">
-                      <div className="flex h-20">
-                        <div className="w-20 flex-shrink-0 overflow-hidden">
-                          <img
-                            src={studio.imageUrl || FALLBACK_IMAGE}
-                            alt={studio.name}
-                            loading="lazy"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="p-3 flex-1 flex items-center justify-between">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-black text-accent-cta">#{idx + 1}</span>
-                              <h3 className="font-bold text-sm text-foreground">{studio.name}</h3>
+            {/* Near You -- horizontal scroll, sorted by distance */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-foreground">Near You</h2>
+                <span className="text-xs text-muted-foreground">Based on your location</span>
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-1" style={{ scrollbarWidth: "none" }}>
+                <AnimatePresence mode="popLayout">
+                  {nearYou.map((studio, i) => (
+                    <AnimatedCard key={studio.id} studio={studio} index={i}>
+                      <StudioDetailDialog studio={studio}>
+                        <div className="w-44 flex-shrink-0 cursor-pointer group">
+                          <div className="relative h-28 rounded-2xl overflow-hidden mb-2 shadow-sm">
+                            <img
+                              src={studio.imageUrl || FALLBACK_IMAGE}
+                              alt={studio.name}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute bottom-2 left-2 bg-card/90 backdrop-blur-sm rounded-full px-2 py-0.5 text-[10px] font-bold text-foreground shadow-sm">
+                              <MapPin className="w-2.5 h-2.5 inline mr-0.5 -mt-0.5" />
+                              {studio.distance}km
                             </div>
-                            <p className="text-xs text-muted-foreground ml-6">{studio.neighborhood}</p>
                           </div>
-                          <div className="text-right flex-shrink-0 ml-2">
-                            <div className="flex items-center gap-1">
-                              <Star className="w-3.5 h-3.5 text-accent-cta fill-accent-cta" />
-                              <span className="font-bold text-sm">{studio.rating}</span>
+                          <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
+                          <p className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</p>
+                        </div>
+                      </StudioDetailDialog>
+                    </AnimatedCard>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </section>
+
+            {/* Top Rated -- sorted by rating, ranked list */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-foreground">Top Rated</h2>
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                  Highest reviewed
+                </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                <AnimatePresence mode="popLayout">
+                  {topRated.map((studio, idx) => (
+                    <AnimatedCard key={studio.id} studio={studio} index={idx}>
+                      <StudioDetailDialog studio={studio}>
+                        <Card className="cursor-pointer group hover:shadow-md transition-shadow rounded-2xl overflow-hidden border-none shadow-sm">
+                          <div className="flex h-20">
+                            <div className="w-20 flex-shrink-0 overflow-hidden">
+                              <img
+                                src={studio.imageUrl || FALLBACK_IMAGE}
+                                alt={studio.name}
+                                loading="lazy"
+                                className="w-full h-full object-cover"
+                              />
                             </div>
-                            <span className="text-[10px] text-muted-foreground">{studio.reviews} reviews</span>
+                            <div className="p-3 flex-1 flex items-center justify-between">
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-accent-cta">#{idx + 1}</span>
+                                  <h3 className="font-bold text-sm text-foreground">{studio.name}</h3>
+                                </div>
+                                <p className="text-xs text-muted-foreground ml-6">{studio.neighborhood}</p>
+                              </div>
+                              <div className="text-right flex-shrink-0 ml-2">
+                                <div className="flex items-center gap-1">
+                                  <Star className="w-3.5 h-3.5 text-accent-cta fill-accent-cta" />
+                                  <span className="font-bold text-sm">{studio.rating}</span>
+                                </div>
+                                <span className="text-[10px] text-muted-foreground">{studio.reviews} reviews</span>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      </StudioDetailDialog>
+                    </AnimatedCard>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </section>
+
+            {/* New Studios -- grid of fresh additions */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-foreground">New Studios</h2>
+                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-1">
+                  Recently added
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <AnimatePresence mode="popLayout">
+                  {newStudios.map((studio, i) => (
+                    <AnimatedCard key={studio.id} studio={studio} index={i}>
+                      <StudioDetailDialog studio={studio}>
+                        <div className="cursor-pointer group">
+                          <div className="h-28 rounded-2xl overflow-hidden mb-2 shadow-sm relative">
+                            <img
+                              src={studio.imageUrl || FALLBACK_IMAGE}
+                              alt={studio.name}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                            <div className="absolute top-2 left-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] font-bold shadow-sm">
+                              NEW
+                            </div>
+                          </div>
+                          <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
+                          <div className="flex items-center justify-between mt-0.5">
+                            <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
+                            <div className="flex items-center gap-1 text-[11px] text-muted-foreground flex-shrink-0">
+                              <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
+                              {studio.rating}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </Card>
-                  </StudioDetailDialog>
-                </AnimatedCard>
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
+                      </StudioDetailDialog>
+                    </AnimatedCard>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </section>
 
-        {/* New Studios -- grid of fresh additions */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">New Studios</h2>
-            <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 rounded-full px-2.5 py-1">
-              Recently added
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <AnimatePresence mode="popLayout">
-              {newStudios.map((studio, i) => (
-                <AnimatedCard key={studio.id} studio={studio} index={i}>
-                  <StudioDetailDialog studio={studio}>
-                    <div className="cursor-pointer group">
-                      <div className="h-28 rounded-2xl overflow-hidden mb-2 shadow-sm relative">
-                        <img
-                          src={studio.imageUrl || FALLBACK_IMAGE}
-                          alt={studio.name}
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                        <div className="absolute top-2 left-2 bg-emerald-500 text-white rounded-full px-2 py-0.5 text-[9px] font-bold shadow-sm">
-                          NEW
-                        </div>
-                      </div>
-                      <h3 className="font-bold text-xs text-foreground truncate">{studio.name}</h3>
-                      <div className="flex items-center justify-between mt-0.5">
-                        <span className="text-[11px] text-muted-foreground truncate">{studio.neighborhood}</span>
-                        <div className="flex items-center gap-1 text-[11px] text-muted-foreground flex-shrink-0">
-                          <Star className="w-3 h-3 text-accent-cta fill-accent-cta" />
-                          {studio.rating}
-                        </div>
-                      </div>
-                    </div>
-                  </StudioDetailDialog>
-                </AnimatedCard>
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
-
-        {/* All Studios -- compact list with grid on desktop */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-bold text-foreground">All Studios</h2>
-            <span className="text-xs text-muted-foreground">{filteredStudios.length} studios</span>
-          </div>
-          <div className="flex flex-col md:grid md:grid-cols-2 gap-3">
-            <AnimatePresence mode="popLayout">
-              {filteredStudios.map((studio, i) => (
-                <AnimatedCard key={studio.id} studio={studio} index={i}>
-                  <StudioDetailDialog studio={studio}>
-                    <Card className="border border-border/40 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer overflow-hidden group rounded-2xl">
-                      <div className="flex h-24">
-                        <div className="w-24 flex-shrink-0 overflow-hidden">
-                          <img
-                            src={studio.imageUrl || FALLBACK_IMAGE}
-                            alt={studio.name}
-                            loading="lazy"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div className="p-3 flex-1 flex flex-col justify-between">
-                          <div>
-                            <h3 className="font-bold text-sm leading-tight text-foreground">{studio.name}</h3>
-                            <p className="text-xs text-muted-foreground/60 mt-0.5">
-                              {studio.neighborhood} {"\u00B7"} {studio.distance}km
-                            </p>
+            {/* All Studios -- compact list with grid on desktop */}
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-bold text-foreground">All Studios</h2>
+                <span className="text-xs text-muted-foreground">{filteredStudios.length} studios</span>
+              </div>
+              <div className="flex flex-col md:grid md:grid-cols-2 gap-3">
+                <AnimatePresence mode="popLayout">
+                  {filteredStudios.map((studio, i) => (
+                    <AnimatedCard key={studio.id} studio={studio} index={i}>
+                      <StudioDetailDialog studio={studio}>
+                        <Card className="border border-border/40 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer overflow-hidden group rounded-2xl">
+                          <div className="flex h-24">
+                            <div className="w-24 flex-shrink-0 overflow-hidden">
+                              <img
+                                src={studio.imageUrl || FALLBACK_IMAGE}
+                                alt={studio.name}
+                                loading="lazy"
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                            <div className="p-3 flex-1 flex flex-col justify-between">
+                              <div>
+                                <h3 className="font-bold text-sm leading-tight text-foreground">{studio.name}</h3>
+                                <p className="text-xs text-muted-foreground/60 mt-0.5">
+                                  {studio.neighborhood} {"\u00B7"} {studio.distance}km
+                                </p>
+                              </div>
+                              <div className="flex items-center text-xs font-semibold text-foreground/80 gap-1">
+                                <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
+                                {studio.rating}
+                                <span className="text-muted-foreground/60 font-normal">({studio.reviews})</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex items-center text-xs font-semibold text-foreground/80 gap-1">
-                            <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                            {studio.rating}
-                            <span className="text-muted-foreground/60 font-normal">({studio.reviews})</span>
-                          </div>
-                        </div>
-                      </div>
-                    </Card>
-                  </StudioDetailDialog>
-                </AnimatedCard>
-              ))}
-            </AnimatePresence>
-          </div>
-        </section>
+                        </Card>
+                      </StudioDetailDialog>
+                    </AnimatedCard>
+                  ))}
+                </AnimatePresence>
+              </div>
+            </section>
 
-        {/* Bottom spacer for safe area / tab bar */}
-        <div className="h-4" />
-      </div>
+            {/* Bottom spacer for safe area / tab bar */}
+            <div className="h-4" />
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }
