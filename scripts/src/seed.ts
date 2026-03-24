@@ -579,60 +579,62 @@ async function seed() {
     ])
     .onConflictDoNothing();
 
-  // ---- Conversations ----
+  // ---- Conversations (skip if already seeded to prevent duplicates) ----
   console.log("  Seeding conversations...");
-  await db
-    .insert(schema.conversations)
-    .values([
-      {}, // conversation 1: Emma & Lucas
-      {}, // conversation 2: Sophie, Marie & Isabelle
-      {}, // conversation 3: Lea & Hugo
-    ])
-    .onConflictDoNothing();
+  const existingConvos = await db.select({ id: schema.conversations.id }).from(schema.conversations).limit(1);
+  if (existingConvos.length === 0) {
+    await db
+      .insert(schema.conversations)
+      .values([
+        {}, // conversation 1: Emma & Lucas
+        {}, // conversation 2: Sophie, Marie & Isabelle
+        {}, // conversation 3: Lea & Hugo
+      ]);
 
-  // ---- Conversation Participants ----
-  console.log("  Seeding conversation participants...");
-  await db
-    .insert(schema.conversationParticipants)
-    .values([
-      // Conversation 1: Emma & Lucas
-      { conversationId: 1, userId: 1 },
-      { conversationId: 1, userId: 2 },
-      // Conversation 2: Sophie, Marie & Isabelle (group chat)
-      { conversationId: 2, userId: 3 },
-      { conversationId: 2, userId: 5 },
-      { conversationId: 2, userId: 7 },
-      // Conversation 3: Lea & Hugo
-      { conversationId: 3, userId: 9 },
-      { conversationId: 3, userId: 10 },
-    ])
-    .onConflictDoNothing();
+    // ---- Conversation Participants ----
+    console.log("  Seeding conversation participants...");
+    await db
+      .insert(schema.conversationParticipants)
+      .values([
+        // Conversation 1: Emma & Lucas
+        { conversationId: 1, userId: 1 },
+        { conversationId: 1, userId: 2 },
+        // Conversation 2: Sophie, Marie & Isabelle (group chat)
+        { conversationId: 2, userId: 3 },
+        { conversationId: 2, userId: 5 },
+        { conversationId: 2, userId: 7 },
+        // Conversation 3: Lea & Hugo
+        { conversationId: 3, userId: 9 },
+        { conversationId: 3, userId: 10 },
+      ]);
 
-  // ---- Messages ----
-  console.log("  Seeding messages...");
-  await db
-    .insert(schema.messages)
-    .values([
-      // Conversation 1: Emma & Lucas discussing a class
-      { conversationId: 1, senderId: 1, content: "Hey Lucas! Are you going to the Reformer Advanced class at Studio Harmonie tomorrow morning?" },
-      { conversationId: 1, senderId: 2, content: "I was thinking about it! Is it the 9am one with Sophie?" },
-      { conversationId: 1, senderId: 1, content: "Yes exactly! She's the best. I'll save you a reformer next to mine." },
-      { conversationId: 1, senderId: 2, content: "Perfect, I'll book it now. Want to grab a coffee at the cafe nearby after?" },
-      { conversationId: 1, senderId: 1, content: "Absolutely! See you at 8:45 then. Don't forget your grip socks!" },
-      // Conversation 2: Sophie, Marie & Isabelle planning a group session
-      { conversationId: 2, senderId: 3, content: "Hey ladies! Anyone up for trying the new Tower & Reformer class at BodyWork Pilates this weekend?" },
-      { conversationId: 2, senderId: 5, content: "Oh I've been wanting to try that! Celine's classes are supposed to be incredible. Saturday morning works for me." },
-      { conversationId: 2, senderId: 7, content: "Count me in! I heard it's 75 minutes though - that's going to be intense. Should we book the 10am slot?" },
-      { conversationId: 2, senderId: 3, content: "10am is perfect. I just checked and there are still 3 spots available. Booking now!" },
-      { conversationId: 2, senderId: 5, content: "Booked! This is going to be amazing. Let's do brunch afterwards to celebrate surviving it." },
-      // Conversation 3: Lea & Hugo about a forum post
-      { conversationId: 3, senderId: 9, content: "Hugo, did you see that forum post about how often to do Pilates per week? Really interesting discussion." },
-      { conversationId: 3, senderId: 10, content: "Yes! I left a comment. I've been doing Classical Mat 3x a week and it feels like the right amount." },
-      { conversationId: 3, senderId: 9, content: "Same for me. I tried doing 5 classes last week for the challenge and my body was not happy by Friday." },
-      { conversationId: 3, senderId: 10, content: "Ha! Recovery is just as important as the workout. Want to try the Reformer Cardio at Pilates Zen next week?" },
-      { conversationId: 3, senderId: 9, content: "Yes! I've been eyeing that one. Thomas Chevalier teaches it on Tuesdays. Let's do it!" },
-    ])
-    .onConflictDoNothing();
+    // ---- Messages ----
+    console.log("  Seeding messages...");
+    await db
+      .insert(schema.messages)
+      .values([
+        // Conversation 1: Emma & Lucas discussing a class
+        { conversationId: 1, senderId: 1, content: "Hey Lucas! Are you going to the Reformer Advanced class at Studio Harmonie tomorrow morning?" },
+        { conversationId: 1, senderId: 2, content: "I was thinking about it! Is it the 9am one with Sophie?" },
+        { conversationId: 1, senderId: 1, content: "Yes exactly! She's the best. I'll save you a reformer next to mine." },
+        { conversationId: 1, senderId: 2, content: "Perfect, I'll book it now. Want to grab a coffee at the cafe nearby after?" },
+        { conversationId: 1, senderId: 1, content: "Absolutely! See you at 8:45 then. Don't forget your grip socks!" },
+        // Conversation 2: Sophie, Marie & Isabelle planning a group session
+        { conversationId: 2, senderId: 3, content: "Hey ladies! Anyone up for trying the new Tower & Reformer class at BodyWork Pilates this weekend?" },
+        { conversationId: 2, senderId: 5, content: "Oh I've been wanting to try that! Celine's classes are supposed to be incredible. Saturday morning works for me." },
+        { conversationId: 2, senderId: 7, content: "Count me in! I heard it's 75 minutes though - that's going to be intense. Should we book the 10am slot?" },
+        { conversationId: 2, senderId: 3, content: "10am is perfect. I just checked and there are still 3 spots available. Booking now!" },
+        { conversationId: 2, senderId: 5, content: "Booked! This is going to be amazing. Let's do brunch afterwards to celebrate surviving it." },
+        // Conversation 3: Lea & Hugo about a forum post
+        { conversationId: 3, senderId: 9, content: "Hugo, did you see that forum post about how often to do Pilates per week? Really interesting discussion." },
+        { conversationId: 3, senderId: 10, content: "Yes! I left a comment. I've been doing Classical Mat 3x a week and it feels like the right amount." },
+        { conversationId: 3, senderId: 9, content: "Same for me. I tried doing 5 classes last week for the challenge and my body was not happy by Friday." },
+        { conversationId: 3, senderId: 10, content: "Ha! Recovery is just as important as the workout. Want to try the Reformer Cardio at Pilates Zen next week?" },
+        { conversationId: 3, senderId: 9, content: "Yes! I've been eyeing that one. Thomas Chevalier teaches it on Tuesdays. Let's do it!" },
+      ]);
+  } else {
+    console.log("  Conversations already seeded, skipping...");
+  }
 
   console.log("\nSeed complete!");
   await pool.end();

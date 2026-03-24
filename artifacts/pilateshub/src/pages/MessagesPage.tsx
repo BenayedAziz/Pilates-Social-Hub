@@ -407,8 +407,8 @@ export default function MessagesPage() {
           )}
         </div>
 
-        {/* Message input */}
-        <div className="px-4 py-3 bg-card border-t border-border/40 flex items-center gap-2 shrink-0">
+        {/* Message input — mb-20 on mobile to clear the absolutely-positioned BottomNav */}
+        <div className="px-4 py-3 mb-20 md:mb-0 bg-card border-t border-border/40 flex items-center gap-2 shrink-0">
           <Input
             value={newMessage}
             onChange={handleInputChange}

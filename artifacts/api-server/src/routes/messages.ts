@@ -31,7 +31,8 @@ router.get("/messages/conversations", authMiddleware, async (req, res) => {
       .from(schema.conversationParticipants)
       .where(eq(schema.conversationParticipants.userId, userId));
 
-    const convoIds = participantRows.map((r: any) => r.conversationId);
+    // Deduplicate conversation IDs (seed may have inserted duplicate participant rows)
+    const convoIds = [...new Set(participantRows.map((r: any) => r.conversationId))];
 
     if (convoIds.length === 0) {
       res.json([]);
@@ -76,7 +77,7 @@ router.get("/messages/conversations", authMiddleware, async (req, res) => {
       ];
       const color = colors[other.userId % colors.length];
 
-      // Get last message
+      // Get last message (order by id desc as tiebreaker when timestamps match)
       const [lastMsg] = await db
         .select({
           content: schema.messages.content,
@@ -84,7 +85,7 @@ router.get("/messages/conversations", authMiddleware, async (req, res) => {
         })
         .from(schema.messages)
         .where(eq(schema.messages.conversationId, convoId))
-        .orderBy(desc(schema.messages.createdAt))
+        .orderBy(desc(schema.messages.createdAt), desc(schema.messages.id))
         .limit(1);
 
       // Count unread messages (sent by others, not read yet)
@@ -308,16 +309,18 @@ router.post("/messages/conversations", authMiddleware, async (req, res) => {
       .from(schema.conversationParticipants)
       .where(eq(schema.conversationParticipants.userId, participantId));
 
-    const myConvoIds = new Set(myConvos.map((r: any) => r.conversationId));
-    const sharedConvoIds = theirConvos
-      .map((r: any) => r.conversationId)
-      .filter((id: number) => myConvoIds.has(id));
+    const myConvoIds = new Set(myConvos.map((r: any) => r.conversationId as number));
+    const sharedConvoIds = [...new Set<number>(
+      theirConvos
+        .map((r: any) => r.conversationId as number)
+        .filter((id: number) => myConvoIds.has(id)),
+    )];
 
-    // Check if any shared conversation is a 1:1 (exactly 2 participants)
+    // Check if any shared conversation is a 1:1 (exactly 2 distinct participants)
     let existingConvoId: number | null = null;
     for (const cId of sharedConvoIds) {
       const [countResult] = await db
-        .select({ count: sql<number>`count(*)::int` })
+        .select({ count: sql<number>`count(DISTINCT user_id)::int` })
         .from(schema.conversationParticipants)
         .where(eq(schema.conversationParticipants.conversationId, cId));
       if (countResult?.count === 2) {
@@ -504,7 +507,8 @@ router.get("/messages/unread-count", authMiddleware, async (req, res) => {
       .from(schema.conversationParticipants)
       .where(eq(schema.conversationParticipants.userId, userId));
 
-    const convoIds = participantRows.map((r: any) => r.conversationId);
+    // Deduplicate conversation IDs (seed may have inserted duplicate participant rows)
+    const convoIds = [...new Set(participantRows.map((r: any) => r.conversationId))];
 
     if (convoIds.length === 0) {
       res.json({ count: 0 });
