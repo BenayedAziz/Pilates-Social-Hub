@@ -37,6 +37,8 @@ export const studios = pgTable("studios", {
   imageUrl: text("image_url"),
   amenities: jsonb("amenities").$type<string[]>().default([]),
   googlePlaceId: text("google_place_id"),
+  website: text("website"),
+  phone: varchar("phone", { length: 50 }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -91,6 +93,19 @@ export const bookings = pgTable("bookings", {
 
 export const insertBookingSchema = createInsertSchema(bookings);
 export type Booking = typeof bookings.$inferSelect;
+
+// ============= WAITLIST =============
+export const waitlist = pgTable("waitlist", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  classId: integer("class_id").references(() => classes.id).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("waiting"), // waiting, promoted, expired
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+  promotedAt: timestamp("promoted_at"),
+});
+
+export const insertWaitlistSchema = createInsertSchema(waitlist);
+export type WaitlistEntry = typeof waitlist.$inferSelect;
 
 // ============= POSTS (Social Feed) =============
 export const posts = pgTable("posts", {

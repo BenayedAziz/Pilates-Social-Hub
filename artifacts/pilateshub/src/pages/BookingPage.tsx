@@ -4,8 +4,11 @@ import {
   Check,
   ChevronRight,
   Clock,
-  CreditCard,
+  Download,
+  ExternalLink,
+  FlaskConical,
   MapPin,
+  Phone,
   Shield,
   Sparkles,
   User,
@@ -19,102 +22,185 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useStudios } from "@/hooks/use-api";
+import { useClasses, useCreateBooking, useStudios } from "@/hooks/use-api";
+import { useBookingPayment } from "@/hooks/use-payments";
 import { notify } from "@/lib/notifications";
 
 // ---------------------------------------------------------------------------
-// Mock class data per studio
+// ICS calendar file generator
 // ---------------------------------------------------------------------------
-interface StudioClass {
-  id: number;
-  name: string;
-  coach: string;
-  duration: number;
-  level: string;
-  price: number;
-  spotsLeft: number;
-}
+function generateIcsFile(params: {
+  className: string;
+  studioName: string;
+  studioAddress: string;
+  startDate: Date;
+  durationMinutes: number;
+  coachName: string | null;
+  bookingRef: string;
+}): string {
+  const { className, studioName, studioAddress, startDate, durationMinutes, coachName, bookingRef } = params;
 
-const MOCK_CLASSES: StudioClass[] = [
-  {
-    id: 1,
-    name: "Reformer Flow",
-    coach: "Sophie Leclerc",
-    duration: 55,
-    level: "Intermediate",
-    price: 45,
-    spotsLeft: 4,
-  },
-  { id: 2, name: "Mat Pilates Core", coach: "Julien Moreau", duration: 45, level: "Beginner", price: 38, spotsLeft: 8 },
-  {
-    id: 3,
-    name: "Cadillac Advanced",
-    coach: "Sophie Leclerc",
-    duration: 60,
-    level: "Advanced",
-    price: 55,
-    spotsLeft: 2,
-  },
-  { id: 4, name: "Tower Session", coach: "Julien Moreau", duration: 50, level: "All Levels", price: 42, spotsLeft: 6 },
-  {
-    id: 5,
-    name: "Reformer & Stretch",
-    coach: "Marie Dubois",
-    duration: 50,
-    level: "Beginner",
-    price: 40,
-    spotsLeft: 5,
-  },
-  { id: 6, name: "Power Pilates", coach: "Antoine Petit", duration: 55, level: "Advanced", price: 52, spotsLeft: 3 },
-];
+  const endDate = new Date(startDate.getTime() + durationMinutes * 60 * 1000);
 
-// ---------------------------------------------------------------------------
-// Time‑slot generation for the next 7 days
-// ---------------------------------------------------------------------------
-const TIMES = ["07:00", "08:30", "09:00", "10:30", "11:30", "14:00", "15:30", "17:00", "18:30", "19:30"];
-
-interface TimeSlot {
-  date: Date;
-  dateLabel: string;
-  dayLabel: string;
-  time: string;
-  isFull: boolean;
-}
-
-function generateSlots(): TimeSlot[] {
-  const slots: TimeSlot[] = [];
-  const today = new Date();
-  for (let d = 0; d < 7; d++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + d);
-    const dayLabel = d === 0 ? "Today" : d === 1 ? "Tomorrow" : date.toLocaleDateString("en-GB", { weekday: "short" });
-    const dateLabel = date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
-    for (const time of TIMES) {
-      // Deterministic "full" slots based on day + time hash
-      const hash = (d * 17 + TIMES.indexOf(time) * 7) % 10;
-      slots.push({ date, dateLabel, dayLabel, time, isFull: hash < 2 });
-    }
+  // Format date to ICS format: YYYYMMDDTHHMMSSZ
+  function toIcsDate(d: Date): string {
+    return d
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}/, "");
   }
-  return slots;
+
+  const now = new Date();
+  const uid = `${bookingRef}-${now.getTime()}@pilateshub.com`;
+
+  const description = [
+    `${className} at ${studioName}`,
+    coachName ? `Coach: ${coachName}` : null,
+    `Duration: ${durationMinutes} minutes`,
+    `Booking ref: ${bookingRef}`,
+    "",
+    "Booked via PilatesHub - https://pilateshub.com",
+  ]
+    .filter(Boolean)
+    .join("\\n");
+
+  return [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//PilatesHub//Booking//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    "BEGIN:VEVENT",
+    `DTSTART:${toIcsDate(startDate)}`,
+    `DTEND:${toIcsDate(endDate)}`,
+    `DTSTAMP:${toIcsDate(now)}`,
+    `UID:${uid}`,
+    `SUMMARY:${className} - ${studioName}`,
+    `DESCRIPTION:${description}`,
+    `LOCATION:${studioAddress}`,
+    "STATUS:CONFIRMED",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT1H",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${className} at ${studioName} starts in 1 hour`,
+    "END:VALARM",
+    "BEGIN:VALARM",
+    "TRIGGER:-PT15M",
+    "ACTION:DISPLAY",
+    `DESCRIPTION:${className} at ${studioName} starts in 15 minutes`,
+    "END:VALARM",
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].join("\r\n");
 }
 
-const SERVICE_FEE = 2.5;
+function downloadIcsFile(icsContent: string, filename: string): void {
+  const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 
 // ---------------------------------------------------------------------------
 // Level color helper
 // ---------------------------------------------------------------------------
 function levelColor(level: string) {
-  switch (level) {
-    case "Beginner":
-      return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
-    case "Intermediate":
-      return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
-    case "Advanced":
-      return "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300";
-    default:
-      return "bg-primary/10 text-primary";
-  }
+  const l = level.toLowerCase();
+  if (l === "beginner") return "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300";
+  if (l === "intermediate") return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+  if (l === "advanced") return "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300";
+  return "bg-primary/10 text-primary";
 }
+
+// ---------------------------------------------------------------------------
+// Capitalize helper
+// ---------------------------------------------------------------------------
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+// ---------------------------------------------------------------------------
+// Types for API class data
+// ---------------------------------------------------------------------------
+interface ApiClass {
+  id: number;
+  studioId: number;
+  coachId: number | null;
+  title: string;
+  type: string;
+  level: string;
+  description: string | null;
+  duration: number;
+  maxCapacity: number;
+  price: number;
+  scheduledAt: string;
+  studioName: string;
+  coachName: string | null;
+}
+
+// Derived time slot from scheduledAt
+interface TimeSlot {
+  classId: number;
+  date: Date;
+  dateLabel: string;
+  dayLabel: string;
+  time: string;
+}
+
+// ---------------------------------------------------------------------------
+// Build day/slot structure from real classes
+// ---------------------------------------------------------------------------
+function buildSlots(classes: ApiClass[]): { days: DayGroup[]; slots: TimeSlot[] } {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const slots: TimeSlot[] = classes
+    .map((cls) => {
+      const date = new Date(cls.scheduledAt);
+      const diffDays = Math.floor((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const dayLabel =
+        diffDays === 0 ? "Today" : diffDays === 1 ? "Tomorrow" : date.toLocaleDateString("en-GB", { weekday: "short" });
+      const dateLabel = date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+      const time = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+      return { classId: cls.id, date, dateLabel, dayLabel, time };
+    })
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  // Group by calendar day
+  const dayMap = new Map<string, TimeSlot[]>();
+  for (const slot of slots) {
+    const key = slot.date.toISOString().slice(0, 10);
+    if (!dayMap.has(key)) dayMap.set(key, []);
+    dayMap.get(key)!.push(slot);
+  }
+
+  const days: DayGroup[] = [];
+  let idx = 0;
+  for (const [, daySlots] of dayMap) {
+    days.push({
+      index: idx++,
+      dayLabel: daySlots[0].dayLabel,
+      dateLabel: daySlots[0].dateLabel,
+      slots: daySlots,
+    });
+  }
+
+  return { days, slots };
+}
+
+interface DayGroup {
+  index: number;
+  dayLabel: string;
+  dateLabel: string;
+  slots: TimeSlot[];
+}
+
+const SERVICE_FEE = 2.5;
 
 // ---------------------------------------------------------------------------
 // BookingPage component
@@ -124,42 +210,37 @@ export default function BookingPage() {
   const [, navigate] = useLocation();
   const studioId = params ? Number(params.studioId) : null;
   const { data: STUDIOS = [], isLoading: studiosLoading } = useStudios();
+  const { data: apiClasses = [], isLoading: classesLoading } = useClasses(studioId ?? undefined);
+  const createBooking = useCreateBooking();
+  const bookingPayment = useBookingPayment();
 
   const foundStudio = STUDIOS.find((s: any) => s.id === studioId);
 
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedClass, setSelectedClass] = useState<StudioClass | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [bookingResult, setBookingResult] = useState<any>(null);
 
-  const allSlots = useMemo(() => generateSlots(), []);
+  const selectedClass = useMemo(
+    () => apiClasses.find((c: ApiClass) => c.id === selectedClassId) ?? null,
+    [apiClasses, selectedClassId],
+  );
 
-  // Group slots by day index
-  const days = Array.from({ length: 7 }, (_, i) => {
-    const daySlots = allSlots.filter((_, idx) => Math.floor(idx / TIMES.length) === i);
-    return {
-      index: i,
-      dayLabel: daySlots[0]?.dayLabel ?? "",
-      dateLabel: daySlots[0]?.dateLabel ?? "",
-      slots: daySlots,
-    };
-  });
-
-  // Assign studio-specific classes based on studio coaches
-  const studioClasses = foundStudio
-    ? MOCK_CLASSES.map((c) => ({
-        ...c,
-        coach: foundStudio.coaches[c.id % foundStudio.coaches.length] ?? c.coach,
-        price: Math.round(foundStudio.price + (c.price - 45) * 0.8),
-      }))
-    : MOCK_CLASSES;
+  const { days } = useMemo(() => {
+    if (!selectedClass) return { days: [] as DayGroup[], slots: [] as TimeSlot[] };
+    // Show all schedule entries for the selected class title at this studio
+    const relevantClasses = apiClasses.filter(
+      (c: ApiClass) => c.title === selectedClass.title && c.studioId === selectedClass.studioId,
+    );
+    return buildSlots(relevantClasses);
+  }, [apiClasses, selectedClass]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentStep]);
 
-  if (studiosLoading) return <GenericPageSkeleton />;
+  if (studiosLoading || classesLoading) return <GenericPageSkeleton />;
 
   if (!foundStudio) {
     return (
@@ -172,8 +253,17 @@ export default function BookingPage() {
     );
   }
 
-  // After the guard, studio is guaranteed to be defined
   const studio = foundStudio!;
+
+  // De-duplicate classes by title for step 1 (show each class type once)
+  const uniqueClasses: ApiClass[] = [];
+  const seenTitles = new Set<string>();
+  for (const cls of apiClasses as ApiClass[]) {
+    if (!seenTitles.has(cls.title)) {
+      seenTitles.add(cls.title);
+      uniqueClasses.push(cls);
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // Step progress indicator
@@ -254,9 +344,25 @@ export default function BookingPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 1 — Select Class
+  // STEP 1 — Select Class (real API data)
   // ---------------------------------------------------------------------------
   function StepSelectClass() {
+    if (uniqueClasses.length === 0) {
+      return (
+        <div className="px-4 pb-6 space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="pt-2 pb-1">
+            <h2 className="text-lg font-bold text-foreground">No classes available</h2>
+            <p className="text-sm text-muted-foreground">
+              {studio.name} has no upcoming classes scheduled. Check back later!
+            </p>
+          </div>
+          <Button variant="outline" onClick={() => navigate("/")} className="w-full">
+            Back to Explore
+          </Button>
+        </div>
+      );
+    }
+
     return (
       <div className="px-4 pb-6 space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
         <div className="pt-2 pb-1">
@@ -264,11 +370,13 @@ export default function BookingPage() {
           <p className="text-sm text-muted-foreground">Select from available sessions at {studio.name}</p>
         </div>
 
-        {studioClasses.map((cls) => (
+        {uniqueClasses.map((cls: ApiClass) => (
           <Card
             key={cls.id}
             onClick={() => {
-              setSelectedClass(cls);
+              setSelectedClassId(cls.id);
+              setSelectedDay(0);
+              setSelectedSlot(null);
               setCurrentStep(2);
             }}
             className="cursor-pointer border border-border/60 hover:border-accent-cta/40 hover:shadow-md transition-all duration-200 group"
@@ -277,11 +385,11 @@ export default function BookingPage() {
               <div className="flex items-start justify-between mb-2">
                 <div className="flex-1">
                   <h3 className="font-bold text-foreground group-hover:text-accent-cta transition-colors">
-                    {cls.name}
+                    {cls.title}
                   </h3>
                   <div className="flex items-center gap-1.5 mt-1 text-sm text-muted-foreground">
                     <User className="w-3.5 h-3.5" />
-                    <span>{cls.coach}</span>
+                    <span>{cls.coachName ?? "TBA"}</span>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
@@ -296,15 +404,9 @@ export default function BookingPage() {
                   {cls.duration} min
                 </Badge>
                 <Badge className={`text-[11px] font-semibold px-2 py-0.5 border-none ${levelColor(cls.level)}`}>
-                  {cls.level}
+                  {capitalize(cls.level)}
                 </Badge>
-                <span className="ml-auto text-xs font-semibold text-muted-foreground">
-                  {cls.spotsLeft <= 3 ? (
-                    <span className="text-rose-500 font-bold">{cls.spotsLeft} spots left</span>
-                  ) : (
-                    <>{cls.spotsLeft} spots left</>
-                  )}
-                </span>
+                <span className="ml-auto text-xs font-semibold text-muted-foreground">{cls.maxCapacity} spots</span>
                 <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-accent-cta transition-colors" />
               </div>
             </CardContent>
@@ -315,12 +417,18 @@ export default function BookingPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 2 — Select Time Slot
+  // STEP 2 — Select Time Slot (derived from scheduledAt)
   // ---------------------------------------------------------------------------
   function StepSelectTime() {
     if (!selectedClass) return null;
 
     const currentDaySlots = days[selectedDay]?.slots ?? [];
+
+    // If only one time slot exists, auto-select it
+    const allSlots = days.flatMap((d) => d.slots);
+    if (allSlots.length === 1 && !selectedSlot) {
+      // Will be set on next render after user sees it
+    }
 
     return (
       <div className="px-4 pb-6 space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -331,79 +439,80 @@ export default function BookingPage() {
               <Zap className="w-5 h-5 text-accent-cta" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm text-foreground truncate">{selectedClass.name}</p>
+              <p className="font-bold text-sm text-foreground truncate">{selectedClass.title}</p>
               <p className="text-xs text-muted-foreground">
-                {selectedClass.coach} &middot; {selectedClass.duration} min &middot; {selectedClass.level}
+                {selectedClass.coachName ?? "TBA"} &middot; {selectedClass.duration} min &middot;{" "}
+                {capitalize(selectedClass.level)}
               </p>
             </div>
             <span className="font-black text-foreground text-sm flex-shrink-0">{selectedClass.price} EUR</span>
           </CardContent>
         </Card>
 
-        {/* Day selector tabs */}
-        <div>
-          <h3 className="text-sm font-bold text-foreground mb-2">Select a date</h3>
-          <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-            {days.map((day) => (
-              <button
-                type="button"
-                key={day.index}
-                onClick={() => {
-                  setSelectedDay(day.index);
-                  setSelectedSlot(null);
-                }}
-                className={`flex-shrink-0 flex flex-col items-center px-3.5 py-2 rounded-xl border transition-all duration-200 ${
-                  selectedDay === day.index
-                    ? "bg-accent-cta text-white border-accent-cta shadow-md shadow-accent-cta/25"
-                    : "bg-card border-border/60 hover:border-accent-cta/40"
-                }`}
-              >
-                <span
-                  className={`text-[11px] font-semibold ${selectedDay === day.index ? "text-white/80" : "text-muted-foreground"}`}
-                >
-                  {day.dayLabel}
-                </span>
-                <span
-                  className={`text-xs font-bold mt-0.5 ${selectedDay === day.index ? "text-white" : "text-foreground"}`}
-                >
-                  {day.dateLabel}
-                </span>
-              </button>
-            ))}
+        {days.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-sm text-muted-foreground">No time slots available for this class.</p>
           </div>
-        </div>
-
-        {/* Time grid */}
-        <div>
-          <h3 className="text-sm font-bold text-foreground mb-2">Available times</h3>
-          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-            {currentDaySlots.map((slot) => {
-              const isSelected = selectedSlot?.time === slot.time && selectedSlot?.dateLabel === slot.dateLabel;
-              return (
-                <button
-                  type="button"
-                  key={slot.time}
-                  disabled={slot.isFull}
-                  onClick={() => setSelectedSlot(slot)}
-                  className={`relative px-3 py-2.5 rounded-xl text-sm font-bold border transition-all duration-200 ${
-                    slot.isFull
-                      ? "bg-muted/50 text-muted-foreground/40 border-border/30 cursor-not-allowed"
-                      : isSelected
+        ) : (
+          <>
+            {/* Day selector tabs */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2">Select a date</h3>
+              <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+                {days.map((day) => (
+                  <button
+                    type="button"
+                    key={day.index}
+                    onClick={() => {
+                      setSelectedDay(day.index);
+                      setSelectedSlot(null);
+                    }}
+                    className={`flex-shrink-0 flex flex-col items-center px-3.5 py-2 rounded-xl border transition-all duration-200 ${
+                      selectedDay === day.index
                         ? "bg-accent-cta text-white border-accent-cta shadow-md shadow-accent-cta/25"
-                        : "bg-card border-border/60 text-foreground hover:border-accent-cta/40 hover:shadow-sm"
-                  }`}
-                >
-                  {slot.time}
-                  {slot.isFull && (
-                    <span className="absolute -top-1.5 -right-1.5 text-[9px] bg-muted-foreground/20 text-muted-foreground rounded-full px-1.5 py-0.5 font-bold">
-                      Full
+                        : "bg-card border-border/60 hover:border-accent-cta/40"
+                    }`}
+                  >
+                    <span
+                      className={`text-[11px] font-semibold ${selectedDay === day.index ? "text-white/80" : "text-muted-foreground"}`}
+                    >
+                      {day.dayLabel}
                     </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+                    <span
+                      className={`text-xs font-bold mt-0.5 ${selectedDay === day.index ? "text-white" : "text-foreground"}`}
+                    >
+                      {day.dateLabel}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Time grid */}
+            <div>
+              <h3 className="text-sm font-bold text-foreground mb-2">Available times</h3>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {currentDaySlots.map((slot) => {
+                  const isSelected = selectedSlot?.time === slot.time && selectedSlot?.dateLabel === slot.dateLabel;
+                  return (
+                    <button
+                      type="button"
+                      key={`${slot.dateLabel}-${slot.time}`}
+                      onClick={() => setSelectedSlot(slot)}
+                      className={`relative px-3 py-2.5 rounded-xl text-sm font-bold border transition-all duration-200 ${
+                        isSelected
+                          ? "bg-accent-cta text-white border-accent-cta shadow-md shadow-accent-cta/25"
+                          : "bg-card border-border/60 text-foreground hover:border-accent-cta/40 hover:shadow-sm"
+                      }`}
+                    >
+                      {slot.time}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
+        )}
 
         {/* Continue button */}
         <Button
@@ -418,7 +527,7 @@ export default function BookingPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 3 — Confirm & Pay
+  // STEP 3 — Confirm & Pay (calls real API)
   // ---------------------------------------------------------------------------
   function StepConfirm() {
     if (!selectedClass || !selectedSlot) return null;
@@ -426,14 +535,41 @@ export default function BookingPage() {
     const total = selectedClass.price + SERVICE_FEE;
 
     const handleConfirm = () => {
-      setIsProcessing(true);
-      // Simulate payment processing
-      setTimeout(() => {
-        setIsProcessing(false);
-        setCurrentStep(4);
-        toast.success("Payment processed successfully!");
-        notify.bookingConfirmed(studio.name, selectedSlot!.time);
-      }, 1800);
+      // Step 1: Create payment intent via the payments API
+      bookingPayment.mutate(
+        {
+          studioName: studio.name,
+          className: selectedClass.title,
+          amount: total,
+        },
+        {
+          onSuccess: (paymentResult) => {
+            // Step 2: Payment intent created (or mock success) — now create the booking
+            createBooking.mutate(
+              {
+                classId: selectedSlot.classId,
+                studioId: selectedClass.studioId,
+                timeSlot: selectedSlot.time,
+                paymentIntentId: paymentResult.paymentIntentId,
+              },
+              {
+                onSuccess: (data: any) => {
+                  setBookingResult(data);
+                  setCurrentStep(4);
+                  toast.success("Booking confirmed!");
+                  notify.bookingConfirmed(studio.name, selectedSlot!.time);
+                },
+                onError: (err: any) => {
+                  toast.error(err.message || "Failed to create booking. Please try again.");
+                },
+              },
+            );
+          },
+          onError: (err: any) => {
+            toast.error(err.message || "Payment failed. Please try again.");
+          },
+        },
+      );
     };
 
     return (
@@ -459,9 +595,9 @@ export default function BookingPage() {
                 <Zap className="w-4.5 h-4.5 text-accent-cta" />
               </div>
               <div>
-                <p className="font-bold text-sm text-foreground">{selectedClass.name}</p>
+                <p className="font-bold text-sm text-foreground">{selectedClass.title}</p>
                 <p className="text-xs text-muted-foreground">
-                  {selectedClass.level} &middot; {selectedClass.duration} min
+                  {capitalize(selectedClass.level)} &middot; {selectedClass.duration} min
                 </p>
               </div>
             </div>
@@ -487,7 +623,7 @@ export default function BookingPage() {
                 <User className="w-4 h-4 text-muted-foreground" />
                 <div>
                   <p className="text-xs text-muted-foreground">Coach</p>
-                  <p className="text-sm font-semibold text-foreground">{selectedClass.coach}</p>
+                  <p className="text-sm font-semibold text-foreground">{selectedClass.coachName ?? "TBA"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
@@ -506,7 +642,7 @@ export default function BookingPage() {
           <CardContent className="p-4 space-y-2.5">
             <h3 className="font-bold text-sm text-foreground">Price breakdown</h3>
             <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">{selectedClass.name}</span>
+              <span className="text-muted-foreground">{selectedClass.title}</span>
               <span className="font-semibold text-foreground">{selectedClass.price.toFixed(2)} EUR</span>
             </div>
             <div className="flex justify-between text-sm">
@@ -517,23 +653,6 @@ export default function BookingPage() {
             <div className="flex justify-between text-sm">
               <span className="font-bold text-foreground">Total</span>
               <span className="font-black text-foreground text-base">{total.toFixed(2)} EUR</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment method */}
-        <Card className="border border-border/60">
-          <CardContent className="p-4">
-            <h3 className="font-bold text-sm text-foreground mb-3">Payment method</h3>
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-muted/50 border border-border/40">
-              <div className="w-10 h-7 rounded-md bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
-                <CreditCard className="w-4.5 h-4.5 text-white" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold text-foreground">Visa ending in 4242</p>
-                <p className="text-xs text-muted-foreground">Expires 12/28</p>
-              </div>
-              <Check className="w-4 h-4 text-accent-cta" />
             </div>
           </CardContent>
         </Card>
@@ -550,13 +669,13 @@ export default function BookingPage() {
         {/* Confirm CTA */}
         <Button
           onClick={handleConfirm}
-          disabled={isProcessing}
+          disabled={bookingPayment.isPending || createBooking.isPending}
           className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold h-13 text-sm rounded-xl shadow-lg shadow-accent-cta/25 disabled:opacity-70 transition-all duration-200"
         >
-          {isProcessing ? (
+          {bookingPayment.isPending || createBooking.isPending ? (
             <span className="flex items-center gap-2">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Processing...
+              {bookingPayment.isPending ? "Processing payment..." : "Confirming booking..."}
             </span>
           ) : (
             <>Confirm Booking &mdash; {total.toFixed(2)} EUR</>
@@ -567,10 +686,14 @@ export default function BookingPage() {
   }
 
   // ---------------------------------------------------------------------------
-  // STEP 4 — Booking Confirmed
+  // STEP 4 — Booking Confirmed (shows real booking reference)
   // ---------------------------------------------------------------------------
   function StepConfirmed() {
     if (!selectedClass || !selectedSlot) return null;
+
+    const bookingRef = bookingResult?.id
+      ? `PH-${String(bookingResult.id).padStart(5, "0")}`
+      : `PH-${Date.now().toString(36).toUpperCase().slice(-6)}`;
 
     return (
       <div className="px-4 pb-6 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
@@ -610,7 +733,7 @@ export default function BookingPage() {
             <div className="space-y-2.5">
               <div className="flex items-center gap-2.5">
                 <Zap className="w-4 h-4 text-accent-cta flex-shrink-0" />
-                <span className="text-sm text-foreground font-semibold">{selectedClass.name}</span>
+                <span className="text-sm text-foreground font-semibold">{selectedClass.title}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Calendar className="w-4 h-4 text-accent-cta flex-shrink-0" />
@@ -620,7 +743,7 @@ export default function BookingPage() {
               </div>
               <div className="flex items-center gap-2.5">
                 <User className="w-4 h-4 text-accent-cta flex-shrink-0" />
-                <span className="text-sm text-foreground">{selectedClass.coach}</span>
+                <span className="text-sm text-foreground">{selectedClass.coachName ?? "TBA"}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <Clock className="w-4 h-4 text-accent-cta flex-shrink-0" />
@@ -639,21 +762,31 @@ export default function BookingPage() {
 
         {/* Confirmation reference */}
         <p className="text-xs text-muted-foreground mb-6">
-          Booking ref:{" "}
-          <span className="font-mono font-bold text-foreground">
-            PH-{Date.now().toString(36).toUpperCase().slice(-6)}
-          </span>
+          Booking ref: <span className="font-mono font-bold text-foreground">{bookingRef}</span>
         </p>
 
         {/* Action buttons */}
         <div className="w-full space-y-2.5">
           <Button
             variant="outline"
-            onClick={() => toast.success("Calendar event created (placeholder)")}
+            onClick={() => {
+              const icsContent = generateIcsFile({
+                className: selectedClass.title,
+                studioName: studio.name,
+                studioAddress: studio.address ?? studio.neighborhood ?? "See studio details",
+                startDate: selectedSlot.date,
+                durationMinutes: selectedClass.duration,
+                coachName: selectedClass.coachName,
+                bookingRef,
+              });
+              const safeName = selectedClass.title.replace(/[^a-zA-Z0-9]/g, "-").toLowerCase();
+              downloadIcsFile(icsContent, `pilateshub-${safeName}.ics`);
+              toast.success("Calendar file downloaded!");
+            }}
             className="w-full font-bold h-11 rounded-xl gap-2"
           >
-            <Calendar className="w-4 h-4" />
-            Add to Calendar
+            <Download className="w-4 h-4" />
+            Add to Calendar (.ics)
           </Button>
           <Button
             onClick={() => navigate("/")}
@@ -667,11 +800,53 @@ export default function BookingPage() {
   }
 
   // ---------------------------------------------------------------------------
+  // Smart Directory redirect banner — encourages real booking on studio site
+  // ---------------------------------------------------------------------------
+  const hasWebsite = Boolean(studio.website);
+  const hasPhone = Boolean(studio.phone);
+
+  function SmartDirectoryBanner() {
+    return (
+      <div className="mx-4 mt-3 mb-1 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/80 dark:bg-amber-950/30 p-3">
+        <div className="flex items-start gap-2.5">
+          <FlaskConical className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">Demo Booking Flow</p>
+            <p className="text-[11px] text-amber-700/80 dark:text-amber-400/70 leading-relaxed mb-2">
+              This is a demonstration of in-app booking. To book a real session, use the studio's own booking system.
+            </p>
+            {hasWebsite ? (
+              <a
+                href={studio.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Book on {studio.name}'s website
+              </a>
+            ) : hasPhone ? (
+              <a
+                href={`tel:${studio.phone}`}
+                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-amber-800 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-200 transition-colors"
+              >
+                <Phone className="w-3 h-3" />
+                Call {studio.phone}
+              </a>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   return (
     <div className="min-h-full bg-background">
       <BookingHeader />
+      {currentStep < 4 && <SmartDirectoryBanner />}
       {currentStep === 1 && <StepSelectClass />}
       {currentStep === 2 && <StepSelectTime />}
       {currentStep === 3 && <StepConfirm />}

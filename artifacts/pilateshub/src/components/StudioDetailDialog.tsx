@@ -1,4 +1,4 @@
-import { Pen, Star, ThumbsUp, Trophy } from "lucide-react";
+import { ExternalLink, FlaskConical, Globe, MapPin, Pen, Phone, Star, ThumbsUp, Trophy } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Link, useLocation } from "wouter";
@@ -18,13 +18,16 @@ interface StudioDetailDialogProps {
 }
 
 export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps) {
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [, navigate] = useLocation();
   const [reviewVersion, setReviewVersion] = useState(0);
   const { data: COACHES = [] } = useCoaches();
   const { data: apiReviews = [] } = useStudioReviews(studio.id);
   const { data: apiCheckins = [] } = useStudioCheckins(studio.id);
   const { data: googleReviews = [] } = useGoogleReviews(studio.id);
+
+  const hasWebsite = Boolean(studio.website);
+  const hasPhone = Boolean(studio.phone);
+  const hasAddress = Boolean(studio.address);
 
   // Get reviews for this studio
   const studioReviews = useMemo(
@@ -45,12 +48,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
 
   return (
     <Dialog>
-      <DialogTrigger
-        asChild
-        onClick={() => {
-          setSelectedTime(null);
-        }}
-      >
+      <DialogTrigger asChild>
         {children}
       </DialogTrigger>
       <DialogContent className="max-w-[360px] rounded-2xl p-0 overflow-hidden border-none shadow-xl">
@@ -103,37 +101,113 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
             </div>
           </div>
 
-          <h3 className="font-bold text-sm text-foreground mb-2">Available Today</h3>
-          <div className="flex gap-2 mb-5 flex-wrap">
-            {["09:00", "11:30", "14:00", "17:00", "19:30"].map((time) => (
-              <Badge
-                key={time}
-                variant="outline"
-                onClick={() => setSelectedTime(time)}
-                className={`px-3 py-1 cursor-pointer transition-colors font-medium ${
-                  selectedTime === time
-                    ? "bg-primary text-white border-primary"
-                    : "hover:bg-primary hover:text-white hover:border-primary"
-                }`}
+          {/* External Booking CTA — Smart Directory (Model B) */}
+          {hasWebsite ? (
+            <a
+              href={studio.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full"
+            >
+              <Button
+                className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold shadow-sm gap-2"
+                type="button"
               >
-                {time}
-              </Badge>
-            ))}
-          </div>
+                <ExternalLink className="w-4 h-4" />
+                Book on Their Site
+              </Button>
+            </a>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium text-center">
+                Contact this studio directly to book
+              </p>
+              {hasPhone && (
+                <a href={`tel:${studio.phone}`} className="block w-full">
+                  <Button
+                    className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold shadow-sm gap-2"
+                    type="button"
+                  >
+                    <Phone className="w-4 h-4" />
+                    Call {studio.phone}
+                  </Button>
+                </a>
+              )}
+              {!hasPhone && hasAddress && (
+                <Button
+                  className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold shadow-sm gap-2"
+                  type="button"
+                  onClick={() => {
+                    const q = encodeURIComponent(studio.address || studio.name);
+                    window.open(`https://www.google.com/maps/search/?api=1&query=${q}`, "_blank");
+                  }}
+                >
+                  <MapPin className="w-4 h-4" />
+                  View on Google Maps
+                </Button>
+              )}
+              {!hasPhone && !hasAddress && (
+                <Button
+                  className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold shadow-sm gap-2"
+                  type="button"
+                  disabled
+                >
+                  <Phone className="w-4 h-4" />
+                  Contact Studio
+                </Button>
+              )}
+            </div>
+          )}
 
-          <Button
+          {/* Demo booking link — internal flow for demonstration purposes */}
+          <button
+            type="button"
             onClick={() => navigate(`/booking/${studio.id}`)}
-            className="w-full bg-accent-cta hover:bg-accent-cta/85 text-white font-bold shadow-sm"
+            className="w-full mt-1 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground hover:text-primary font-medium transition-colors py-1"
           >
-            Book a Session
-          </Button>
+            <FlaskConical className="w-3 h-3" />
+            Try Demo Booking Flow
+          </button>
+
+          {/* Contact info row */}
+          {(hasWebsite || hasPhone || hasAddress) && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {hasWebsite && (
+                <a
+                  href={studio.website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 font-medium transition-colors"
+                >
+                  <Globe className="w-3 h-3" />
+                  Website
+                </a>
+              )}
+              {hasPhone && (
+                <a
+                  href={`tel:${studio.phone}`}
+                  className="flex items-center gap-1 text-[11px] text-primary hover:text-primary/80 font-medium transition-colors"
+                >
+                  <Phone className="w-3 h-3" />
+                  {studio.phone}
+                </a>
+              )}
+              {hasAddress && (
+                <span className="flex items-center gap-1 text-[11px] text-muted-foreground font-medium">
+                  <MapPin className="w-3 h-3" />
+                  {studio.address}
+                </span>
+              )}
+            </div>
+          )}
+
           <Button
             type="button"
             variant="outline"
-            onClick={() => toast.success(`Checked in at ${studio.name}! 📍`)}
+            onClick={() => toast.success(`Checked in at ${studio.name}!`)}
             className="w-full mt-2 font-bold text-xs"
           >
-            📍 Check In Here
+            Check In Here
           </Button>
 
           <Separator className="my-4" />

@@ -1,9 +1,9 @@
 import { Router, type IRouter } from "express";
 import { getDatabase } from "../lib/database";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
-// Types (mirrors DB schema – used for mock fallback)
+// Types (mirrors DB schema -- used for mock fallback)
 // ---------------------------------------------------------------------------
 interface PilatesClass {
   id: number;
@@ -196,6 +196,8 @@ const router: IRouter = Router();
 /**
  * GET /api/classes
  * Query params: ?studioId=1&type=reformer
+ *
+ * Returns classes with `spotsLeft` computed from confirmed bookings.
  */
 router.get("/classes", async (req, res) => {
   try {
@@ -241,12 +243,54 @@ router.get("/classes", async (req, res) => {
         query = query.where(eq(schema.classes.type, type)) as typeof query;
       }
 
-      const results = await query;
+      const classes: Array<{
+        id: number;
+        studioId: number;
+        coachId: number | null;
+        title: string;
+        type: string;
+        level: string;
+        description: string | null;
+        duration: number;
+        maxCapacity: number;
+        price: number;
+        scheduledAt: Date;
+        createdAt: Date;
+        studioName: string | null;
+        coachName: string | null;
+      }> = await query;
+
+      // Batch-fetch confirmed booking counts for all returned class IDs
+      const bookingCounts: Map<number, number> = new Map();
+
+      if (classes.length > 0) {
+        const counts = await db
+          .select({
+            classId: schema.bookings.classId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(schema.bookings)
+          .where(eq(schema.bookings.status, "confirmed"))
+          .groupBy(schema.bookings.classId);
+
+        for (const row of counts) {
+          bookingCounts.set(row.classId, row.count);
+        }
+      }
+
+      const results = classes.map((c: typeof classes[number]) => {
+        const confirmed = bookingCounts.get(c.id) ?? 0;
+        return {
+          ...c,
+          spotsLeft: Math.max(0, c.maxCapacity - confirmed),
+        };
+      });
+
       res.json(results);
       return;
     }
 
-    // Fallback to mock data
+    // Fallback to mock data (spotsLeft = maxCapacity for mocks)
     let results = [...mockClasses];
 
     const studioId = req.query["studioId"] as string | undefined;
@@ -264,7 +308,7 @@ router.get("/classes", async (req, res) => {
       results = results.filter((c) => c.type.toLowerCase() === type);
     }
 
-    res.json(results);
+    res.json(results.map((c) => ({ ...c, spotsLeft: c.maxCapacity })));
   } catch (_error) {
     res.status(500).json({ error: "Failed to fetch classes" });
   }
@@ -272,6 +316,8 @@ router.get("/classes", async (req, res) => {
 
 /**
  * GET /api/classes/:id
+ *
+ * Returns a single class with `spotsLeft`.
  */
 router.get("/classes/:id", async (req, res) => {
   const id = Number(req.params["id"]);
@@ -313,7 +359,21 @@ router.get("/classes/:id", async (req, res) => {
         return;
       }
 
-      res.json(cls);
+      // Count confirmed bookings for this class
+      const [{ count: confirmedCount }] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(schema.bookings)
+        .where(
+          and(
+            eq(schema.bookings.classId, id),
+            eq(schema.bookings.status, "confirmed"),
+          ),
+        );
+
+      res.json({
+        ...cls,
+        spotsLeft: Math.max(0, cls.maxCapacity - confirmedCount),
+      });
       return;
     }
 
@@ -324,7 +384,7 @@ router.get("/classes/:id", async (req, res) => {
       return;
     }
 
-    res.json(cls);
+    res.json({ ...cls, spotsLeft: cls.maxCapacity });
   } catch (_error) {
     res.status(500).json({ error: "Failed to fetch class" });
   }

@@ -82,6 +82,8 @@ export function useStudios(
         imageUrl: s.imageUrl ?? "",
         description: s.description ?? "",
         address: s.address ?? "",
+        website: s.website ?? "",
+        phone: s.phone ?? "",
         amenities: s.amenities ?? [],
         neighborhood: s.neighborhood ?? "",
       }));
@@ -189,8 +191,16 @@ export function useBookings() {
 export function useCreateBooking() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: { classId: number; studioId: number; timeSlot: string }) =>
+    mutationFn: (data: { classId: number; studioId: number; timeSlot: string; paymentIntentId?: string }) =>
       apiFetch("/bookings", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["bookings"] }),
+  });
+}
+
+export function useCancelBooking() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (bookingId: number) => apiFetch(`/bookings/${bookingId}`, { method: "DELETE" }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["bookings"] }),
   });
 }

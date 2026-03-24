@@ -46,6 +46,16 @@ vi.mock("@/hooks/use-api", () => ({
   useChallenges: vi.fn(() => ({
     data: [{ id: 1, title: "January Challenge", progress: 3, target: 10, type: "monthly" }],
   })),
+  useBookings: vi.fn(() => ({
+    data: [
+      { id: 1, classId: 1, studioId: 1, status: "confirmed", className: "Reformer Advanced", studioName: "Studio Harmonie", timeSlot: "09:00", bookedAt: "2026-03-25T08:00:00Z", cancelledAt: null },
+    ],
+    isLoading: false,
+  })),
+  useCancelBooking: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
   useWearable: vi.fn(() => ({
     data: { connected: false },
     isLoading: false,

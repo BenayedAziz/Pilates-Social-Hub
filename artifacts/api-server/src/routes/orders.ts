@@ -55,10 +55,11 @@ const router: IRouter = Router();
  * Body: { items, shippingInfo, totalAmount }
  */
 router.post("/orders", optionalAuth, (req, res) => {
-  const { items, shippingInfo, totalAmount } = req.body as {
+  const { items, shippingInfo, totalAmount, paymentIntentId } = req.body as {
     items?: OrderItem[];
     shippingInfo?: ShippingInfo;
     totalAmount?: number;
+    paymentIntentId?: string;
   };
 
   if (!items || items.length === 0) {
@@ -74,7 +75,7 @@ router.post("/orders", optionalAuth, (req, res) => {
     return;
   }
 
-  const order: Order = {
+  const order: Order & { paymentIntentId?: string } = {
     id: generateOrderId(),
     userId: req.user?.userId ?? 1, // fallback to mock user
     items,
@@ -83,6 +84,7 @@ router.post("/orders", optionalAuth, (req, res) => {
     status: "confirmed",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    ...(paymentIntentId ? { paymentIntentId } : {}),
   };
 
   orders.push(order);

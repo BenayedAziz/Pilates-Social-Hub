@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { getDatabase } from "../lib/database";
 import { generateToken, authMiddleware } from "../middleware/auth";
+import { sendWelcomeEmail } from "../lib/email";
 
 // ---------------------------------------------------------------------------
 // Types (mirrors DB schema – used for mock fallback)
@@ -202,6 +203,9 @@ router.post("/auth/signup", async (req, res) => {
         email: newUser.email,
       });
       res.status(201).json({ user: newUser, token });
+
+      // Fire-and-forget: send welcome email
+      sendWelcomeEmail({ to: email, userName: name }).catch(() => {});
       return;
     }
 
@@ -233,6 +237,9 @@ router.post("/auth/signup", async (req, res) => {
 
     const token = generateToken({ userId: user.id, email: user.email });
     res.status(201).json({ user: toSafeUser(user), token });
+
+    // Fire-and-forget: send welcome email
+    sendWelcomeEmail({ to: email, userName: name }).catch(() => {});
   } catch (error) {
     res.status(500).json({ message: "Signup failed" });
   }

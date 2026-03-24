@@ -123,26 +123,32 @@ describe("StudioDetailDialog", () => {
     expect(screen.getByText("Unknown Coach")).toBeInTheDocument();
   });
 
-  it("renders available time slots", () => {
+  it("renders Contact Studio CTA when no website or phone", () => {
     render(
       <StudioDetailDialog studio={mockStudio}>
         <button>Open</button>
       </StudioDetailDialog>,
     );
-    expect(screen.getByText("09:00")).toBeInTheDocument();
-    expect(screen.getByText("11:30")).toBeInTheDocument();
-    expect(screen.getByText("14:00")).toBeInTheDocument();
-    expect(screen.getByText("17:00")).toBeInTheDocument();
-    expect(screen.getByText("19:30")).toBeInTheDocument();
+    expect(screen.getByText("Contact this studio directly to book")).toBeInTheDocument();
   });
 
-  it("renders Book a Session button", () => {
+  it("renders Book on Their Site when studio has website", () => {
+    const studioWithWebsite = { ...mockStudio, website: "https://example.com" };
+    render(
+      <StudioDetailDialog studio={studioWithWebsite}>
+        <button>Open</button>
+      </StudioDetailDialog>,
+    );
+    expect(screen.getByText("Book on Their Site")).toBeInTheDocument();
+  });
+
+  it("renders demo booking link", () => {
     render(
       <StudioDetailDialog studio={mockStudio}>
         <button>Open</button>
       </StudioDetailDialog>,
     );
-    expect(screen.getByText("Book a Session")).toBeInTheDocument();
+    expect(screen.getByText("Try Demo Booking Flow")).toBeInTheDocument();
   });
 
   it("renders Check In button", () => {

@@ -585,41 +585,50 @@ DATA:
   - Unread count: GET /api/messages/unread-count
 
 ================================================================================
---- PAGE: BOOKING (/booking/:studioId) ---
+--- PAGE: BOOKING (/booking/:studioId) — DEMO MODE ---
 ================================================================================
+
+NOTE: PilatesHub uses a "Smart Directory" model (Model B). The primary booking
+action redirects users to the studio's own website or contact info. This internal
+booking page is retained as a DEMO/prototype and is clearly labeled as such.
+
+SMART DIRECTORY BANNER (shown on steps 1-3):
+  - Amber-colored info banner at top of page
+  - FlaskConical icon + "Demo Booking Flow" label
+  - Explanation text: "This is a demonstration of in-app booking"
+  - Deep link to studio's real website (if available) or phone number
+  - Directs users to use the studio's own booking system for real bookings
 
 4-STEP WIZARD with step indicator (Class -> Time -> Confirm -> Done)
 
 STEP 1 — Select Class:
   - Studio name + neighborhood in header
-  - 6 available classes per studio
+  - Real API classes from GET /api/classes?studioId=
   - Per class card: name, coach, price (EUR), duration, level badge (color-coded), spots left
-  - Low spots warning (red when <= 3)
   - Click card -> advances to Step 2
+  - Empty state when no classes scheduled
 
 STEP 2 — Select Time Slot:
   - Selected class summary card
-  - Day selector (horizontal scroll, 7 days: Today, Tomorrow, weekday names)
-  - Time grid (3-col / 5-col, 10 slots per day)
-  - Full slots: disabled with "Full" badge
+  - Day selector (horizontal scroll, derived from scheduledAt dates)
+  - Time grid (3-col / 5-col)
   - Selected slot: accent-cta color
   - "Continue with [time]" button
 
 STEP 3 — Confirm & Pay:
   - Booking summary card: studio image, name, class, date, time, coach, location
   - Price breakdown: class price + service fee (EUR 2.50) = total
-  - Payment method: mock Visa *4242 (12/28)
   - Cancellation policy notice (free cancel 12h before)
   - "Confirm Booking — EUR XX.XX" button
-  - Processing spinner during payment simulation (1.8s)
+  - Processes via payments API + booking creation API
   - Push notification on confirmation (notify.bookingConfirmed)
 
 STEP 4 — Booking Confirmed:
   - Animated checkmark with sparkles
   - "Booking Confirmed!" heading
   - Booking details card: studio, class, date/time, coach, duration, total paid
-  - Booking reference number (PH-XXXXXX)
-  - "Add to Calendar" button -> toast placeholder
+  - Booking reference number (PH-XXXXX)
+  - "Add to Calendar (.ics)" button -> downloads ICS file
   - "Back to Explore" button -> navigates to /
 
 HEADER:
@@ -775,11 +784,17 @@ DIALOGS:
     - Studio image (h-44), name, price badge, rating, reviews, distance
     - Description
     - Coaches list (linked to /coach/:slug if profile exists)
-    - Available time slots (5 slots, selectable)
-    - "Book a Session" button -> navigates to /booking/:studioId
+    - Smart Directory CTA (Model B — primary action):
+      - Studios WITH website: "Book on Their Site" button (ExternalLink icon, opens external URL)
+      - Studios WITH phone (no website): "Call [phone]" button (tel: link)
+      - Studios WITH address only: "View on Google Maps" button (opens Maps search)
+      - Studios with nothing: disabled "Contact Studio" button
+    - Contact info row: website link, phone link, address (shown when available)
+    - "Try Demo Booking Flow" link (FlaskConical icon) -> navigates to /booking/:studioId
     - "Check In Here" button -> toast confirmation
     - Rating summary: average, star distribution bar chart
     - Reviews list with Write Review button
+    - Google Reviews section (from Google Places API, with attribution)
     - Studio Regulars leaderboard (sorted by check-in count, medal badges)
 
   SearchDialog -> global search (triggered from Header)
@@ -956,9 +971,9 @@ STUDIOS:
 CLASSES:
   GET  /api/classes -> PilatesClass[] (supports ?studioId= and ?type=)
 
-BOOKINGS:
-  GET  /api/bookings -> Booking[] (user's bookings)
-  POST /api/bookings -> new Booking (classId, studioId, timeSlot)
+BOOKINGS (demo flow — real booking redirects to studio website):
+  GET  /api/bookings -> Booking[] (user's demo bookings)
+  POST /api/bookings -> new Booking (classId, studioId, timeSlot, paymentIntentId)
 
 FEED:
   GET  /api/feed -> FeedPost[]

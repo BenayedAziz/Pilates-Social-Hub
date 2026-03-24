@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
+import { useOrderPayment } from "@/hooks/use-payments";
 
 // ---------------------------------------------------------------------------
 // Schema
@@ -400,40 +401,30 @@ function PaymentStep({
         </CardContent>
       </Card>
 
-      {/* Payment Method (mock) */}
+      {/* Payment Method */}
       <Card className="border-0 shadow-lg bg-card">
         <CardContent className="p-6">
           <div className="flex items-center gap-2.5 mb-4">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
               <CreditCard className="w-4 h-4 text-primary" />
             </div>
-            <h2 className="text-lg font-bold text-foreground">Payment Method</h2>
+            <h2 className="text-lg font-bold text-foreground">Payment</h2>
           </div>
 
-          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950 text-white p-5 shadow-xl">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/4" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
-            <div className="relative">
-              <div className="flex justify-between items-start mb-8">
-                <div className="w-10 h-7 rounded bg-amber-400/90 flex items-center justify-center">
-                  <div className="w-6 h-4 rounded-sm border border-amber-600/40 bg-amber-300/40" />
-                </div>
-                <span className="text-xs font-bold tracking-widest opacity-70">VISA</span>
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-7 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <Lock className="w-3.5 h-3.5 text-white" />
               </div>
-              <p className="font-mono text-lg tracking-[0.2em] mb-4 opacity-90">
-                &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; &bull;&bull;&bull;&bull; 4242
-              </p>
-              <div className="flex justify-between items-end">
-                <div>
-                  <p className="text-[10px] uppercase tracking-wider opacity-50 mb-0.5">Card Holder</p>
-                  <p className="text-sm font-semibold tracking-wide">EMMA DUBOIS</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-[10px] uppercase tracking-wider opacity-50 mb-0.5">Expires</p>
-                  <p className="text-sm font-semibold">12/27</p>
-                </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-foreground">Secure Payment</p>
+                <p className="text-xs text-muted-foreground">Processed via Stripe</p>
               </div>
             </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Your payment will be securely processed when you place the order. You will not be charged until you
+              confirm.
+            </p>
           </div>
 
           <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
@@ -631,6 +622,8 @@ export default function CheckoutPage() {
   const { cartItems, cartTotal, clearCart } = useApp();
   const { user } = useAuth();
 
+  const orderPayment = useOrderPayment();
+
   const [step, setStep] = useState(0);
   const [shippingData, setShippingData] = useState<ShippingFormData | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -663,11 +656,21 @@ export default function CheckoutPage() {
     // Take snapshot before clearing
     snapshotRef.current = [...cartItems];
 
-    // Simulate payment processing (2 seconds)
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    const orderItems = cartItems.map((i) => ({
+      productId: i.product.id,
+      name: i.product.name,
+      quantity: i.qty,
+      unitPrice: i.product.price,
+    }));
 
-    // Try API call (non-blocking — still works if API is down)
     try {
+      // Step 1: Create payment intent via the payments API
+      const paymentResult = await orderPayment.mutateAsync({
+        items: orderItems.map((i) => ({ name: i.name, quantity: i.quantity })),
+        totalAmount: total,
+      });
+
+      // Step 2: Payment intent created (or mock success) — now create the order
       const token = localStorage.getItem("pilateshub-token");
       await fetch("/api/orders", {
         method: "POST",
@@ -676,27 +679,24 @@ export default function CheckoutPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          items: cartItems.map((i) => ({
-            productId: i.product.id,
-            name: i.product.name,
-            quantity: i.qty,
-            unitPrice: i.product.price,
-          })),
+          items: orderItems,
           shippingInfo: shippingData,
           totalAmount: total,
+          paymentIntentId: paymentResult.paymentIntentId,
         }),
       });
-    } catch {
-      // Non-critical — order confirmation still shown
-    }
 
-    const num = generateOrderNumber();
-    setOrderNumber(num);
-    clearCart();
-    setIsProcessing(false);
-    setStep(2);
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [cartItems, shippingData, total, clearCart]);
+      const num = generateOrderNumber();
+      setOrderNumber(num);
+      clearCart();
+      setStep(2);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (err: any) {
+      toast.error(err?.message || "Payment failed. Please try again.");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [cartItems, shippingData, total, clearCart, orderPayment]);
 
   return (
     <div className="min-h-full bg-background">

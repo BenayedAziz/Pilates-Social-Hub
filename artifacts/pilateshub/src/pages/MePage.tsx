@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Settings, Trophy, Users } from "lucide-react";
+import { CheckCircle2, Clock, Loader2, Settings, Trophy, Users } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { Link } from "wouter";
@@ -12,7 +12,7 @@ import { WearableDashboard } from "@/components/WearableDashboard";
 import { WeeklyRecap } from "@/components/WeeklyRecap";
 import { useApp } from "@/context/AppContext";
 import { useAuth } from "@/context/AuthContext";
-import { useBadges, useChallenges } from "@/hooks/use-api";
+import { useBadges, useBookings, useCancelBooking, useChallenges } from "@/hooks/use-api";
 
 export default function MePage() {
   const { user, logout } = useAuth();
@@ -20,6 +20,12 @@ export default function MePage() {
   const { t } = useTranslation();
   const { data: BADGES = [], isLoading: badgesLoading } = useBadges();
   const { data: CHALLENGES = [] } = useChallenges();
+  const { data: allBookings = [], isLoading: bookingsLoading } = useBookings();
+  const cancelBooking = useCancelBooking();
+
+  // Split bookings into upcoming (confirmed) and past (completed)
+  const upcomingBookings = allBookings.filter((b: any) => b.status === "confirmed");
+  const pastBookings = allBookings.filter((b: any) => b.status === "completed");
 
   if (badgesLoading) return <GenericPageSkeleton />;
 
@@ -175,25 +181,38 @@ export default function MePage() {
             <CardTitle className="text-sm font-bold text-foreground">{t("me.upcomingSessions")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-2 flex flex-col gap-3">
-            {[
-              { date: "Oct 24", studio: "Core & Flow", type: "Advanced Cadillac", time: "09:00" },
-              { date: "Oct 26", studio: "Studio Harmonie", type: "Reformer Flow", time: "17:00" },
-              { date: "Oct 29", studio: "Pilates Lumiere", type: "Mat Pilates", time: "11:30" },
-            ].map((session, i) => (
-              <div key={i} className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl">
-                <div className="bg-primary/10 rounded-lg p-2 text-center min-w-[44px]">
-                  <p className="text-[9px] font-bold text-primary uppercase">{session.date.split(" ")[0]}</p>
-                  <p className="text-base font-bold text-primary">{session.date.split(" ")[1]}</p>
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-foreground leading-tight">{session.type}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {session.studio} &middot; {session.time}
-                  </p>
-                </div>
-                <Clock className="w-4 h-4 text-muted-foreground/40" />
+            {bookingsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
-            ))}
+            ) : upcomingBookings.length === 0 ? (
+              <p className="text-xs text-muted-foreground text-center py-3">No upcoming sessions.</p>
+            ) : (
+              upcomingBookings.map((session: any) => {
+                const bookedDate = session.bookedAt ? new Date(session.bookedAt) : null;
+                const monthLabel = bookedDate
+                  ? bookedDate.toLocaleDateString("en-GB", { month: "short" })
+                  : "";
+                const dayLabel = bookedDate
+                  ? bookedDate.toLocaleDateString("en-GB", { day: "numeric" })
+                  : "";
+                return (
+                  <div key={session.id} className="flex items-center gap-3 p-3 bg-muted/50 rounded-xl">
+                    <div className="bg-primary/10 rounded-lg p-2 text-center min-w-[44px]">
+                      <p className="text-[9px] font-bold text-primary uppercase">{monthLabel}</p>
+                      <p className="text-base font-bold text-primary">{dayLabel}</p>
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-foreground leading-tight">{session.className ?? `Class #${session.classId}`}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {session.studioName ?? `Studio #${session.studioId}`} &middot; {session.timeSlot ?? ""}
+                      </p>
+                    </div>
+                    <Clock className="w-4 h-4 text-muted-foreground/40" />
+                  </div>
+                );
+              })
+            )}
           </CardContent>
         </Card>
 
@@ -203,92 +222,112 @@ export default function MePage() {
             <CardTitle className="text-sm font-bold text-foreground">{t("me.bookings")}</CardTitle>
           </CardHeader>
           <CardContent className="p-4 pt-2 flex flex-col gap-3">
-            {/* Upcoming bookings */}
-            {[
-              {
-                type: "Advanced Cadillac",
-                studio: "Core & Flow",
-                area: "Montmartre",
-                date: "Oct 24",
-                time: "09:00",
-              },
-              {
-                type: "Reformer Flow",
-                studio: "Studio Harmonie",
-                area: "Marais",
-                date: "Oct 26",
-                time: "17:00",
-              },
-              {
-                type: "Mat Pilates",
-                studio: "Pilates Lumiere",
-                area: "Saint-Germain",
-                date: "Oct 29",
-                time: "11:30",
-              },
-            ].map((booking, i) => (
-              <div
-                key={i}
-                className="bg-card p-4 rounded-xl shadow-sm border-l-4 border-l-primary border-y border-r border-border/40"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div>
-                    <Badge className="mb-2 text-primary border-primary/30 bg-primary/5 font-bold text-xs border">
-                      {t("me.upcoming")}
-                    </Badge>
-                    <h4 className="font-bold text-sm text-foreground">{booking.type}</h4>
-                    <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                      {booking.studio} &middot; {booking.area}
-                    </p>
-                  </div>
-                  <div className="bg-muted/50 rounded-lg p-2 text-center min-w-[52px]">
-                    <p className="text-[9px] font-bold text-muted-foreground uppercase">{booking.date.split(" ")[0]}</p>
-                    <p className="text-lg font-bold text-foreground">{booking.date.split(" ")[1]}</p>
-                    <p className="text-[9px] text-muted-foreground/60">{booking.time}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 font-bold h-8 text-xs"
-                    onClick={() => toast.info("Reschedule request sent.")}
-                  >
-                    {t("me.reschedule")}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 text-rose-500 hover:text-rose-600 font-bold h-8 text-xs border-border"
-                    onClick={() => toast.warning("Booking cancelled.")}
-                  >
-                    {t("me.cancel")}
-                  </Button>
-                </div>
+            {bookingsLoading ? (
+              <div className="flex items-center justify-center py-4">
+                <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
               </div>
-            ))}
+            ) : (
+              <>
+                {/* Upcoming bookings */}
+                {upcomingBookings.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-3">No upcoming bookings.</p>
+                ) : (
+                  upcomingBookings.map((booking: any) => {
+                    const bookedDate = booking.bookedAt ? new Date(booking.bookedAt) : null;
+                    const monthLabel = bookedDate
+                      ? bookedDate.toLocaleDateString("en-GB", { month: "short" })
+                      : "";
+                    const dayLabel = bookedDate
+                      ? bookedDate.toLocaleDateString("en-GB", { day: "numeric" })
+                      : "";
+                    return (
+                      <div
+                        key={booking.id}
+                        className="bg-card p-4 rounded-xl shadow-sm border-l-4 border-l-primary border-y border-r border-border/40"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <Badge className="mb-2 text-primary border-primary/30 bg-primary/5 font-bold text-xs border">
+                              {t("me.upcoming")}
+                            </Badge>
+                            <h4 className="font-bold text-sm text-foreground">{booking.className ?? `Class #${booking.classId}`}</h4>
+                            <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                              {booking.studioName ?? `Studio #${booking.studioId}`}
+                            </p>
+                          </div>
+                          <div className="bg-muted/50 rounded-lg p-2 text-center min-w-[52px]">
+                            <p className="text-[9px] font-bold text-muted-foreground uppercase">{monthLabel}</p>
+                            <p className="text-lg font-bold text-foreground">{dayLabel}</p>
+                            <p className="text-[9px] text-muted-foreground/60">{booking.timeSlot ?? ""}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 font-bold h-8 text-xs"
+                            onClick={() => toast.info("Reschedule coming soon.")}
+                          >
+                            {t("me.reschedule")}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 text-rose-500 hover:text-rose-600 font-bold h-8 text-xs border-border"
+                            disabled={cancelBooking.isPending}
+                            onClick={() => {
+                              cancelBooking.mutate(booking.id, {
+                                onSuccess: () => {
+                                  toast.success("Booking cancelled successfully.");
+                                },
+                                onError: (err: any) => {
+                                  toast.error(err.message || "Failed to cancel booking.");
+                                },
+                              });
+                            }}
+                          >
+                            {cancelBooking.isPending ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : (
+                              t("me.cancel")
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
 
-            {/* Past sessions */}
-            <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider mt-2 px-1">
-              {t("me.pastSessions")}
-            </p>
-            {[
-              { type: "Reformer Advanced", studio: "Studio Harmonie", date: "Oct 12", time: "17:00" },
-              { type: "Mat Pilates Core", studio: "Core & Flow", date: "Oct 8", time: "11:30" },
-            ].map((booking, i) => (
-              <div
-                key={i}
-                className="bg-card p-4 rounded-xl shadow-sm border border-border/40 flex items-center gap-3 opacity-60"
-              >
-                <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="font-bold text-sm text-foreground">{booking.type}</p>
-                  <p className="text-xs text-muted-foreground/60 font-medium">
-                    {booking.studio} &middot; {booking.date} &middot; {booking.time}
-                  </p>
-                </div>
-              </div>
-            ))}
+                {/* Past sessions */}
+                {pastBookings.length > 0 && (
+                  <>
+                    <p className="text-xs font-bold text-muted-foreground/60 uppercase tracking-wider mt-2 px-1">
+                      {t("me.pastSessions")}
+                    </p>
+                    {pastBookings.map((booking: any) => {
+                      const bookedDate = booking.bookedAt ? new Date(booking.bookedAt) : null;
+                      const dateLabel = bookedDate
+                        ? bookedDate.toLocaleDateString("en-GB", { month: "short", day: "numeric" })
+                        : "";
+                      return (
+                        <div
+                          key={booking.id}
+                          className="bg-card p-4 rounded-xl shadow-sm border border-border/40 flex items-center gap-3 opacity-60"
+                        >
+                          <CheckCircle2 className="w-5 h-5 text-primary flex-shrink-0" />
+                          <div className="flex-1">
+                            <p className="font-bold text-sm text-foreground">{booking.className ?? `Class #${booking.classId}`}</p>
+                            <p className="text-xs text-muted-foreground/60 font-medium">
+                              {booking.studioName ?? `Studio #${booking.studioId}`} &middot; {dateLabel} &middot; {booking.timeSlot ?? ""}
+                            </p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </>
+            )}
           </CardContent>
         </Card>
 

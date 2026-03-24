@@ -12,6 +12,9 @@ export interface Studio {
   description: string;
   coaches: string[];
   imageUrl: string;
+  address?: string;
+  website?: string;
+  phone?: string;
 }
 
 export interface AppUser {
