@@ -29,11 +29,10 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10 --activate
 
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /root/.local/share/pnpm/store /root/.local/share/pnpm/store
 COPY . .
 
 # Restore workspace-internal node_modules that pnpm hoists
-RUN pnpm install --frozen-lockfile --offline
+RUN pnpm install --frozen-lockfile
 
 # Build the frontend SPA
 ENV PORT=5173
