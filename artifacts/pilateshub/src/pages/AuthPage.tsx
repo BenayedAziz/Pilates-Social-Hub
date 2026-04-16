@@ -85,7 +85,7 @@ export default function AuthPage() {
             <Activity className="w-8 h-8" />
           </div>
           <h1 className="font-studio text-3xl text-foreground" style={{ fontWeight: 600, letterSpacing: "-0.03em" }}>
-            PilatesHub
+            PiHub
           </h1>
           <p className="text-sm text-muted-foreground mt-2 tracking-wide">Move well. Live well.</p>
         </div>

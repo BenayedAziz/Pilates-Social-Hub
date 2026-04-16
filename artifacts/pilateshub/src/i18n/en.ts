@@ -79,7 +79,7 @@ export const en = {
     createAccount: "Create Account",
     loggingIn: "Logging in...",
     creatingAccount: "Creating account...",
-    accountCreated: "Account created! Welcome to PilatesHub.",
+    accountCreated: "Account created! Welcome to PiHub.",
     invalidCredentials: "Invalid email or password",
     accountError: "Could not create account. Please try again.",
     terms: "By continuing, you agree to our Terms & Privacy Policy",

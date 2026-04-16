@@ -346,7 +346,7 @@ export default function MePage() {
           {t("me.logOut")}
         </button>
 
-        <p className="text-center text-[10px] text-muted-foreground/40 font-medium pb-4">PilatesHub v1.0.0</p>
+        <p className="text-center text-[10px] text-muted-foreground/40 font-medium pb-4">PiHub v1.0.0</p>
       </div>
     </div>
   );

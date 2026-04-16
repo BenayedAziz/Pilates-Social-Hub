@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface ApparatusLevel {
   name: string;
-  emoji: string;
   level: "locked" | "beginner" | "intermediate" | "advanced" | "master";
   sessions: number;
   nextAt: number;
@@ -13,7 +12,6 @@ interface ApparatusLevel {
 const APPARATUS_JOURNEY: ApparatusLevel[] = [
   {
     name: "Mat",
-    emoji: "\u{1F9D8}",
     level: "advanced",
     sessions: 28,
     nextAt: 35,
@@ -21,7 +19,6 @@ const APPARATUS_JOURNEY: ApparatusLevel[] = [
   },
   {
     name: "Reformer",
-    emoji: "\u{1F3CB}\u{FE0F}",
     level: "intermediate",
     sessions: 15,
     nextAt: 25,
@@ -29,7 +26,6 @@ const APPARATUS_JOURNEY: ApparatusLevel[] = [
   },
   {
     name: "Tower",
-    emoji: "\u{1F5FC}",
     level: "beginner",
     sessions: 4,
     nextAt: 10,
@@ -37,7 +33,6 @@ const APPARATUS_JOURNEY: ApparatusLevel[] = [
   },
   {
     name: "Cadillac",
-    emoji: "\u{1F6CF}\u{FE0F}",
     level: "locked",
     sessions: 0,
     nextAt: 5,
@@ -45,7 +40,6 @@ const APPARATUS_JOURNEY: ApparatusLevel[] = [
   },
   {
     name: "Chair",
-    emoji: "\u{1FA91}",
     level: "locked",
     sessions: 0,
     nextAt: 5,
@@ -84,7 +78,7 @@ export function JourneyMap() {
     <Card className="border-none shadow-sm">
       <CardHeader className="p-4 pb-2">
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-          {"\u{1F5FA}\u{FE0F}"} Apparatus Journey
+          Apparatus Journey
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 pt-2">
@@ -103,7 +97,7 @@ export function JourneyMap() {
                       isLocked ? "opacity-40" : ""
                     }`}
                   >
-                    {isLocked ? <Lock className="w-3.5 h-3.5 text-muted-foreground/40" /> : apparatus.emoji}
+                    {isLocked ? <Lock className="w-3.5 h-3.5 text-muted-foreground/40" /> : <span className="text-[10px] font-bold">{apparatus.name.slice(0, 2)}</span>}
                   </div>
                   {index < APPARATUS_JOURNEY.length - 1 && (
                     <div className={`w-0.5 h-6 ${isLocked ? "bg-border" : "bg-primary/30"}`} />

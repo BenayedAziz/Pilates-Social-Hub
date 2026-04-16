@@ -21,6 +21,7 @@ interface Studio {
   imageUrl: string | null;
   amenities: string[];
   coaches: string[];
+  tags: string[];
   createdAt: string;
 }
 
@@ -45,6 +46,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Showers", "Lockers", "Towels"],
     coaches: ["Sophie Leclerc", "Julien Moreau"],
+    tags: ["reformer", "beginner", "advanced"],
     createdAt: "2024-01-15T10:00:00Z",
   },
   {
@@ -64,6 +66,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Showers", "Towels", "Cafe"],
     coaches: ["Marie Dubois", "Antoine Petit"],
+    tags: ["reformer", "lagree", "advanced"],
     createdAt: "2024-02-01T10:00:00Z",
   },
   {
@@ -83,6 +86,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Lockers", "Water Station"],
     coaches: ["Camille Bernard", "Lucas Fontaine"],
+    tags: ["mat", "beginner"],
     createdAt: "2024-02-15T10:00:00Z",
   },
   {
@@ -102,6 +106,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Showers", "Lockers", "Parking"],
     coaches: ["Isabelle Dupont", "Marc Rousseau"],
+    tags: ["reformer", "advanced"],
     createdAt: "2024-03-01T10:00:00Z",
   },
   {
@@ -121,6 +126,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Towels", "Tea Bar"],
     coaches: ["Elise Martin", "Pierre Garnier"],
+    tags: ["mat", "beginner"],
     createdAt: "2024-03-15T10:00:00Z",
   },
   {
@@ -140,6 +146,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Lockers", "Water Station"],
     coaches: ["Nathalie Simon", "Florent Legrand"],
+    tags: ["reformer", "lagree", "beginner"],
     createdAt: "2024-04-01T10:00:00Z",
   },
   {
@@ -159,6 +166,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Showers", "Meditation Room", "Towels"],
     coaches: ["Audrey Girard", "Thomas Chevalier"],
+    tags: ["mat", "beginner", "advanced"],
     createdAt: "2024-04-15T10:00:00Z",
   },
   {
@@ -178,6 +186,7 @@ const mockStudios: Studio[] = [
     imageUrl: null,
     amenities: ["Showers", "Lockers", "Towels", "Cafe", "Sauna"],
     coaches: ["Celine Blanc", "Raphael Dumas"],
+    tags: ["reformer", "mat", "advanced"],
     createdAt: "2024-05-01T10:00:00Z",
   },
 ];
@@ -338,18 +347,26 @@ router.get("/studios", async (_req, res) => {
     if (hasBBox) {
       // Bounding-box mode for mock data
       const bboxCenter = { lat: (swLat + neLat) / 2, lng: (swLng + neLng) / 2 };
-      const filtered = results
-        .map((s) => ({
-          ...s,
-          distance: (s.latitude && s.longitude) ? Math.round(haversine(bboxCenter.lat, bboxCenter.lng, s.latitude, s.longitude) * 10) / 10 : 0,
-        }))
+      const withDistance = results.map((s) => ({
+        ...s,
+        distance: (s.latitude && s.longitude) ? Math.round(haversine(bboxCenter.lat, bboxCenter.lng, s.latitude, s.longitude) * 10) / 10 : 0,
+      }));
+      const inBBox = withDistance
         .filter((s) => {
           if (!s.latitude || !s.longitude) return true;
           return insideBBox(s.latitude, s.longitude);
         })
         .sort((a, b) => a.distance - b.distance);
 
-      res.json(filtered);
+      // If no studios in the bbox, return the 4 nearest ones so the map
+      // never appears completely empty after a city search.
+      if (inBBox.length === 0) {
+        const nearest = withDistance.sort((a, b) => a.distance - b.distance).slice(0, 4);
+        res.json(nearest);
+        return;
+      }
+
+      res.json(inBBox);
       return;
     }
 

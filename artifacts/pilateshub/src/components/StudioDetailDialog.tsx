@@ -14,12 +14,14 @@ import { useCoaches, useGoogleReviews, useStudioCheckins, useStudioReviews } fro
 
 interface StudioDetailDialogProps {
   studio: Studio;
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps) {
+export function StudioDetailDialog({ studio, children, open, onOpenChange }: StudioDetailDialogProps) {
   const [, navigate] = useLocation();
-  const [reviewVersion, setReviewVersion] = useState(0);
+  const [pendingReviews, setPendingReviews] = useState<any[]>([]);
   const { data: COACHES = [] } = useCoaches();
   const { data: apiReviews = [] } = useStudioReviews(studio.id);
   const { data: apiCheckins = [] } = useStudioCheckins(studio.id);
@@ -29,11 +31,10 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
   const hasPhone = Boolean(studio.phone);
   const hasAddress = Boolean(studio.address);
 
-  // Get reviews for this studio
+  // Merge pending (locally added) reviews with API reviews
   const studioReviews = useMemo(
-    () => apiReviews,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [apiReviews, reviewVersion],
+    () => [...pendingReviews, ...apiReviews],
+    [pendingReviews, apiReviews],
   );
 
   // Rating summary
@@ -47,17 +48,11 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
   }));
 
   return (
-    <Dialog>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-[360px] rounded-2xl p-0 overflow-hidden border-none shadow-xl">
-        <div className="h-44 relative overflow-hidden">
-          <img src={studio.imageUrl} alt={studio.name} loading="lazy" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-          <div className="absolute bottom-3 left-4">
-            <p className="text-xs text-white/80 font-medium">{studio.neighborhood}</p>
-          </div>
-        </div>
-        <div className="p-5">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+      <DialogContent className="w-[calc(100vw-2rem)] max-w-[520px] md:max-w-2xl rounded-2xl p-0 overflow-hidden border-none shadow-xl max-h-[85vh] flex flex-col">
+        <div className="overflow-y-auto flex-1">
+        <div className="p-5 md:p-6">
           <div className="flex justify-between items-start mb-2">
             <h2 className="text-xl font-bold text-foreground leading-tight">{studio.name}</h2>
           </div>
@@ -244,7 +239,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
             <WriteReviewDialog
               studioName={studio.name}
               studioId={studio.id}
-              onReviewAdded={() => setReviewVersion((v) => v + 1)}
+              onReviewAdded={(review) => setPendingReviews((prev) => [review, ...prev])}
             >
               <Button variant="outline" size="sm" className="h-7 text-xs gap-1 font-semibold">
                 <Pen className="w-3 h-3" /> Write a Review
@@ -439,6 +434,7 @@ export function StudioDetailDialog({ studio, children }: StudioDetailDialogProps
               </>
             );
           })()}
+        </div>
         </div>
       </DialogContent>
     </Dialog>

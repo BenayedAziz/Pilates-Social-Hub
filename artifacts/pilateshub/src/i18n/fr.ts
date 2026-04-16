@@ -79,7 +79,7 @@ export const fr = {
     createAccount: "Creer un compte",
     loggingIn: "Connexion en cours...",
     creatingAccount: "Creation du compte...",
-    accountCreated: "Compte cree ! Bienvenue sur PilatesHub.",
+    accountCreated: "Compte cree ! Bienvenue sur PiHub.",
     invalidCredentials: "Email ou mot de passe invalide",
     accountError: "Impossible de creer le compte. Veuillez reessayer.",
     terms: "En continuant, vous acceptez nos Conditions et Politique de confidentialite",

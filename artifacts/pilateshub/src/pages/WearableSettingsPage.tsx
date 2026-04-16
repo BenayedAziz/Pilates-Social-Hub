@@ -21,31 +21,31 @@ interface Integration {
 const INTEGRATIONS: Integration[] = [
   {
     name: "Whoop",
-    icon: "\u{231A}",
+    icon: "⌚",
     description: "Recovery, strain, HRV, sleep",
     status: "connected",
   },
   {
     name: "Apple Watch",
-    icon: "\u{2328}",
+    icon: "🍎",
     description: "Heart rate, workouts, activity rings",
     status: "available",
   },
   {
     name: "Garmin",
-    icon: "\u{1F3D4}",
+    icon: "🏔️",
     description: "Heart rate, stress, body battery",
     status: "available",
   },
   {
     name: "Oura Ring",
-    icon: "\u{1F48D}",
+    icon: "💍",
     description: "Sleep, readiness, activity",
     status: "coming_soon",
   },
   {
     name: "Fitbit",
-    icon: "\u{1F4F1}",
+    icon: "📱",
     description: "Heart rate, sleep, stress",
     status: "coming_soon",
   },
@@ -260,7 +260,7 @@ export default function WearableSettingsPage() {
           <Card className="border-none shadow-sm">
             <CardHeader className="p-4 pb-0">
               <CardTitle className="text-sm font-bold text-foreground">Permissions</CardTitle>
-              <p className="text-xs text-muted-foreground mt-0.5">Choose which health metrics PilatesHub can access</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Choose which health metrics PiHub can access</p>
             </CardHeader>
             <CardContent className="p-4 pt-2 divide-y divide-border/40">
               <PermissionToggle
@@ -299,7 +299,7 @@ export default function WearableSettingsPage() {
 
         {/* Privacy note */}
         <p className="text-[10px] text-muted-foreground/40 font-medium text-center px-4 pb-4">
-          Your health data is encrypted and never shared with third parties. PilatesHub uses it only to personalize your
+          Your health data is encrypted and never shared with third parties. PiHub uses it only to personalize your
           experience.
         </p>
       </div>

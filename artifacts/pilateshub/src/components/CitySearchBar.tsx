@@ -1,35 +1,43 @@
 import { Loader2, MapPin, Search, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { Studio } from "@/data/types";
 
 interface CityResult {
   display_name: string;
   lat: string;
   lon: string;
   type: string;
-  /** Short label derived from display_name (first 1-2 parts) */
   label: string;
 }
 
+interface SearchResult {
+  kind: "studio" | "city";
+  label: string;
+  sublabel: string;
+  lat: number;
+  lng: number;
+  studio?: Studio;
+}
+
 interface CitySearchBarProps {
-  /** Called when the user selects a city from the dropdown */
   onCitySelect: (lat: number, lng: number, label: string) => void;
+  /** Studios already loaded on the map — searched locally (no API call) */
+  studios?: Studio[];
 }
 
 /**
- * Auto-complete search bar for cities.
- * Uses OpenStreetMap Nominatim for free geocoding (no API key).
+ * Search bar that finds both studios (from loaded map data) and cities (via Nominatim).
  */
-export function CitySearchBar({ onCitySelect }: CitySearchBarProps) {
+export function CitySearchBar({ onCitySelect, studios = [] }: CitySearchBarProps) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<CityResult[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
-  const [activeCity, setActiveCity] = useState<string | null>(null);
+  const [activeLabel, setActiveLabel] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  // Debounced search against Nominatim
   useEffect(() => {
     if (query.length < 2) {
       setResults([]);
@@ -37,61 +45,83 @@ export function CitySearchBar({ onCitySelect }: CitySearchBarProps) {
       return;
     }
 
+    const q = query.toLowerCase();
+
+    // 1. Search studios locally (instant)
+    const studioResults: SearchResult[] = studios
+      .filter(
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.neighborhood?.toLowerCase().includes(q),
+      )
+      .slice(0, 4)
+      .map((s) => ({
+        kind: "studio",
+        label: s.name,
+        sublabel: s.neighborhood ?? "",
+        lat: s.lat,
+        lng: s.lng,
+        studio: s,
+      }));
+
+    // Show studio results immediately
+    if (studioResults.length > 0) {
+      setResults(studioResults);
+      setOpen(true);
+    }
+
+    // 2. Also search Nominatim for cities (async)
     const timer = setTimeout(async () => {
-      // Cancel any in-flight request
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
-
       setLoading(true);
       try {
         const params = new URLSearchParams({
           q: query,
           format: "json",
-          limit: "5",
+          limit: "3",
           addressdetails: "1",
-          // Bias toward populated places
           featuretype: "city",
         });
         const res = await fetch(
           `https://nominatim.openstreetmap.org/search?${params}`,
-          {
-            signal: controller.signal,
-            headers: { "Accept-Language": "en" },
-          },
+          { signal: controller.signal, headers: { "Accept-Language": "fr" } },
         );
-        if (!res.ok) throw new Error("Nominatim request failed");
+        if (!res.ok) throw new Error();
         const data = await res.json();
-
-        const mapped: CityResult[] = data.map((item: any) => {
-          // Build a short label: city/town, country
+        const cityResults: SearchResult[] = data.map((item: any) => {
           const parts = item.display_name.split(",").map((s: string) => s.trim());
           const label = parts.length >= 2 ? `${parts[0]}, ${parts[parts.length - 1]}` : parts[0];
           return {
-            display_name: item.display_name,
-            lat: item.lat,
-            lon: item.lon,
-            type: item.type,
+            kind: "city" as const,
             label,
+            sublabel: item.display_name,
+            lat: parseFloat(item.lat),
+            lng: parseFloat(item.lon),
           };
         });
 
-        setResults(mapped);
-        setOpen(mapped.length > 0);
-      } catch (err: any) {
-        if (err.name !== "AbortError") {
-          setResults([]);
-          setOpen(false);
-        }
+        // Merge: studios first, then cities (deduped)
+        const merged = [
+          ...studioResults,
+          ...cityResults.filter(
+            (c) => !studioResults.some((s) => s.label.toLowerCase() === c.label.toLowerCase()),
+          ),
+        ];
+        setResults(merged);
+        setOpen(merged.length > 0);
+      } catch {
+        // keep studio results visible even if Nominatim fails
       } finally {
         setLoading(false);
       }
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [query, studios]);
 
-  // Close dropdown when clicking outside
+  // Close on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -103,12 +133,12 @@ export function CitySearchBar({ onCitySelect }: CitySearchBarProps) {
   }, []);
 
   const handleSelect = useCallback(
-    (result: CityResult) => {
+    (result: SearchResult) => {
       setQuery("");
       setResults([]);
       setOpen(false);
-      setActiveCity(result.label);
-      onCitySelect(parseFloat(result.lat), parseFloat(result.lon), result.label);
+      setActiveLabel(result.label);
+      onCitySelect(result.lat, result.lng, result.label);
       inputRef.current?.blur();
     },
     [onCitySelect],
@@ -118,7 +148,7 @@ export function CitySearchBar({ onCitySelect }: CitySearchBarProps) {
     setQuery("");
     setResults([]);
     setOpen(false);
-    setActiveCity(null);
+    setActiveLabel(null);
     inputRef.current?.focus();
   }, []);
 
@@ -147,15 +177,15 @@ export function CitySearchBar({ onCitySelect }: CitySearchBarProps) {
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
           onKeyDown={handleKeyDown}
-          placeholder={activeCity || "Search city..."}
-          aria-label="Search for a city"
+          placeholder={activeLabel || "Studio ou ville..."}
+          aria-label="Rechercher un studio ou une ville"
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 min-w-0"
         />
         {loading && <Loader2 className="w-4 h-4 text-muted-foreground/60 animate-spin flex-shrink-0" />}
-        {(query || activeCity) && !loading && (
+        {(query || activeLabel) && !loading && (
           <button
             type="button"
-            aria-label="Clear search"
+            aria-label="Effacer"
             onClick={handleClear}
             className="p-0.5 text-muted-foreground/60 hover:text-foreground transition-colors flex-shrink-0"
           >
@@ -164,21 +194,27 @@ export function CitySearchBar({ onCitySelect }: CitySearchBarProps) {
         )}
       </div>
 
-      {/* Dropdown results */}
       {open && results.length > 0 && (
         <div className="absolute top-full left-0 right-0 mt-1 bg-card/95 backdrop-blur-md rounded-xl shadow-xl border border-border/40 overflow-hidden z-[1100]">
           {results.map((result, idx) => (
             <button
-              key={`${result.lat}-${result.lon}-${idx}`}
+              key={`${result.kind}-${result.lat}-${result.lng}-${idx}`}
               type="button"
               onClick={() => handleSelect(result)}
               className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-muted/50 transition-colors"
             >
-              <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+              <MapPin className={`w-4 h-4 flex-shrink-0 ${result.kind === "studio" ? "text-primary" : "text-muted-foreground/60"}`} />
               <div className="min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">{result.label}</p>
-                <p className="text-[11px] text-muted-foreground/60 truncate">{result.display_name}</p>
+                <p className="text-[11px] text-muted-foreground/60 truncate">
+                  {result.kind === "studio" ? result.sublabel : result.sublabel.split(",").slice(0, 3).join(",")}
+                </p>
               </div>
+              {result.kind === "studio" && (
+                <span className="ml-auto text-[10px] font-bold text-primary/70 bg-primary/10 rounded-full px-2 py-0.5 flex-shrink-0">
+                  Studio
+                </span>
+              )}
             </button>
           ))}
         </div>

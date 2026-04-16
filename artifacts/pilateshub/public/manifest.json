@@ -1,6 +1,6 @@
 {
-  "name": "PilatesHub",
-  "short_name": "PilatesHub",
+  "name": "PiHub",
+  "short_name": "PiHub",
   "description": "The Hub of Pilates — Studio Discovery, Social Community, Marketplace",
   "start_url": "/",
   "display": "standalone",

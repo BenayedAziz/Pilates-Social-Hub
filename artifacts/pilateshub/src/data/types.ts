@@ -15,6 +15,7 @@ export interface Studio {
   address?: string;
   website?: string;
   phone?: string;
+  tags?: string[];
 }
 
 export interface AppUser {

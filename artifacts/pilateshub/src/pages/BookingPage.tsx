@@ -59,7 +59,7 @@ function generateIcsFile(params: {
     `Duration: ${durationMinutes} minutes`,
     `Booking ref: ${bookingRef}`,
     "",
-    "Booked via PilatesHub - https://pilateshub.com",
+    "Booked via PiHub - https://pilateshub.com",
   ]
     .filter(Boolean)
     .join("\\n");
@@ -67,7 +67,7 @@ function generateIcsFile(params: {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//PilatesHub//Booking//EN",
+    "PRODID:-//PiHub//Booking//EN",
     "CALSCALE:GREGORIAN",
     "METHOD:PUBLISH",
     "BEGIN:VEVENT",

@@ -7,31 +7,28 @@ const ONBOARDED_KEY = "pilateshub-onboarded";
 const EXPERIENCE_LEVELS = [
   {
     id: "beginner",
-    emoji: "\u{1F331}",
     label: "Beginner",
     description: "New to Pilates or just getting started",
   },
   {
     id: "intermediate",
-    emoji: "\u{1F4AA}",
     label: "Intermediate",
     description: "Comfortable with the basics, ready for more",
   },
   {
     id: "advanced",
-    emoji: "\u{1F525}",
     label: "Advanced",
     description: "Experienced practitioner seeking challenge",
   },
 ] as const;
 
 const APPARATUS_OPTIONS = [
-  { id: "mat", emoji: "\u{1F9D8}", label: "Mat" },
-  { id: "reformer", emoji: "\u{1F3CB}\uFE0F", label: "Reformer" },
-  { id: "tower", emoji: "\u{1F5FC}", label: "Tower" },
-  { id: "cadillac", emoji: "\u{1F6CF}\uFE0F", label: "Cadillac" },
-  { id: "chair", emoji: "\u{1FA91}", label: "Chair" },
-  { id: "barre", emoji: "\u{1F483}", label: "Barre" },
+  { id: "mat", label: "Mat" },
+  { id: "reformer", label: "Reformer" },
+  { id: "tower", label: "Tower" },
+  { id: "cadillac", label: "Cadillac" },
+  { id: "chair", label: "Chair" },
+  { id: "barre", label: "Barre" },
 ] as const;
 
 const GOAL_OPTIONS = [
@@ -178,7 +175,7 @@ function WelcomeScreen({ onNext }: { onNext: () => void }) {
       </div>
 
       <h1 className="font-studio text-3xl text-foreground mb-3" style={{ fontWeight: 600, letterSpacing: "-0.03em" }}>
-        Welcome to PilatesHub
+        Welcome to PiHub
       </h1>
       <p className="text-muted-foreground text-base mb-10 leading-relaxed max-w-xs mx-auto">
         Let's personalize your experience so you get the most out of every session.
@@ -234,7 +231,6 @@ function ExperienceLevelScreen({
                   : "border-border/50 bg-card hover:border-primary/30 hover:shadow-sm"
               }`}
             >
-              <span className="text-3xl flex-shrink-0">{level.emoji}</span>
               <div className="flex-1 min-w-0">
                 <p className={`font-semibold text-sm ${isSelected ? "text-primary" : "text-foreground"}`}>
                   {level.label}
@@ -305,7 +301,6 @@ function ApparatusScreen({
                   <Check className="w-3 h-3 text-primary-foreground" />
                 </div>
               )}
-              <span className="text-3xl">{item.emoji}</span>
               <span className={`text-xs font-semibold ${isSelected ? "text-primary" : "text-foreground"}`}>
                 {item.label}
               </span>

@@ -15,7 +15,7 @@ export function NotificationSettings() {
     if (granted) {
       toast.success("Notifications enabled!");
       // Send a test notification
-      notify.kudosReceived("PilatesHub");
+      notify.kudosReceived("PiHub");
     } else {
       toast.error("Notifications blocked. Enable them in browser settings.");
     }

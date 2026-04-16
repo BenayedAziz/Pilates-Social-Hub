@@ -9,12 +9,12 @@ import { useApp } from "@/context/AppContext";
 import { useProducts } from "@/hooks/use-api";
 
 const CATEGORIES = [
-  { key: "All", labelKey: "shop.all", emoji: "" },
-  { key: "Habitat", labelKey: "shop.habitat", emoji: "\u{1F3E0}" },
-  { key: "Machines", labelKey: "shop.machines", emoji: "\u{1F3CB}\uFE0F" },
-  { key: "Apparel", labelKey: "shop.apparel", emoji: "\u{1F457}" },
-  { key: "Accessoires", labelKey: "shop.accessories", emoji: "\u{1F9D8}" },
-  { key: "Goodies", labelKey: "shop.goodies", emoji: "\u{1F381}" },
+  { key: "All", labelKey: "shop.all" },
+  { key: "Habitat", labelKey: "shop.habitat" },
+  { key: "Machines", labelKey: "shop.machines" },
+  { key: "Apparel", labelKey: "shop.apparel" },
+  { key: "Accessoires", labelKey: "shop.accessories" },
+  { key: "Goodies", labelKey: "shop.goodies" },
 ];
 
 const BADGE_COLORS: Record<string, string> = {
@@ -54,7 +54,6 @@ export default function StorePage() {
               className={`px-4 py-1.5 rounded-full whitespace-nowrap text-sm font-semibold transition-all duration-200 flex-shrink-0 border
                 ${activeCategory === cat.key ? "bg-primary text-primary-foreground border-primary shadow-sm" : "bg-muted/60 text-muted-foreground border-border/40 hover:bg-muted hover:text-foreground"}`}
             >
-              {cat.emoji ? `${cat.emoji} ` : ""}
               {t(cat.labelKey)} ({getCategoryCount(cat.key)})
             </button>
           ))}

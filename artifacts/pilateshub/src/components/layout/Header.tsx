@@ -44,7 +44,7 @@ export function Header() {
             <Activity className="w-4 h-4" />
           </div>
           <h1 className="font-studio text-lg text-foreground" style={{ fontWeight: 600, letterSpacing: "-0.02em" }}>
-            PilatesHub
+            PiHub
           </h1>
         </div>
       </Link>

@@ -20,9 +20,9 @@ const profileSchema = z.object({
 type ProfileFormData = z.infer<typeof profileSchema>;
 
 const LEVELS = [
-  { value: "Beginner" as const, label: "Beginner", emoji: "\uD83C\uDF31" },
-  { value: "Intermediate" as const, label: "Intermediate", emoji: "\uD83D\uDCAA" },
-  { value: "Advanced" as const, label: "Advanced", emoji: "\uD83D\uDD25" },
+  { value: "Beginner" as const, label: "Beginner" },
+  { value: "Intermediate" as const, label: "Intermediate" },
+  { value: "Advanced" as const, label: "Advanced" },
 ];
 
 export default function EditProfilePage() {
@@ -184,7 +184,6 @@ export default function EditProfilePage() {
                   onClick={() => setValue("level", level.value, { shouldDirty: true })}
                 >
                   <CardContent className="p-3 flex flex-col items-center gap-1.5 text-center">
-                    <span className="text-2xl">{level.emoji}</span>
                     <span className={`text-xs font-bold ${isSelected ? "text-primary" : "text-muted-foreground"}`}>
                       {level.label}
                     </span>

@@ -85,6 +85,7 @@ export function useStudios(
         website: s.website ?? "",
         phone: s.phone ?? "",
         amenities: s.amenities ?? [],
+        tags: s.tags ?? [],
         neighborhood: s.neighborhood ?? "",
       }));
     },

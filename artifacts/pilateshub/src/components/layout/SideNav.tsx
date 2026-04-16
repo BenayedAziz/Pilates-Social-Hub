@@ -46,7 +46,7 @@ export function SideNav() {
           <Activity className="w-4 h-4" />
         </div>
         <span className="font-studio text-lg text-foreground" style={{ fontWeight: 600, letterSpacing: "-0.02em" }}>
-          PilatesHub
+          PiHub
         </span>
       </div>
 
