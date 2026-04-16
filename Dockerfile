@@ -51,6 +51,9 @@ WORKDIR /app
 # Copy the bundled API server
 COPY --from=builder /app/artifacts/api-server/dist ./api
 
+# Copy database migrations
+COPY --from=builder /app/lib/db/drizzle ./api/drizzle
+
 # Copy the built frontend assets (served by Express in production)
 COPY --from=builder /app/artifacts/pilateshub/dist/public ./public
 

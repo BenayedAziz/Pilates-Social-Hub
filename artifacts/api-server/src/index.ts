@@ -2,6 +2,7 @@ import http from "http";
 import app from "./app";
 import { setupWebSocket } from "./lib/websocket";
 import { logger } from "./lib/logger";
+import { runMigrations } from "./lib/migrate";
 
 const rawPort = process.env["PORT"];
 
@@ -21,6 +22,11 @@ const server = http.createServer(app);
 
 setupWebSocket(server);
 
-server.listen(port, "0.0.0.0", () => {
-  logger.info({ port }, "Server listening");
+runMigrations().then(() => {
+  server.listen(port, "0.0.0.0", () => {
+    logger.info({ port }, "Server listening");
+  });
+}).catch((err) => {
+  logger.error({ err }, "Failed to run migrations");
+  process.exit(1);
 });
